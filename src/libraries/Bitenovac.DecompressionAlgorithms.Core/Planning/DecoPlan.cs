@@ -138,7 +138,7 @@ public sealed class DecoPlan
     /// Gets the accrued central nervous system oxygen toxicity.
     /// </summary>
     /// <value>
-    /// The accrued exposure, as a fraction of the single-exposure limit.
+    /// The exposure on surfacing, as a fraction of the single-exposure limit.
     /// </value>
     public double CentralNervousSystemFraction { get; }
 
@@ -146,7 +146,7 @@ public sealed class DecoPlan
     /// Gets the accrued pulmonary oxygen toxicity.
     /// </summary>
     /// <value>
-    /// The accrued exposure, in oxygen tolerance units.
+    /// The exposure on surfacing, in oxygen tolerance units.
     /// </value>
     public double OxygenToleranceUnits { get; }
 

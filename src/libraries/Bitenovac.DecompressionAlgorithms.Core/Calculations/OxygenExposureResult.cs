@@ -11,6 +11,11 @@
 public sealed class OxygenExposureResult
 {
     /// <summary>
+    /// Gets the default exposure
+    /// </summary>
+    public static OxygenExposureResult None { get; } = new(0.0, 0.0);
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="OxygenExposureResult"/> class.
     /// </summary>
     /// <param name="centralNervousSystemFraction">

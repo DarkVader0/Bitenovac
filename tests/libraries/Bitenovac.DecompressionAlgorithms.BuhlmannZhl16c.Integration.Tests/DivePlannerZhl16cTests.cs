@@ -1,5 +1,6 @@
 using Bitenovac.DecompressionAlgorithms.BuhlmannZhl16c;
 using Bitenovac.DecompressionAlgorithms.Core;
+using Bitenovac.DecompressionAlgorithms.Core.Calculations;
 using Bitenovac.DecompressionAlgorithms.Core.Planning;
 
 namespace Bitenovac.DecompressionAlgorithms.Zhl16c.Integration.Tests;
@@ -97,7 +98,29 @@ public sealed class DivePlannerZhl16cTests
         // Assert
         Assert.True(TotalStopTime(repetitivePlan) > TotalStopTime(firstPlan));
     }
+    
+    [Fact]
+    public void CreatePlan_ShouldCarryTheFirstDivesOxygenExposure_WhenDiveIsRepetitive()
+    {
+        // Arrange
+        var nitrox50 = GasMixture.FromPercent(50, 0);
+        var cylinders = new[] { TestFactory.CreateCylinder(), TestFactory.CreateCylinder(nitrox50) };
+        var profile = TestFactory.CreateProfile((40, 20));
+        var settings = TestFactory.CreateSettings();
+        var priorDive = new PriorDive(profile, cylinders, settings, TimeSpan.FromMinutes(45), GasMixture.Air);
+        var firstPlan = Plan(new DivePlanRequest(profile, cylinders, settings));
 
+        // Act
+        var repetitivePlan = Plan(new DivePlanRequest(profile, cylinders, settings, [priorDive]));
+
+        // Assert
+        var ownExposure = OxygenExposure.Calculate(repetitivePlan.ExpandedSegments, settings);
+        Assert.Equal(firstPlan.CentralNervousSystemFraction * Math.Pow(0.5, 45.0 / 90) + ownExposure.CentralNervousSystemFraction,
+            repetitivePlan.CentralNervousSystemFraction, Precision);
+        Assert.Equal(firstPlan.OxygenToleranceUnits + ownExposure.OxygenToleranceUnits,
+            repetitivePlan.OxygenToleranceUnits, Precision);
+    }
+    
     [Fact]
     public void CreatePlan_ShouldBeDeterministic_WhenRunTwiceFromIdenticalInputs()
     {

@@ -83,4 +83,17 @@ public sealed class OxygenExposureResultTests
         // Assert
         Assert.Throws<ArgumentOutOfRangeException>(act);
     }
+
+    [Fact]
+    public void None_ShouldHoldNoExposure_WhenRead()
+    {
+        // Arrange
+
+        // Act
+        var result = OxygenExposureResult.None;
+
+        // Assert
+        Assert.Equal(0, result.CentralNervousSystemFraction, Precision);
+        Assert.Equal(0, result.OxygenToleranceUnits, Precision);
+    }
 }

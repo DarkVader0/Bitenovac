@@ -17,6 +17,11 @@ namespace Bitenovac.DecompressionAlgorithms.Core.Calculations;
 public static class OxygenExposure
 {
     /// <summary>
+    /// The time in which half of the central nervous system toxicity is eliminated at the surface.
+    /// </summary>
+    private static readonly TimeSpan CentralNervousSystemHalfTime = TimeSpan.FromMinutes(90);
+
+    /// <summary>
     /// Computes the total oxygen toxicity accrued over the specified expanded dive profile.
     /// </summary>
     /// <param name="segments">The fully expanded, ordered, depth-contiguous dive segments.</param>
@@ -33,13 +38,32 @@ public static class OxygenExposure
     /// </remarks>
     public static OxygenExposureResult Calculate(
         IReadOnlyList<DiveSegment> segments,
-        DivePlanSettings settings)
+        DivePlanSettings settings) =>
+        Calculate(segments, settings, OxygenExposureResult.None);
+
+    /// <summary>
+    /// Computes the total oxygen toxicity at the end of the specified expanded dive profile, starting
+    /// from the exposure carried into the dive.
+    /// </summary>
+    /// <param name="segments">The fully expanded, ordered, depth-contiguous dive segments.</param>
+    /// <param name="settings">The settings that supply the surface pressure and salinity.</param>
+    /// <param name="carried">The exposure remaining from earlier dives when this dive begins.</param>
+    /// <returns>The carried exposure plus that accrued over the segments.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="segments"/>, <paramref name="settings"/>, or <paramref name="carried"/> is
+    /// <see langword="null"/>.
+    /// </exception>
+    public static OxygenExposureResult Calculate(
+        IReadOnlyList<DiveSegment> segments,
+        DivePlanSettings settings,
+        OxygenExposureResult carried)
     {
         ArgumentNullException.ThrowIfNull(segments);
         ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(carried);
 
-        var cnsPercent = 0.0;
-        var otu = 0.0;
+        var cnsPercent = carried.CentralNervousSystemFraction * 100.0;
+        var otu = carried.OxygenToleranceUnits;
 
         var previousDepthMeter = 0.0;
 
@@ -58,6 +82,27 @@ public static class OxygenExposure
         var cnsFraction = cnsPercent / 100.0;
 
         return new OxygenExposureResult(cnsFraction, otu);
+    }
+
+    /// <summary>
+    /// Returns the exposure remaining after a surface interval.
+    /// </summary>
+    /// <param name="exposure">The exposure on surfacing.</param>
+    /// <param name="surfaceInterval">The time spent at the surface.</param>
+    /// <returns>The exposure at the end of the surface interval.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="exposure"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="surfaceInterval"/> is negative.</exception>
+    /// <remarks>
+    /// Oxygen tolerance units do not recover within a series of dives: the pulmonary daily and
+    /// multi-day limits apply to their total.
+    /// </remarks>
+    public static OxygenExposureResult AfterSurfaceInterval(OxygenExposureResult exposure, TimeSpan surfaceInterval)
+    {
+        ArgumentNullException.ThrowIfNull(exposure);
+        ArgumentOutOfRangeException.ThrowIfLessThan(surfaceInterval, TimeSpan.Zero);
+
+        var remaining = Math.Pow(0.5, surfaceInterval / CentralNervousSystemHalfTime);
+        return new OxygenExposureResult(exposure.CentralNervousSystemFraction * remaining, exposure.OxygenToleranceUnits);
     }
 
     /// <summary>

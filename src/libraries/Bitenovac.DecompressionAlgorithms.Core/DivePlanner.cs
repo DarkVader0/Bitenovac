@@ -56,8 +56,57 @@ public sealed class DivePlanner
         var settings = request.Settings;
         var cylinders = request.Cylinders;
 
-        var segments = new List<DiveSegment>();
+        var carried = CarriedOxygenExposure(request.PriorDives);
         var violations = new List<AscentViolation>();
+        var segments = BuildDive(request, violations);
+
+        var gasUsage = GasConsumption.Calculate(segments, cylinders, settings);
+        var reserve = ReserveGas.Calculate(segments, cylinders, settings);
+        var oxygen = OxygenExposure.Calculate(segments, settings, carried);
+        var runtime = TotalRuntime(segments);
+
+        return new DecoPlan(segments, gasUsage, runtime, reserve,
+            oxygen.CentralNervousSystemFraction, oxygen.OxygenToleranceUnits, violations);
+    }
+    
+    /// <summary>
+    /// Returns the oxygen exposure remaining from the prior dives when the planned dive begins.
+    /// </summary>
+    /// <param name="priorDives">The prior dives, in the order they were made.</param>
+    /// <returns>The exposure carried into the planned dive.</returns>
+    /// <remarks>
+    /// Each prior dive is planned again, on top of the dives before it, because its exposure
+    /// depends on the final ascent the model generates for it.
+    /// </remarks>
+    private OxygenExposureResult CarriedOxygenExposure(IReadOnlyList<PriorDive> priorDives)
+    {
+        var carried = OxygenExposureResult.None;
+
+        for (var i = 0; i < priorDives.Count; i++)
+        {
+            var prior = priorDives[i];
+            var request = new DivePlanRequest(prior.Profile, prior.Cylinders, prior.Settings, priorDives.Take(i));
+            var segments = BuildDive(request, []);
+            var onSurfacing = OxygenExposure.Calculate(segments, prior.Settings, carried);
+            carried = OxygenExposure.AfterSurfaceInterval(onSurfacing, prior.SurfaceInterval);
+        }
+
+        return carried;
+    }
+
+    /// <summary>
+    /// Builds the complete profile of a dive: the working phase walked level by level and the
+    /// model's final ascent.
+    /// </summary>
+    /// <param name="request">The planning request supplying the profile, cylinders, and settings.</param>
+    /// <param name="violations">The list that every inter-level ascent breaching the ceiling is added to.</param>
+    /// <returns>The expanded segments, in order.</returns>
+    private List<DiveSegment> BuildDive(DivePlanRequest request, List<AscentViolation> violations)
+    {
+        var settings = request.Settings;
+        var cylinders = request.Cylinders;
+
+        var segments = new List<DiveSegment>();
 
         var state = _algorithm.BeginDive(request);
         var currentDepthMeter = 0.0;
@@ -108,14 +157,7 @@ public sealed class DivePlanner
 
         var finalAscent = _algorithm.CalculateFinalAscent(state, request);
         segments.AddRange(finalAscent);
-
-        var gasUsage = GasConsumption.Calculate(segments, cylinders, settings);
-        var reserve = ReserveGas.Calculate(segments, cylinders, settings);
-        var oxygen = OxygenExposure.Calculate(segments, settings);
-        var runtime = TotalRuntime(segments);
-
-        return new DecoPlan(segments, gasUsage, runtime, reserve,
-            oxygen.CentralNervousSystemFraction, oxygen.OxygenToleranceUnits, violations);
+        return segments;
     }
 
     /// <summary>
