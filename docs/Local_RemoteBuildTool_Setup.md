@@ -74,7 +74,7 @@ sudo bash runner/setup-runner.sh --token <TOKEN> --instances 2 --cpus 6 --memory
 Takes a few minutes. It must end with:
 
 ```
-Promoted 38 entries into main.
+Promoted 30 entries into main.
   ok    main is warm
 ==> Ready
 ```
@@ -170,7 +170,7 @@ git pull
 sudo bash runner/seed-cache.sh
 ```
 
-It must end with `Promoted 38 entries into main.`
+It must end with `Promoted 30 entries into main.`
 
 ---
 
