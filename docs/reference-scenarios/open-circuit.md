@@ -212,19 +212,21 @@ Descent to 33 m: 2.75 min at the reduced rate. Travel 33 → 21 m generated.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 51.749999996666666
+Valid: True, total runtime: 54.749999996666666
 
 Descent       33 m     3 min     3 min  NX32
 Bottom        33 m    20 min    23 min  NX32
 Ascent        21 m     1 min    24 min  NX32
 Bottom        21 m    20 min    44 min  NX32
-Ascent         0 m     8 min    52 min  NX50
+Ascent         3 m     5 min    49 min  NX50
+Stop           3 m     3 min    52 min  NX50
+Ascent         0 m     3 min    55 min  NX50
 
-CNS: 22.48 %
-OTU: 59.01
+CNS: 22.96 %
+OTU: 60.12
 
 Cylinder NX32: used 3034.19 L, end pressure 29.72 bar
-Cylinder NX50: used 124.36 L, end pressure 188.8 bar
+Cylinder NX50: used 179.09 L, end pressure 183.87 bar
 Reserve satisfied: False
 ```
 

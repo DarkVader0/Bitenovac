@@ -73,7 +73,8 @@ public sealed class DivePlanSettings
     /// </param>
     /// <param name="oxygenBreakDuration">The length of each oxygen break, when oxygen breaks are enabled.</param>
     /// <param name="safetyStop">
-    /// <see langword="true"/> to add a safety stop to the ascent; otherwise, <see langword="false"/>.
+    /// <see langword="true"/> to add a three-minute safety stop: at six meters on a dive without
+    /// decompression stops, or at the end of the last decompression stop; otherwise, <see langword="false"/>.
     /// </param>
     /// <param name="lastStopAtSixMeters">
     /// <see langword="true"/> to place the last decompression stop at six meters rather than three;
@@ -445,7 +446,7 @@ public sealed class DivePlanSettings
     public TimeSpan OxygenBreakDuration { get; }
 
     /// <summary>
-    /// Gets a value that indicates whether a safety stop is added to the ascent.
+    /// Gets a value that indicates whether a three-minute safety stop is added to the ascent
     /// </summary>
     public bool SafetyStop { get; }
 

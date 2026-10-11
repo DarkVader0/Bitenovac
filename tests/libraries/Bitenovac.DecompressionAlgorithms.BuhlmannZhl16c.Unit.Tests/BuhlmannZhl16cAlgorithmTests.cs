@@ -346,7 +346,7 @@ public sealed class BuhlmannZhl16cAlgorithmTests
     }
 
     [Fact]
-    public void CalculateFinalAscent_ShouldInsertSafetyStop_WhenEnabledAndNoDecompressionIsRequired()
+    public void CalculateFinalAscent_ShouldInsertSafetyStopAtSixMeters_WhenEnabledAndNoDecompressionIsRequired()
     {
         // Arrange
         var algorithm = new BuhlmannZhl16cAlgorithm(0.85, 0.85);
@@ -364,7 +364,7 @@ public sealed class BuhlmannZhl16cAlgorithmTests
         {
             if (ascent[i].Kind == SegmentKind.Stop)
             {
-                Assert.Equal(5.0, ascent[i].Depth.InMeter, Precision);
+                Assert.Equal(6.0, ascent[i].Depth.InMeter, Precision);
                 Assert.Equal(TimeSpan.FromMinutes(3), ascent[i].Duration);
                 safetyStops++;
             }
@@ -374,6 +374,60 @@ public sealed class BuhlmannZhl16cAlgorithmTests
         Assert.Equal(0.0, ascent[^1].Depth.InMeter, Precision);
     }
 
+
+    private static DiveSegment[] PlanStops(double depthMeter, double bottomMinutes, DivePlanSettings settings)
+    {
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.7);
+        var request = TestFactory.CreateRequest(depthMeter, bottomMinutes, settings: settings);
+        var state = algorithm.BeginDive(request);
+        algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(depthMeter), TimeSpan.FromMinutes(bottomMinutes),
+            GasMixture.Air, SegmentKind.Bottom));
+        return [.. algorithm.CalculateFinalAscent(state, request).Where(static segment => segment.Kind == SegmentKind.Stop)];
+    }
+
+    [Theory]
+    [InlineData(false, 3.0)]
+    [InlineData(true, 6.0)]
+    public void CalculateFinalAscent_ShouldHoldTheLastStopThreeMinutesLonger_WhenTheSafetyStopIsEnabledOnADecompressionDive(
+        bool lastStopAtSixMeters, double lastStopMeter)
+    {
+        // Arrange
+        var withoutSafetyStop = TestFactory.CreateSettings(lastStopAtSixMeters: lastStopAtSixMeters);
+        var withSafetyStop = TestFactory.CreateSettings(safetyStop: true, lastStopAtSixMeters: lastStopAtSixMeters);
+
+        // Act
+        var plain = PlanStops(45, 25, withoutSafetyStop);
+        var safe = PlanStops(45, 25, withSafetyStop);
+
+        // Assert
+        Assert.Equal(plain.Length, safe.Length);
+        Assert.Equal(plain[..^1], safe[..^1]);
+        Assert.Equal(lastStopMeter, safe[^1].Depth.InMeter, Precision);
+        Assert.Equal(plain[^1].Duration + TimeSpan.FromMinutes(3), safe[^1].Duration);
+    }
+
+    [Fact]
+    public void CalculateFinalAscent_ShouldHoldThreeMinutesAtTheLastStop_WhenTheDiveHasACeilingAtGradientFactorLowButNoStopTime()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.7);
+        var request = TestFactory.CreateRequest(18, 30);
+        var state = algorithm.BeginDive(request);
+        algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(18), TimeSpan.FromMinutes(30), GasMixture.Air,
+            SegmentKind.Bottom));
+        var ceilingMeter = algorithm.CurrentCeiling(state).InMeter;
+
+        // Act
+        var plain = PlanStops(18, 30, TestFactory.CreateSettings());
+        var safe = PlanStops(18, 30, TestFactory.CreateSettings(safetyStop: true));
+
+        // Assert
+        Assert.True(ceilingMeter > 0);
+        Assert.Empty(plain);
+        var stop = Assert.Single(safe);
+        Assert.Equal(3.0, stop.Depth.InMeter, Precision);
+        Assert.Equal(TimeSpan.FromMinutes(3), stop.Duration);
+    }
     [Fact]
     public void CalculateFinalAscent_ShouldPlaceStopsOnThreeMeterGrid_WhenDecompressionIsRequired()
     {
