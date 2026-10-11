@@ -1,7 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
-
-    <PropertyGroup>
-        <ExcludeFromCoverage>true</ExcludeFromCoverage>
-    </PropertyGroup>
-
-</Project>

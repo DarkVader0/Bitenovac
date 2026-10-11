@@ -34,6 +34,7 @@
         <AnalysisLevel>latest-recommended</AnalysisLevel>
         <Deterministic>true</Deterministic>
         <IsPackable>true</IsPackable>
+        <IsAotCompatible>true</IsAotCompatible>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/DarkVader0/Bitenovac-Decompression</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
