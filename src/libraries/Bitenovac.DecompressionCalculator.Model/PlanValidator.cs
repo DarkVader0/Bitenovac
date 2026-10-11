@@ -233,6 +233,10 @@ public static class PlanValidator
             {
                 issues.Add(new($"{path}.{nameof(CylinderInput.Purpose)}", "Choose what the cylinder is for."));
             }
+            else if (cylinder.Purpose != CylinderRoles.Resolve(circuit, cylinder))
+            {
+                issues.Add(new($"{path}.{nameof(CylinderInput.Purpose)}", "This role does not fit the breathing apparatus."));
+            }
         }
 
         if (circuit is ClosedCircuitInput or SemiClosedCircuitInput

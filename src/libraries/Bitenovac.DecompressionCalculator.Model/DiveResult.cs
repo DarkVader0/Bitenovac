@@ -1,17 +1,28 @@
 using Bitenovac.DecompressionAlgorithms.Core.Calculations;
 using Bitenovac.DecompressionAlgorithms.Core.Equipment;
 using Bitenovac.DecompressionAlgorithms.Core.Planning;
+using Bitenovac.DecompressionAlgorithms.Units;
 
 namespace Bitenovac.DecompressionCalculator.Model;
 
 /// <summary>
-/// Represents one stop of a calculated dive, in the plan's units.
+/// Represents one phase of a calculated dive, in the plan's units.
 /// </summary>
-/// <param name="Depth">The depth of the stop, in meters or feet.</param>
-/// <param name="Duration">How long the stop lasts.</param>
+/// <param name="Kind">What the diver does: descend, stay at a level, ascend, stop, or switch gas.</param>
+/// <param name="StartDepth">The depth the phase starts at, in meters or feet.</param>
+/// <param name="EndDepth">The depth the phase ends at, in meters or feet.</param>
+/// <param name="Duration">How long the phase lasts.</param>
+/// <param name="Runtime">The time since leaving the surface when the phase ends.</param>
 /// <param name="Gas">The gas breathed, such as <c>Air</c>, <c>NX50</c>, or <c>TX18/45</c>.</param>
 /// <param name="Circuit">The apparatus breathed from, such as <c>OC</c> or <c>CCR @ 1.3</c>.</param>
-public sealed record StopRow(double Depth, TimeSpan Duration, string Gas, string Circuit);
+public sealed record ProfileRow(
+    SegmentKind Kind,
+    double StartDepth,
+    double EndDepth,
+    TimeSpan Duration,
+    TimeSpan Runtime,
+    string Gas,
+    string Circuit);
 
 /// <summary>
 /// Represents what one cylinder delivered on a calculated dive, in the plan's units.
@@ -63,7 +74,7 @@ public sealed class DiveResult
         double cnsPercent,
         double oxygenToleranceUnits,
         bool reserveSatisfied,
-        StopRow[] stops,
+        ProfileRow[] profile,
         CylinderRow[] cylinders,
         ViolationRow[] violations)
     {
@@ -76,7 +87,7 @@ public sealed class DiveResult
         CnsPercent = cnsPercent;
         OxygenToleranceUnits = oxygenToleranceUnits;
         ReserveSatisfied = reserveSatisfied;
-        Stops = stops;
+        Profile = profile;
         Cylinders = cylinders;
         Violations = violations;
     }
@@ -132,9 +143,9 @@ public sealed class DiveResult
     public bool ReserveSatisfied { get; }
 
     /// <summary>
-    /// Gets the stops, from the deepest to the last.
+    /// Gets the whole dive from leaving the surface to surfacing, phase by phase.
     /// </summary>
-    public IReadOnlyList<StopRow> Stops { get; }
+    public IReadOnlyList<ProfileRow> Profile { get; }
 
     /// <summary>
     /// Gets what each cylinder delivered, in the order the cylinders were entered.
@@ -180,43 +191,60 @@ public sealed class DiveResult
             plan.CentralNervousSystemFraction * 100,
             plan.OxygenToleranceUnits,
             plan.ReserveGas.AllSatisfied,
-            GroupStops(segments, units),
+            BuildProfile(segments, units),
             cylinders,
             violations);
     }
 
     /// <remarks>
-    /// The final ascent can split one stop into several segments, around a gas switch or an oxygen
-    /// break, so consecutive stop segments at the same depth on the same gas are shown as one stop.
+    /// The final ascent is generated in short segments: the ascent rate changes at fixed fractions
+    /// of the depth, and a gas switch or an oxygen break splits a stop. Consecutive ascent segments
+    /// on one gas, and consecutive stop segments at one depth on one gas, are shown as one phase.
     /// </remarks>
-    private static StopRow[] GroupStops(IReadOnlyList<DiveSegment> segments, UnitSystem units)
+    private static ProfileRow[] BuildProfile(IReadOnlyList<DiveSegment> segments, UnitSystem units)
     {
-        var stops = new List<StopRow>();
+        var rows = new List<ProfileRow>();
+        var startDepth = Depth.Zero;
+        var runtime = TimeSpan.Zero;
         DiveSegment? previous = null;
 
         foreach (var segment in segments)
         {
-            if (segment.Kind != SegmentKind.Stop)
-            {
-                previous = null;
-                continue;
-            }
+            runtime += segment.Duration;
 
-            if (previous is { } last && last.Depth == segment.Depth && last.Gas == segment.Gas && last.Loop == segment.Loop)
+            if (previous is { } last && Continues(last, segment))
             {
-                stops[^1] = stops[^1] with { Duration = stops[^1].Duration + segment.Duration };
+                rows[^1] = rows[^1] with
+                {
+                    EndDepth = UnitConversion.FromDepth(segment.Depth, units),
+                    Duration = rows[^1].Duration + segment.Duration,
+                    Runtime = runtime
+                };
             }
             else
             {
-                stops.Add(new StopRow(UnitConversion.FromDepth(segment.Depth, units), segment.Duration,
+                rows.Add(new ProfileRow(segment.Kind, UnitConversion.FromDepth(startDepth, units),
+                    UnitConversion.FromDepth(segment.Depth, units), segment.Duration, runtime,
                     segment.Gas.ToString(), segment.Loop.ToString()));
             }
 
+            startDepth = segment.Depth;
             previous = segment;
         }
 
-        return [.. stops];
+        return [.. rows];
     }
+
+    private static bool Continues(DiveSegment previous, DiveSegment segment) =>
+        previous.Kind == segment.Kind
+        && previous.Gas == segment.Gas
+        && previous.Loop == segment.Loop
+        && segment.Kind switch
+        {
+            SegmentKind.Ascent => true,
+            SegmentKind.Stop => previous.Depth == segment.Depth,
+            _ => false
+        };
 
     private static CylinderRow ToCylinderRow(CylinderGasUsage usage, CylinderReserveStatus reserve, UnitSystem units) => new(
         usage.Cylinder.Gas.ToString(),

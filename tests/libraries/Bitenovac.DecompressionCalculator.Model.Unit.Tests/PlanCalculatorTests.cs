@@ -1,4 +1,5 @@
 using Bitenovac.DecompressionAlgorithms.Core.Equipment;
+using Bitenovac.DecompressionAlgorithms.Core.Planning;
 
 namespace Bitenovac.DecompressionCalculator.Model.Unit.Tests;
 
@@ -94,7 +95,7 @@ public sealed class PlanCalculatorTests
     {
         // Arrange
         var plan = TestFactory.Plan(TestFactory.Dive(cylinders:
-            [TestFactory.Cylinder(oxygenPercent: 100, size: 3, purpose: CylinderPurpose.Oxygen)]));
+            [TestFactory.Cylinder(oxygenPercent: 100, size: 3, purpose: CylinderPurpose.DecoGas)]));
 
         // Act
         var calculation = PlanCalculator.Calculate(plan);
@@ -123,7 +124,7 @@ public sealed class PlanCalculatorTests
 
         // Assert
         Assert.True(dive.Succeeded, dive.FailureMessage);
-        Assert.Contains(dive.Stops, static stop => stop.Circuit == "CCR @ 1.3");
+        Assert.Contains(dive.Profile, static phase => phase.Kind == SegmentKind.Stop && phase.Circuit == "CCR @ 1.3");
     }
 
     [Fact]
@@ -139,6 +140,6 @@ public sealed class PlanCalculatorTests
 
         // Assert
         Assert.True(dive.Succeeded, dive.FailureMessage);
-        Assert.All(dive.Stops, static stop => Assert.Equal("PSCR 1:10", stop.Circuit));
+        Assert.All(dive.Profile, static phase => Assert.Equal("PSCR 1:10", phase.Circuit));
     }
 }

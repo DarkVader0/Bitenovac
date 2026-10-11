@@ -24,14 +24,17 @@ public sealed class DiveResultTests
         [
             Segment(30, 2, GasMixture.Air, SegmentKind.Descent),
             Segment(30, 20, GasMixture.Air, SegmentKind.Bottom),
+            Segment(30, 5, GasMixture.Air, SegmentKind.Bottom),
             Segment(9, 3, GasMixture.Air, SegmentKind.Ascent),
             Segment(9, 1, GasMixture.Air, SegmentKind.Stop),
             Segment(9, 2, GasMixture.Air, SegmentKind.Stop),
+            Segment(6, 1, GasMixture.Air, SegmentKind.Ascent),
             Segment(6, 2, GasMixture.Air, SegmentKind.Stop),
             Segment(6, 2, Nitrox50, SegmentKind.GasSwitch),
             Segment(6, 3, Nitrox50, SegmentKind.Stop),
             Segment(6, 4, GasMixture.Oxygen, SegmentKind.Stop),
             Segment(6, 1, GasMixture.Oxygen, SegmentKind.Stop, ClosedCircuit),
+            Segment(3, 1, GasMixture.Oxygen, SegmentKind.Ascent),
             Segment(0, 1, GasMixture.Oxygen, SegmentKind.Ascent)
         ],
         [
@@ -67,7 +70,7 @@ public sealed class DiveResultTests
         Assert.Equal(0, result.CnsPercent);
         Assert.Equal(0, result.OxygenToleranceUnits);
         Assert.False(result.ReserveSatisfied);
-        Assert.Empty(result.Stops);
+        Assert.Empty(result.Profile);
         Assert.Empty(result.Cylinders);
         Assert.Empty(result.Violations);
     }
@@ -95,7 +98,7 @@ public sealed class DiveResultTests
     }
 
     [Fact]
-    public void From_ShouldMergeOnlyConsecutiveStopsAtOneDepthOnOneGasAndLoop_WhenTheAscentSplitsStops()
+    public void From_ShouldListEveryPhaseWithItsRuntimeMergingOnlySplitAscentsAndStops_WhenTheDiveWasPlanned()
     {
         // Arrange
         var plan = CreatePlan();
@@ -106,12 +109,19 @@ public sealed class DiveResultTests
         // Assert
         Assert.Equal(
         [
-            new StopRow(9, TimeSpan.FromMinutes(3), "Air", "OC"),
-            new StopRow(6, TimeSpan.FromMinutes(2), "Air", "OC"),
-            new StopRow(6, TimeSpan.FromMinutes(3), "NX50", "OC"),
-            new StopRow(6, TimeSpan.FromMinutes(4), "O2", "OC"),
-            new StopRow(6, TimeSpan.FromMinutes(1), "O2", "CCR @ 1.3")
-        ], result.Stops);
+            new ProfileRow(SegmentKind.Descent, 0, 30, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2), "Air", "OC"),
+            new ProfileRow(SegmentKind.Bottom, 30, 30, TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(22), "Air", "OC"),
+            new ProfileRow(SegmentKind.Bottom, 30, 30, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(27), "Air", "OC"),
+            new ProfileRow(SegmentKind.Ascent, 30, 9, TimeSpan.FromMinutes(3), TimeSpan.FromMinutes(30), "Air", "OC"),
+            new ProfileRow(SegmentKind.Stop, 9, 9, TimeSpan.FromMinutes(3), TimeSpan.FromMinutes(33), "Air", "OC"),
+            new ProfileRow(SegmentKind.Ascent, 9, 6, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(34), "Air", "OC"),
+            new ProfileRow(SegmentKind.Stop, 6, 6, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(36), "Air", "OC"),
+            new ProfileRow(SegmentKind.GasSwitch, 6, 6, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(38), "NX50", "OC"),
+            new ProfileRow(SegmentKind.Stop, 6, 6, TimeSpan.FromMinutes(3), TimeSpan.FromMinutes(41), "NX50", "OC"),
+            new ProfileRow(SegmentKind.Stop, 6, 6, TimeSpan.FromMinutes(4), TimeSpan.FromMinutes(45), "O2", "OC"),
+            new ProfileRow(SegmentKind.Stop, 6, 6, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(46), "O2", "CCR @ 1.3"),
+            new ProfileRow(SegmentKind.Ascent, 6, 0, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(48), "O2", "OC")
+        ], result.Profile);
     }
 
     [Fact]
@@ -143,7 +153,7 @@ public sealed class DiveResultTests
 
         // Assert
         Assert.Equal(30 * FeetPerMeter, result.MaximumDepth, Precision);
-        Assert.Equal(9 * FeetPerMeter, result.Stops[0].Depth, Precision);
+        Assert.Equal(9 * FeetPerMeter, result.Profile[4].EndDepth, Precision);
         var back = result.Cylinders[0];
         Assert.Equal(1800 / LitersPerCubicFoot, back.GasUsed, Precision);
         Assert.Equal(200 / BarPerPsi, back.StartPressure, Precision);

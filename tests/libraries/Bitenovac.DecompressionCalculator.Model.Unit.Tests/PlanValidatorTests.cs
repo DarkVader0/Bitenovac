@@ -112,7 +112,9 @@ public sealed class PlanValidatorTests
             { TestFactory.Plan(TestFactory.Dive(cylinders: [TestFactory.Cylinder(purpose: (CylinderPurpose)99)])), "Dives[0].Cylinders[0].Purpose" },
             { WithCylinders(closed, oxygen), "Dives[0].Cylinders" },
             { WithCylinders(closed, diluent), "Dives[0].Cylinders" },
-            { WithCylinders(semiClosed, TestFactory.Cylinder()), "Dives[0].Cylinders" }
+            { WithCylinders(semiClosed, TestFactory.Cylinder(purpose: CylinderPurpose.Bailout)), "Dives[0].Cylinders" },
+            { TestFactory.Plan(TestFactory.Dive(cylinders: [TestFactory.Cylinder(purpose: CylinderPurpose.Diluent)])), "Dives[0].Cylinders[0].Purpose" },
+            { WithCylinders(closed, diluent, oxygen, TestFactory.Cylinder(oxygenPercent: 32, purpose: CylinderPurpose.Oxygen)), "Dives[0].Cylinders[2].Purpose" }
         };
     }
 
