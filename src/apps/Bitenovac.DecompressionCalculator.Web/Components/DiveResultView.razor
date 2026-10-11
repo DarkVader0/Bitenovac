@@ -1,5 +1,5 @@
 <section class="card results">
-    <h2>Results</h2>
+    <h2>@Title</h2>
 
     @if (!Result.Succeeded)
     {
@@ -93,6 +93,9 @@
 @code {
     [Parameter, EditorRequired]
     public DiveResult Result { get; set; } = default!;
+
+    [Parameter]
+    public string Title { get; set; } = "Results";
 
     [Parameter]
     public UnitSystem Units { get; set; }
