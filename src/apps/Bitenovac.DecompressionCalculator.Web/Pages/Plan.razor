@@ -12,7 +12,7 @@
     return;
 }
 
-@if (_plan is null || _calculation is null)
+@if (_plan is null || _view is null)
 {
     return;
 }
@@ -44,32 +44,62 @@
             Issues="_issues.Scope(nameof(DivePlanDocument.Dives), _selected)" OnRemove="() => RemoveDiveAsync(_plan)"
             ValueChanged="dive => ChangeAsync(_plan with { Dives = ListEdit.Replace(_plan.Dives, _selected, dive) })"/>
 
-@if (_calculation.IsCalculated)
+@if (_view.PlanIssues.Count > 0)
 {
-    @if (_plan.Dives.Count > 1)
-    {
-        <SeriesSummary Plan="_plan" Results="_calculation.Dives" Selected="_selected" SelectedChanged="index => _selected = index"/>
-    }
-
-    <DiveResultView Result="_calculation.Dives[_selected]" Units="_plan.Units"
-                    Title="@(_plan.Dives.Count > 1 ? $"Results · Dive {_selected + 1}" : "Results")"/>
+    <section class="card results">
+        <h2>Settings are invalid</h2>
+        <div class="alert alert-danger">
+            <p>No dive can be planned until these are fixed:</p>
+            <ul>
+                @foreach (var issue in _view.PlanIssues)
+                {
+                    <li>@IssueText.Describe(issue)</li>
+                }
+            </ul>
+            <button type="button" class="secondary" @onclick="() => _settingsOpen = true">Open settings</button>
+        </div>
+    </section>
 }
 else
 {
-    <section class="card results">
-        <h2>Results</h2>
-        <div class="alert alert-warning">
-            <p>Correct the highlighted fields to see the plan.</p>
-            @if (OtherDivesWithIssues is { Length: > 0 } others)
+    @if (_plan.Dives.Count > 1)
+    {
+        <SeriesSummary Plan="_plan" View="_view" Selected="_selected" SelectedChanged="index => _selected = index"/>
+    }
+
+    var title = _plan.Dives.Count > 1 ? $"Results · Dive {_selected + 1}" : "Results";
+    @if (_view.Results[_selected] is { } result)
+    {
+        <DiveResultView Result="result" Units="_plan.Units" Title="@title"/>
+    }
+    else
+    {
+        <section class="card results">
+            <h2>@title</h2>
+            @if (_view.IssuesOf(_selected) is { Count: > 0 } issues)
             {
-                <p>Also check @string.Join(", ", others.Select(static index => $"dive {index + 1}")).</p>
+                <div class="alert alert-danger">
+                    <p>@(_plan.Dives.Count > 1 ? $"Dive {_selected + 1} is invalid:" : "The dive is invalid:")</p>
+                    <ul>
+                        @foreach (var issue in issues)
+                        {
+                            <li>@IssueText.Describe(issue)</li>
+                        }
+                    </ul>
+                </div>
             }
-            @if (SettingsHaveIssues)
+            @if (_view.FirstInvalidDive is { } blocking && blocking < _selected)
             {
-                <button type="button" class="secondary" @onclick="() => _settingsOpen = true">Open settings</button>
+                <div class="alert alert-warning">
+                    <p>
+                        This dive can't be planned until dive @(blocking + 1) is fixed: every dive is planned on
+                        the nitrogen and helium left from the dives before it.
+                    </p>
+                    <button type="button" class="secondary" @onclick="() => _selected = blocking">Go to dive @(blocking + 1)</button>
+                </div>
             }
-        </div>
-    </section>
+        </section>
+    }
 }
 
 @if (_settingsOpen)
@@ -115,7 +145,7 @@ else
 
 @code {
     private DivePlanDocument? _plan;
-    private PlanCalculation? _calculation;
+    private PlanView? _view;
     private IssueMap _issues = IssueMap.Empty;
     private bool _settingsOpen;
     private bool _missing;
@@ -127,11 +157,7 @@ else
 
     private IReadOnlySet<int> DivesWithIssues => _issues.IndexesWithIssues(nameof(DivePlanDocument.Dives));
 
-    private int[] OtherDivesWithIssues => [.. DivesWithIssues.Where(index => index != _selected).Order()];
-
-    private bool SettingsHaveIssues => _calculation?.Issues.Any(static issue =>
-        issue.Path.StartsWith(nameof(DivePlanDocument.Settings), StringComparison.Ordinal)
-        || issue.Path.StartsWith(nameof(DivePlanDocument.Algorithm), StringComparison.Ordinal)) ?? false;
+    private bool SettingsHaveIssues => _view?.PlanIssues.Count > 0;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -191,7 +217,7 @@ else
     {
         _plan = plan;
         _selected = Math.Clamp(_selected, 0, plan.Dives.Count - 1);
-        _calculation = PlanCalculator.Calculate(plan);
-        _issues = IssueMap.From(_calculation.Issues);
+        _view = PlanView.Calculate(plan);
+        _issues = IssueMap.From(_view.Issues);
     }
 }
