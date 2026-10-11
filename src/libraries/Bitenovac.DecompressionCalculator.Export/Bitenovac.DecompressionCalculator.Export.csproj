@@ -8,4 +8,8 @@
         <ProjectReference Include="..\Bitenovac.DecompressionCalculator.Model\Bitenovac.DecompressionCalculator.Model.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="Bitenovac.DecompressionCalculator.Export.Unit.Tests"/>
+    </ItemGroup>
+
 </Project>
