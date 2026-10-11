@@ -21,7 +21,7 @@ jobs:
   plan:
     name: Plan
     runs-on: [self-hosted, linux, x64, bitenovac]
-    timeout-minutes: 5
+    timeout-minutes: 1
     steps:
       - uses: actions/checkout@v7
 
@@ -31,7 +31,7 @@ jobs:
     name: Debug
     needs: plan
     runs-on: [self-hosted, linux, x64, bitenovac]
-    timeout-minutes: 10
+    timeout-minutes: 1
     steps:
       - uses: actions/checkout@v7
 
@@ -45,7 +45,7 @@ jobs:
     name: Release
     needs: plan
     runs-on: [self-hosted, linux, x64, bitenovac]
-    timeout-minutes: 10
+    timeout-minutes: 1
     steps:
       - uses: actions/checkout@v7
 
@@ -59,7 +59,7 @@ jobs:
     name: Promote
     needs: [debug, release]
     runs-on: [self-hosted, linux, x64, bitenovac]
-    timeout-minutes: 5
+    timeout-minutes: 1
     steps:
       - uses: actions/checkout@v7
 
@@ -70,7 +70,7 @@ jobs:
     needs: [promote]
     if: always()
     runs-on: [self-hosted, linux, x64, bitenovac]
-    timeout-minutes: 2
+    timeout-minutes: 1
     steps:
       - name: Drop this run's volume
         run: docker volume rm -f "${REMOTEBUILDTOOL_PR_VOLUME}"
