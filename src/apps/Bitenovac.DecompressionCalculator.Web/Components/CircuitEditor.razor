@@ -1,0 +1,72 @@
+<div class="field-grid">
+    <SelectField TValue="string" Label="Breathing apparatus" Options="Modes" Text="Name" Value="Mode" Issue="@Issues.Self"
+                 ValueChanged="SelectAsync"/>
+
+    @switch (Value)
+    {
+        case ClosedCircuitInput closed:
+            <NumberField Label="Bottom setpoint" Unit="bar" Value="closed.BottomSetpoint"
+                         Issue="@Issues[nameof(ClosedCircuitInput.BottomSetpoint)]"
+                         ValueChanged="value => ChangeAsync(closed with { BottomSetpoint = value })"/>
+            <NumberField Label="Deco setpoint" Unit="bar" Value="closed.DecoSetpoint"
+                         Issue="@Issues[nameof(ClosedCircuitInput.DecoSetpoint)]"
+                         ValueChanged="value => ChangeAsync(closed with { DecoSetpoint = value })"/>
+            break;
+        case SemiClosedCircuitInput semiClosed:
+            <NumberField Label="Dump ratio" Value="semiClosed.DumpRatio" Issue="@Issues[nameof(SemiClosedCircuitInput.DumpRatio)]"
+                         ValueChanged="value => ChangeAsync(semiClosed with { DumpRatio = value })"/>
+            break;
+    }
+</div>
+
+@code {
+    private static readonly string[] Modes = [OpenCircuitInput.ModeId, ClosedCircuitInput.ModeId, SemiClosedCircuitInput.ModeId];
+
+    private ClosedCircuitInput _closed = new(1.3, 1.3);
+    private SemiClosedCircuitInput _semiClosed = new(0.1);
+
+    [Parameter, EditorRequired]
+    public CircuitInput Value { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<CircuitInput> ValueChanged { get; set; }
+
+    [Parameter]
+    public IssueMap Issues { get; set; } = IssueMap.Empty;
+
+    private string Mode => Value switch
+    {
+        ClosedCircuitInput => ClosedCircuitInput.ModeId,
+        SemiClosedCircuitInput => SemiClosedCircuitInput.ModeId,
+        _ => OpenCircuitInput.ModeId
+    };
+
+    private static string Name(string mode) => mode switch
+    {
+        ClosedCircuitInput.ModeId => "Closed-circuit rebreather (CCR)",
+        SemiClosedCircuitInput.ModeId => "Semi-closed rebreather (SCR)",
+        _ => "Open circuit"
+    };
+
+    private Task SelectAsync(string mode) => mode switch
+    {
+        ClosedCircuitInput.ModeId => ValueChanged.InvokeAsync(_closed),
+        SemiClosedCircuitInput.ModeId => ValueChanged.InvokeAsync(_semiClosed),
+        _ => ValueChanged.InvokeAsync(new OpenCircuitInput())
+    };
+
+    private Task ChangeAsync(CircuitInput circuit)
+    {
+        switch (circuit)
+        {
+            case ClosedCircuitInput closed:
+                _closed = closed;
+                break;
+            case SemiClosedCircuitInput semiClosed:
+                _semiClosed = semiClosed;
+                break;
+        }
+
+        return ValueChanged.InvokeAsync(circuit);
+    }
+}

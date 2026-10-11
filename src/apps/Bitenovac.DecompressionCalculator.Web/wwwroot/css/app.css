@@ -1,5 +1,5 @@
 :root {
-    color-scheme: light dark;
+    color-scheme: light;
 
     --brand: #03173d;
     --brand-bright: #1b6ec2;
@@ -17,17 +17,6 @@
     /* Deliberately generous: the primary use is a wet finger on a boat deck. */
     --touch-target: 3rem;
     --radius: 6px;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --surface: #14161a;
-        --surface-sunken: #1c1f25;
-        --border: #343841;
-        --text: #e9eaec;
-        --text-muted: #9aa0a9;
-        --link: #6cb6ff;
-    }
 }
 
 *, *::before, *::after {
@@ -132,6 +121,442 @@ button:disabled {
 
 .validation-message {
     color: var(--danger);
+    font-size: 0.875rem;
+}
+
+/* ------------------------------------------------------------------------ forms -- */
+
+button.secondary {
+    background-color: transparent;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+button.secondary:hover {
+    background-color: var(--surface-sunken);
+}
+
+.card {
+    margin: 0 0 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.card h3 {
+    margin: 1.25rem 0 0.5rem;
+}
+
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+    gap: 0.75rem 1rem;
+    align-items: start;
+}
+
+.field-grid.compact {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.field-label {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+/* The unit sits inside the box, so every input in a row is the same width whatever its unit. */
+.field-input {
+    display: flex;
+    align-items: center;
+    min-height: var(--touch-target);
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.field-input:focus-within {
+    outline: 3px solid var(--brand-bright);
+    outline-offset: 2px;
+}
+
+.field-input:has(.invalid) {
+    border-color: var(--danger);
+}
+
+.field-input input {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    outline: none;
+}
+
+.unit {
+    padding-right: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.field-static {
+    display: flex;
+    align-items: center;
+    min-height: var(--touch-target);
+    padding: 0 0.75rem;
+    color: var(--text-muted);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+}
+
+.field-check {
+    flex-direction: row;
+    align-items: center;
+    min-height: var(--touch-target);
+}
+
+.field-check input {
+    width: 1.5rem;
+    height: 1.5rem;
+    min-height: 0;
+}
+
+.field-check .field-label {
+    color: var(--text);
+    font-size: 1rem;
+}
+
+.button-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.button-row button {
+    flex: 1;
+}
+
+details {
+    border-top: 1px solid var(--border);
+}
+
+summary {
+    min-height: var(--touch-target);
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+details[open] > summary {
+    margin-bottom: 0.5rem;
+}
+
+details > .field-grid {
+    padding-bottom: 1rem;
+}
+
+.rows {
+    margin: 0 0 0.75rem;
+    padding: 0;
+    list-style: none;
+}
+
+.level-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr var(--touch-target);
+    gap: 0.75rem;
+    align-items: start;
+    padding: 0.5rem 0;
+}
+
+.level-row .icon-button {
+    margin-top: 1.55rem;
+}
+
+.cylinder {
+    margin: 0 0 0.75rem;
+    padding: 0.75rem;
+    background-color: var(--surface-sunken);
+    border-radius: var(--radius);
+}
+
+.cylinder .field-input {
+    background-color: var(--surface);
+}
+
+.cylinder-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--touch-target);
+    margin: -0.25rem 0 0.5rem;
+    font-weight: 600;
+}
+
+/* ----------------------------------------------------------------- page header -- */
+
+.plan-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0 0 1rem;
+}
+
+.plan-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.icon-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--touch-target);
+    padding: 0;
+    background-color: transparent;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.icon-button:hover {
+    background-color: var(--surface-sunken);
+}
+
+.icon-button svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: currentColor;
+}
+
+.badge {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background-color: var(--danger);
+}
+
+/* ----------------------------------------------------------------------- drawer -- */
+
+.drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.drawer {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 11;
+    width: min(100%, 36rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1rem;
+    background-color: var(--surface);
+    box-shadow: -2px 0 12px rgba(0, 0, 0, 0.25);
+}
+
+.drawer-header {
+    position: sticky;
+    top: -1rem;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -1rem -1rem 1rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.drawer-header h2 {
+    margin: 0;
+}
+
+.alert .secondary {
+    margin-top: 0.75rem;
+}
+
+/* ---------------------------------------------------------------------- results -- */
+
+.figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+    gap: 0.75rem;
+    margin: 0 0 1rem;
+}
+
+.figures div {
+    padding: 0.5rem 0.75rem;
+    background-color: var(--surface-sunken);
+    border-radius: var(--radius);
+}
+
+.figures dt {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.figures dd {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.alert {
+    margin: 0 0 1rem;
+    padding: 0.75rem 1rem;
+    border-left: 4px solid;
+    border-radius: var(--radius);
+    background-color: var(--surface-sunken);
+}
+
+.alert p,
+.alert ul {
+    margin: 0;
+}
+
+.alert-danger {
+    border-color: var(--danger);
+}
+
+.alert-warning {
+    border-color: #c98a00;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    white-space: nowrap;
+}
+
+th {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.number {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+caption {
+    caption-side: bottom;
+    padding-top: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    text-align: left;
+}
+
+.row-stop td {
+    background-color: var(--surface-sunken);
+}
+
+.gas-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+    gap: 0.75rem;
+}
+
+.gas-card {
+    padding: 0.75rem;
+    background-color: var(--surface-sunken);
+    border-left: 4px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.gas-card-danger {
+    border-left-color: var(--danger);
+}
+
+.gas-card h4 {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+}
+
+.gas-card h4 span {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+.gas-card dl {
+    margin: 0;
+}
+
+.gas-card dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.2rem 0;
+}
+
+.gas-card dt {
+    color: var(--text-muted);
+}
+
+.gas-card dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------------ phone -- */
+
+.drawer > .card {
+    margin: 0;
+    padding: 0 0 1rem;
+    border: 0;
+    border-radius: 0;
+}
+
+.drawer > .card + .card {
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+    .card {
+        padding: 0.75rem;
+    }
+
+    th,
+    td {
+        padding: 0.45rem 0.4rem;
+    }
+
+    .profile td,
+    .profile th {
+        padding: 0.45rem 0.3rem;
+        font-size: 0.875rem;
+    }
+
+    .figures {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* ------------------------------------------------------------------ blazor ui -- */

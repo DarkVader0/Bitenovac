@@ -1,0 +1,43 @@
+@typeparam TValue
+
+<label class="field">
+    <span class="field-label">@Label</span>
+    <select class="@(Issue is null ? null : "invalid")" aria-invalid="@(Issue is null ? null : "true")" @onchange="OnChangeAsync">
+        @for (var index = 0; index < Options.Count; index++)
+        {
+            var option = Options[index];
+            <option value="@index" selected="@IsSelected(option)">@Text(option)</option>
+        }
+    </select>
+    @if (Issue is not null)
+    {
+        <span class="validation-message">@Issue</span>
+    }
+</label>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TValue> Options { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public Func<TValue, string> Text { get; set; } = static value => $"{value}";
+
+    [Parameter]
+    public TValue Value { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<TValue> ValueChanged { get; set; }
+
+    [Parameter]
+    public string? Issue { get; set; }
+
+    private bool IsSelected(TValue option) => EqualityComparer<TValue>.Default.Equals(option, Value);
+
+    private Task OnChangeAsync(ChangeEventArgs args) =>
+        int.TryParse(args.Value as string, out var index) && index >= 0 && index < Options.Count
+            ? ValueChanged.InvokeAsync(Options[index])
+            : Task.CompletedTask;
+}

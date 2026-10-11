@@ -1,0 +1,44 @@
+@using System.Globalization
+
+<label class="field">
+    <span class="field-label">@Label</span>
+    <span class="field-input">
+        <input type="number" inputmode="decimal" step="@Step" value="@Text" class="@(Issue is null ? null : "invalid")"
+               aria-invalid="@(Issue is null ? null : "true")" @onchange="OnChangeAsync"/>
+        @if (Unit is not null)
+        {
+            <span class="unit">@Unit</span>
+        }
+    </span>
+    @if (Issue is not null)
+    {
+        <span class="validation-message">@Issue</span>
+    }
+</label>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public double Value { get; set; }
+
+    [Parameter]
+    public EventCallback<double> ValueChanged { get; set; }
+
+    [Parameter]
+    public string? Unit { get; set; }
+
+    [Parameter]
+    public string? Issue { get; set; }
+
+    [Parameter]
+    public string Step { get; set; } = "any";
+
+    private string Text => double.IsFinite(Value) ? Value.ToString("R", CultureInfo.InvariantCulture) : "";
+
+    private Task OnChangeAsync(ChangeEventArgs args) =>
+        ValueChanged.InvokeAsync(double.TryParse(args.Value as string, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : double.NaN);
+}

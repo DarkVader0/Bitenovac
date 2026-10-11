@@ -1,0 +1,116 @@
+<section class="card">
+    <h2>Dive</h2>
+
+    <CircuitEditor Value="Value.Circuit" Issues="Issues.Scope(nameof(DiveInput.Circuit))"
+                   ValueChanged="circuit => ChangeAsync(Value with { Circuit = circuit })"/>
+
+    <h3>Levels</h3>
+    @if (Issues[nameof(DiveInput.Levels)] is { } levelsIssue)
+    {
+        <p class="validation-message">@levelsIssue</p>
+    }
+    <ol class="rows">
+        @for (var index = 0; index < Value.Levels.Count; index++)
+        {
+            var at = index;
+            var level = Value.Levels[at];
+            var issues = Issues.Scope(nameof(DiveInput.Levels), at);
+            <li class="level-row">
+                <NumberField Label="Depth" Unit="@Labels.Depth" Value="level.Depth" Issue="@issues[nameof(LevelInput.Depth)]"
+                             ValueChanged="value => ChangeLevelAsync(at, level with { Depth = value })"/>
+                <NumberField Label="Time" Unit="min" Value="level.DurationMinutes" Issue="@issues[nameof(LevelInput.DurationMinutes)]"
+                             ValueChanged="value => ChangeLevelAsync(at, level with { DurationMinutes = value })"/>
+                @if (Value.Levels.Count > 1)
+                {
+                    <button type="button" class="icon-button" title="Remove level" aria-label="Remove level @(at + 1)"
+                            @onclick="() => ChangeAsync(Value with { Levels = ListEdit.RemoveAt(Value.Levels, at) })">✕</button>
+                }
+            </li>
+        }
+    </ol>
+    <button type="button" class="secondary" @onclick="() => ChangeAsync(Value with { Levels = ListEdit.Add(Value.Levels, NewInputs.Level(Value)) })">
+        Add level
+    </button>
+
+    <h3>Cylinders</h3>
+    @if (Issues[nameof(DiveInput.Cylinders)] is { } cylindersIssue)
+    {
+        <p class="validation-message">@cylindersIssue</p>
+    }
+    <ol class="rows">
+        @for (var index = 0; index < Value.Cylinders.Count; index++)
+        {
+            var at = index;
+            var cylinder = Value.Cylinders[at];
+            var issues = Issues.Scope(nameof(DiveInput.Cylinders), at);
+            <li class="cylinder">
+                <div class="cylinder-header">
+                    <span>Cylinder @(at + 1)</span>
+                    @if (Value.Cylinders.Count > 1)
+                    {
+                        <button type="button" class="icon-button" title="Remove cylinder" aria-label="Remove cylinder @(at + 1)"
+                                @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.RemoveAt(Value.Cylinders, at) })">✕</button>
+                    }
+                </div>
+                <div class="field-grid compact">
+                    <NumberField Label="Oxygen" Unit="%" Value="cylinder.OxygenPercent" Issue="@issues[nameof(CylinderInput.OxygenPercent)]"
+                                 ValueChanged="value => ChangeCylinderAsync(at, cylinder with { OxygenPercent = value })"/>
+                    <NumberField Label="Helium" Unit="%" Value="cylinder.HeliumPercent" Issue="@issues[nameof(CylinderInput.HeliumPercent)]"
+                                 ValueChanged="value => ChangeCylinderAsync(at, cylinder with { HeliumPercent = value })"/>
+                    <NumberField Label="Size" Unit="@Labels.CylinderSize" Value="cylinder.Size" Issue="@issues[nameof(CylinderInput.Size)]"
+                                 ValueChanged="value => ChangeCylinderAsync(at, cylinder with { Size = value })"/>
+                    @if (Units == UnitSystem.Imperial)
+                    {
+                        <NumberField Label="Rated pressure" Unit="@Labels.Pressure" Value="cylinder.RatedPressure"
+                                     Issue="@issues[nameof(CylinderInput.RatedPressure)]"
+                                     ValueChanged="value => ChangeCylinderAsync(at, cylinder with { RatedPressure = value })"/>
+                    }
+                    <NumberField Label="Fill pressure" Unit="@Labels.Pressure" Value="cylinder.StartPressure"
+                                 Issue="@issues[nameof(CylinderInput.StartPressure)]"
+                                 ValueChanged="value => ChangeCylinderAsync(at, cylinder with { StartPressure = value })"/>
+                    @if (CylinderRoles.Resolve(Value.Circuit, cylinder) == CylinderPurpose.Oxygen)
+                    {
+                        <div class="field">
+                            <span class="field-label">Used as</span>
+                            <span class="field-static">Oxygen</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <SelectField TValue="CylinderPurpose" Label="Used as" Options="CylinderRoles.Selectable(Value.Circuit)"
+                                     Text="purpose => Display.Name(purpose, Value.Circuit)" Value="cylinder.Purpose"
+                                     Issue="@issues[nameof(CylinderInput.Purpose)]"
+                                     ValueChanged="value => ChangeCylinderAsync(at, cylinder with { Purpose = value })"/>
+                    }
+                </div>
+            </li>
+        }
+    </ol>
+    <button type="button" class="secondary" @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.Add(Value.Cylinders, NewInputs.Cylinder(Units)) })">
+        Add cylinder
+    </button>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public DiveInput Value { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<DiveInput> ValueChanged { get; set; }
+
+    [Parameter]
+    public UnitSystem Units { get; set; }
+
+    [Parameter]
+    public IssueMap Issues { get; set; } = IssueMap.Empty;
+
+    private UnitLabels Labels => UnitLabels.For(Units);
+
+    private Task ChangeAsync(DiveInput dive) => ValueChanged.InvokeAsync(CylinderRoles.Apply(dive));
+
+    private Task ChangeLevelAsync(int index, LevelInput level) =>
+        ChangeAsync(Value with { Levels = ListEdit.Replace(Value.Levels, index, level) });
+
+    private Task ChangeCylinderAsync(int index, CylinderInput cylinder) =>
+        ChangeAsync(Value with { Cylinders = ListEdit.Replace(Value.Cylinders, index, cylinder) });
+}

@@ -1,0 +1,128 @@
+<section class="card">
+    <h2>Planner</h2>
+
+    <details>
+        <summary>Environment</summary>
+        <div class="field-grid">
+            <NumberField Label="Altitude" Unit="@Labels.Depth" Value="Value.Altitude" Issue="@Issues[nameof(PlannerSettings.Altitude)]"
+                         ValueChanged="value => ChangeAsync(Value with { Altitude = value })"/>
+            <SelectField TValue="Salinity" Label="Water" Options="Salinities" Text="Display.Name" Value="Value.Salinity"
+                         Issue="@Issues[nameof(PlannerSettings.Salinity)]" ValueChanged="value => ChangeAsync(Value with { Salinity = value })"/>
+            <SelectField TValue="MaximumOperatingDepthModel" Label="Gas switch depth" Options="DepthModels" Text="Display.Name"
+                         Value="Value.MaximumOperatingDepthModel" Issue="@Issues[nameof(PlannerSettings.MaximumOperatingDepthModel)]"
+                         ValueChanged="value => ChangeAsync(Value with { MaximumOperatingDepthModel = value })"/>
+        </div>
+    </details>
+
+    <details>
+        <summary>Descent and ascent</summary>
+        <div class="field-grid">
+            <NumberField Label="Descent rate" Unit="@Labels.Rate" Value="Value.DescentRate" Issue="@Issues[nameof(PlannerSettings.DescentRate)]"
+                         ValueChanged="value => ChangeAsync(Value with { DescentRate = value })"/>
+            <NumberField Label="Ascent rate, deeper than 75 % of depth" Unit="@Labels.Rate" Value="Value.AscentRateDeep"
+                         Issue="@Issues[nameof(PlannerSettings.AscentRateDeep)]"
+                         ValueChanged="value => ChangeAsync(Value with { AscentRateDeep = value })"/>
+            <NumberField Label="Ascent rate, 75 % to 50 % of depth" Unit="@Labels.Rate" Value="Value.AscentRateMiddle"
+                         Issue="@Issues[nameof(PlannerSettings.AscentRateMiddle)]"
+                         ValueChanged="value => ChangeAsync(Value with { AscentRateMiddle = value })"/>
+            <NumberField Label="Ascent rate, 50 % of depth to the stops" Unit="@Labels.Rate" Value="Value.AscentRateToStops"
+                         Issue="@Issues[nameof(PlannerSettings.AscentRateToStops)]"
+                         ValueChanged="value => ChangeAsync(Value with { AscentRateToStops = value })"/>
+            <NumberField Label="@($"Ascent rate, last {LastStopDepth}")" Unit="@Labels.Rate" Value="Value.AscentRateShallow"
+                         Issue="@Issues[nameof(PlannerSettings.AscentRateShallow)]"
+                         ValueChanged="value => ChangeAsync(Value with { AscentRateShallow = value })"/>
+        </div>
+    </details>
+
+    <details>
+        <summary>Gas</summary>
+        <div class="field-grid">
+            <NumberField Label="Bottom breathing rate (SAC)" Unit="@Labels.GasRate" Value="Value.BottomSac"
+                         Issue="@Issues[nameof(PlannerSettings.BottomSac)]" ValueChanged="value => ChangeAsync(Value with { BottomSac = value })"/>
+            <NumberField Label="Deco breathing rate (SAC)" Unit="@Labels.GasRate" Value="Value.DecoSac"
+                         Issue="@Issues[nameof(PlannerSettings.DecoSac)]" ValueChanged="value => ChangeAsync(Value with { DecoSac = value })"/>
+            <NumberField Label="Bottom PO₂ limit" Unit="bar" Value="Value.BottomPo2"
+                         Issue="@Issues[nameof(PlannerSettings.BottomPo2)]" ValueChanged="value => ChangeAsync(Value with { BottomPo2 = value })"/>
+            <NumberField Label="Deco PO₂ limit" Unit="bar" Value="Value.DecoPo2"
+                         Issue="@Issues[nameof(PlannerSettings.DecoPo2)]" ValueChanged="value => ChangeAsync(Value with { DecoPo2 = value })"/>
+            <NumberField Label="Gas switch time" Unit="min" Value="Value.GasSwitchMinutes"
+                         Issue="@Issues[nameof(PlannerSettings.GasSwitchMinutes)]"
+                         ValueChanged="value => ChangeAsync(Value with { GasSwitchMinutes = value })"/>
+        </div>
+    </details>
+
+    <details>
+        <summary>Rebreather</summary>
+        <div class="field-grid">
+            <NumberField Label="Bottom oxygen consumption" Unit="L/min" Value="Value.BottomMetabolicOxygen"
+                         Issue="@Issues[nameof(PlannerSettings.BottomMetabolicOxygen)]"
+                         ValueChanged="value => ChangeAsync(Value with { BottomMetabolicOxygen = value })"/>
+            <NumberField Label="Deco oxygen consumption" Unit="L/min" Value="Value.DecoMetabolicOxygen"
+                         Issue="@Issues[nameof(PlannerSettings.DecoMetabolicOxygen)]"
+                         ValueChanged="value => ChangeAsync(Value with { DecoMetabolicOxygen = value })"/>
+            <NumberField Label="Loop volume" Unit="L" Value="Value.LoopVolume"
+                         Issue="@Issues[nameof(PlannerSettings.LoopVolume)]" ValueChanged="value => ChangeAsync(Value with { LoopVolume = value })"/>
+        </div>
+    </details>
+
+    <details>
+        <summary>Reserve gas</summary>
+        <div class="field-grid">
+            <NumberField Label="Stress factor" Unit="×" Value="Value.ReserveStressFactor"
+                         Issue="@Issues[nameof(PlannerSettings.ReserveStressFactor)]"
+                         ValueChanged="value => ChangeAsync(Value with { ReserveStressFactor = value })"/>
+            <NumberField Label="Divers sharing gas" Step="1" Value="Value.ReserveTeamSize"
+                         Issue="@Issues[nameof(PlannerSettings.ReserveTeamSize)]"
+                         ValueChanged="value => ChangeAsync(Value with { ReserveTeamSize = ToCount(value) })"/>
+        </div>
+    </details>
+
+    <details>
+        <summary>Stops</summary>
+        <div class="field-grid">
+            <NumberField Label="Stop time step" Unit="min" Value="Value.StopTimeIncrementMinutes"
+                         Issue="@Issues[nameof(PlannerSettings.StopTimeIncrementMinutes)]"
+                         ValueChanged="value => ChangeAsync(Value with { StopTimeIncrementMinutes = value })"/>
+            <CheckField Label="Safety stop" Value="Value.SafetyStop" ValueChanged="value => ChangeAsync(Value with { SafetyStop = value })"/>
+            <CheckField Label="@($"Last stop at {LastStopDepth}")" Value="Value.LastStopAtSixMeters"
+                        ValueChanged="value => ChangeAsync(Value with { LastStopAtSixMeters = value })"/>
+            <CheckField Label="Switch gas only at a required stop" Value="Value.SwitchAtRequiredStop"
+                        ValueChanged="value => ChangeAsync(Value with { SwitchAtRequiredStop = value })"/>
+            <CheckField Label="Oxygen breaks" Value="Value.OxygenBreaks" ValueChanged="value => ChangeAsync(Value with { OxygenBreaks = value })"/>
+            @if (Value.OxygenBreaks)
+            {
+                <NumberField Label="Break every" Unit="min" Value="Value.OxygenBreakIntervalMinutes"
+                             Issue="@Issues[nameof(PlannerSettings.OxygenBreakIntervalMinutes)]"
+                             ValueChanged="value => ChangeAsync(Value with { OxygenBreakIntervalMinutes = value })"/>
+                <NumberField Label="Break length" Unit="min" Value="Value.OxygenBreakDurationMinutes"
+                             Issue="@Issues[nameof(PlannerSettings.OxygenBreakDurationMinutes)]"
+                             ValueChanged="value => ChangeAsync(Value with { OxygenBreakDurationMinutes = value })"/>
+            }
+        </div>
+    </details>
+</section>
+
+@code {
+    private static readonly Salinity[] Salinities = Enum.GetValues<Salinity>();
+    private static readonly MaximumOperatingDepthModel[] DepthModels = Enum.GetValues<MaximumOperatingDepthModel>();
+
+    [Parameter, EditorRequired]
+    public PlannerSettings Value { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<PlannerSettings> ValueChanged { get; set; }
+
+    [Parameter]
+    public UnitSystem Units { get; set; }
+
+    [Parameter]
+    public IssueMap Issues { get; set; } = IssueMap.Empty;
+
+    private UnitLabels Labels => UnitLabels.For(Units);
+
+    private string LastStopDepth => Units == UnitSystem.Imperial ? "20 ft" : "6 m";
+
+    private Task ChangeAsync(PlannerSettings settings) => ValueChanged.InvokeAsync(settings);
+
+    private static int ToCount(double value) => double.IsFinite(value) ? (int)Math.Round(Math.Clamp(value, 0, 100)) : 0;
+}

@@ -1,0 +1,107 @@
+<section class="card results">
+    <h2>Results</h2>
+
+    @if (!Result.Succeeded)
+    {
+        <p class="alert alert-danger">@Result.FailureMessage</p>
+    }
+    else
+    {
+        <dl class="figures">
+            <div><dt>Runtime</dt><dd>@Display.Minutes(Result.TotalRuntime)</dd></div>
+            <div><dt>Stop time</dt><dd>@Display.Minutes(Result.StopTime)</dd></div>
+            <div><dt>Maximum depth</dt><dd>@Display.Number(Result.MaximumDepth) @Labels.Depth</dd></div>
+            <div><dt>CNS</dt><dd>@Display.Number(Result.CnsPercent) %</dd></div>
+            <div><dt>OTU</dt><dd>@Display.Number(Result.OxygenToleranceUnits)</dd></div>
+        </dl>
+
+        @if (!Result.IsValid)
+        {
+            <div class="alert alert-danger">
+                <p>An ascent between levels passes the decompression ceiling. Add a stop or shorten the level.</p>
+                <ul>
+                    @foreach (var violation in Result.Violations)
+                    {
+                        <li>
+                            @Display.Number(violation.FromDepth) → @Display.Number(violation.ToDepth) @Labels.Depth,
+                            ceiling @Display.Number(violation.Ceiling, 1) @Labels.Depth
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+
+        @if (!Result.ReserveSatisfied)
+        {
+            <p class="alert alert-warning">A cylinder does not hold the reserve gas the plan requires.</p>
+        }
+
+        <h3>Profile</h3>
+        <div class="table-scroll">
+            <table class="profile">
+                <caption>Depth in @Labels.Depth, time and runtime in minutes</caption>
+                <thead>
+                <tr>
+                    <th></th>
+                    <th class="number">Depth</th>
+                    <th class="number">Time</th>
+                    <th class="number">Run</th>
+                    <th>Gas</th>
+                    @if (ShowsApparatus)
+                    {
+                        <th>Apparatus</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var phase in Result.Profile)
+                {
+                    <tr class="@(phase.Kind is SegmentKind.Stop or SegmentKind.GasSwitch ? "row-stop" : null)">
+                        <td>@Display.Name(phase.Kind)</td>
+                        <td class="number">@Depths(phase)</td>
+                        <td class="number">@Display.Clock(phase.Duration)</td>
+                        <td class="number">@Display.Clock(phase.Runtime)</td>
+                        <td>@phase.Gas</td>
+                        @if (ShowsApparatus)
+                        {
+                            <td>@phase.Circuit</td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <h3>Gas</h3>
+        <div class="gas-list">
+            @foreach (var cylinder in Result.Cylinders)
+            {
+                <article class="gas-card @(cylinder.IsExhausted || !cylinder.ReserveSatisfied ? "gas-card-danger" : null)">
+                    <h4>@cylinder.Gas <span>@Display.Name(cylinder.Purpose)</span></h4>
+                    <dl>
+                        <div><dt>Used</dt><dd>@Display.Number(cylinder.GasUsed) @Labels.GasVolume</dd></div>
+                        <div><dt>Pressure</dt><dd>@Display.Number(cylinder.StartPressure) → @Display.Number(cylinder.EndPressure) @Labels.Pressure</dd></div>
+                        <div><dt>Reserve needed</dt><dd>@Display.Number(cylinder.RequiredReserve) @Labels.GasVolume</dd></div>
+                        <div><dt>Left</dt><dd>@Display.Number(cylinder.ProjectedRemaining) @Labels.GasVolume</dd></div>
+                    </dl>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public DiveResult Result { get; set; } = default!;
+
+    [Parameter]
+    public UnitSystem Units { get; set; }
+
+    private UnitLabels Labels => UnitLabels.For(Units);
+
+    private bool ShowsApparatus => Result.Profile.Any(static phase => phase.Circuit != BreathingLoop.OpenCircuit.ToString());
+
+    private static string Depths(ProfileRow phase) => phase.StartDepth == phase.EndDepth
+        ? Display.Number(phase.EndDepth)
+        : $"{Display.Number(phase.StartDepth)} → {Display.Number(phase.EndDepth)}";
+}
