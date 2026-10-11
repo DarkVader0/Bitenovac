@@ -9,5 +9,6 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped<IKeyValueStorage, BrowserStorage>();
 builder.Services.AddScoped<PlanStore>();
+builder.Services.AddScoped<ShareService>();
 
 await builder.Build().RunAsync();

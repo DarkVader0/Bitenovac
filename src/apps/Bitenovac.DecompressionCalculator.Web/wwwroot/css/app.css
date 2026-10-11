@@ -415,6 +415,76 @@ a.icon-button {
     font-weight: 600;
 }
 
+/* ------------------------------------------------------------------------ share -- */
+
+.share-sheet {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 11;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: var(--surface);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.25);
+}
+
+@media (min-width: 641px) {
+    .share-sheet {
+        inset: 15vh auto auto 50%;
+        width: 24rem;
+        transform: translateX(-50%);
+        border-radius: var(--radius);
+    }
+}
+
+.share-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.share-status {
+    margin: 1rem 0 0;
+    color: var(--text-muted);
+}
+
+.print-only {
+    display: none;
+}
+
+@media print {
+    .no-print,
+    .drawer,
+    .drawer-backdrop,
+    .share-sheet,
+    #blazor-error-ui {
+        display: none !important;
+    }
+
+    .print-only {
+        display: block;
+    }
+
+    .card {
+        border: 0;
+        padding: 0;
+    }
+
+    .figures div,
+    .gas-card,
+    .row-stop td {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .profile-chart,
+    .gas-card,
+    tr {
+        break-inside: avoid;
+    }
+}
+
 /* ----------------------------------------------------------------------- series -- */
 
 .dive-tabs {
