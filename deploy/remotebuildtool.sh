@@ -73,6 +73,11 @@ exec docker run \
         found=("${packages}"/Bitenovac.RemoteBuildTool.[0-9]*.nupkg)
         [[ ${#found[@]} -eq 1 ]] || fail "Expected one Bitenovac.RemoteBuildTool package in drop ${DROP}, found ${#found[@]}."
 
+        # A RemoteBuildTool that predates keeping a project'"'"'s own version stamps the tool with the
+        # drop'"'"'s date. nuget.org never deletes a version, and that one would outrank every real one.
+        [[ ! "$(basename "${found[0]}")" =~ ^Bitenovac\.RemoteBuildTool\.[0-9]{4}\. ]] \
+            || fail "$(basename "${found[0]}") carries the drop date, not the tool version. The RemoteBuildTool that made drop ${DROP} is too old to deploy from."
+
         printf "==> Pushing %s from drop %s\n" "$(basename "${found[0]}")" "${DROP}"
         exec dotnet nuget push "${found[0]}" \
             --source https://api.nuget.org/v3/index.json \
