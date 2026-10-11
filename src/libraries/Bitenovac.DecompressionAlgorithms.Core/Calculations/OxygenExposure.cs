@@ -42,8 +42,7 @@ public static class OxygenExposure
         Calculate(segments, settings, OxygenExposureResult.None);
 
     /// <summary>
-    /// Computes the total oxygen toxicity at the end of the specified expanded dive profile, starting
-    /// from the exposure carried into the dive.
+    /// Computes the total oxygen toxicity at the end of the specified expanded dive profile.
     /// </summary>
     /// <param name="segments">The fully expanded, ordered, depth-contiguous dive segments.</param>
     /// <param name="settings">The settings that supply the surface pressure and salinity.</param>
