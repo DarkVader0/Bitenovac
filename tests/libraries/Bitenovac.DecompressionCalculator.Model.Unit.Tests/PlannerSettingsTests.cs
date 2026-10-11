@@ -10,7 +10,7 @@ public sealed class PlannerSettingsTests
     {
         // Arrange
         var expected = new PlannerSettings(0, Salinity.Salt, 18, 9, 9, 9, 1, 18, 14, 1, 0.6, 6, 1.4, 1.6,
-            MaximumOperatingDepthModel.Realistic, 2, 2, 1, 2, 20, 5, true, false, false, false);
+            MaximumOperatingDepthModel.Realistic, 2, 2, 1, 2, 20, 5, false, false, false, false);
 
         // Act
         var settings = PlannerSettings.Default(UnitSystem.Metric);

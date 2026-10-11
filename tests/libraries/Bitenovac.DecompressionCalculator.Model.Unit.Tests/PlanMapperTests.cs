@@ -20,6 +20,7 @@ public sealed class PlanMapperTests
         {
             ReserveStressFactor = 1.5,
             ReserveTeamSize = 3,
+            SafetyStop = true,
             OxygenBreaks = true,
             LastStopAtSixMeters = true,
             SwitchAtRequiredStop = true

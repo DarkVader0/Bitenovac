@@ -28,7 +28,7 @@ namespace Bitenovac.DecompressionCalculator.Model;
 /// <param name="GasSwitchMinutes">The least time a gas switch takes, in minutes.</param>
 /// <param name="OxygenBreakIntervalMinutes">How long oxygen is breathed before a break, in minutes.</param>
 /// <param name="OxygenBreakDurationMinutes">How long each oxygen break lasts, in minutes.</param>
-/// <param name="SafetyStop">Whether a safety stop is added to dives that need no decompression.</param>
+/// <param name="SafetyStop">Whether a three-minute safety stop is added: at 6 m on a dive without decompression stops, or at the end of the last decompression stop.</param>
 /// <param name="LastStopAtSixMeters">Whether the last stop is at six meters (20 feet) instead of three (10 feet).</param>
 /// <param name="SwitchAtRequiredStop">Whether gas switches wait for a required stop instead of happening at a gas's maximum operating depth.</param>
 /// <param name="OxygenBreaks">Whether oxygen breaks are planned during long oxygen stops.</param>
@@ -101,7 +101,7 @@ public sealed record PlannerSettings(
         GasSwitchMinutes: 2,
         OxygenBreakIntervalMinutes: 20,
         OxygenBreakDurationMinutes: 5,
-        SafetyStop: true,
+        SafetyStop: false,
         LastStopAtSixMeters: false,
         SwitchAtRequiredStop: false,
         OxygenBreaks: false);
