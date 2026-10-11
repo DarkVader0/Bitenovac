@@ -106,17 +106,17 @@ On GitHub, Settings → Actions → Runners must show `DESKTOP-...-1` and `DESKT
 Pull requests use the RemoteBuildTool release **installed in the runner image**, not the source in
 the pull request. To ship a change to RemoteBuildTool:
 
-1. Bump `<VersionPrefix>` in `src/tools/Bitenovac.RemoteBuildTool/Bitenovac.RemoteBuildTool.csproj`.
-2. Pack and publish it:
+1. Bump `<VersionPrefix>` in `src/tools/Bitenovac.RemoteBuildTool/Bitenovac.RemoteBuildTool.csproj`
+   and merge it. That is the only place the version lives: `runner/build-image.sh` reads it from
+   there.
+2. Wait for the next Official build, or run one: Actions → Official → Run workflow. It keeps the
+   package's own version rather than the date.
+3. Publish it from that drop: Actions → Deploy RemoteBuildTool → Run workflow. Leave the drop empty
+   for the newest one. A version that is already on nuget.org fails the run, so a forgotten bump
+   cannot overwrite anything.
 
-   ```bash
-   dotnet pack src/tools/Bitenovac.RemoteBuildTool -c Release -o artifacts/package
-   dotnet nuget push artifacts/package/Bitenovac.RemoteBuildTool.<VERSION>.nupkg --source <FEED> --api-key <KEY>
-   ```
-
-3. Set the same version as `REMOTEBUILDTOOL_VERSION` in `docker/ci-runner.Dockerfile` and merge it.
-
-Then, and after any Dockerfile or `global.json` change merged into `master` (Ubuntu):
+nuget.org takes a few minutes to index a new package. Once it is listed, and after any Dockerfile or
+`global.json` change merged into `master` (Ubuntu):
 
 ```bash
 cd ~/bitenovac
@@ -129,6 +129,32 @@ sudo bash runner/seed-cache.sh
 `seed-cache.sh` is needed because a new RemoteBuildTool release empties the cache: every project
 would build from zero on the next pull request. Set `REMOTEBUILDTOOL_SOURCE` before `build-image.sh`
 to install from a feed other than nuget.org.
+
+### First time only: let the deploy workflow publish
+
+The deploy workflow uses nuget.org Trusted Publishing: each run trades its GitHub identity for an
+API key that expires within the hour, so no key is ever stored.
+
+**1.** On nuget.org, your account → Trusted Publishing → add a policy:
+
+| Field | Value |
+|---|---|
+| Repository owner | `DarkVader0` |
+| Repository | `Bitenovac-Decompression` |
+| Workflow file | `deploy-remotebuildtool.yml` |
+| Environment | `nuget` |
+
+**2.** On GitHub, Settings → Variables → Actions: add the variable `NUGET_USER` with your nuget.org
+username (the profile name, not the email).
+
+**3.** Optional: Settings → Environments → `nuget` → Required reviewers: add yourself, so every
+publish waits for your approval. The environment is created on the first run if it does not exist.
+
+To publish by hand on the runner host instead, with a key from nuget.org:
+
+```bash
+NUGET_API_KEY=<KEY> bash deploy/remotebuildtool.sh [2026.10.11.001]
+```
 
 ---
 

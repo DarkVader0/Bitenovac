@@ -367,7 +367,7 @@ cat <<EOF
   A per-run store (bitenovac-pr-<run id>) is created and dropped by the workflow itself — see
   .github/workflows/pr.yml, cache-refresh.yml and official.yml.
 
-  Pull requests run the RemoteBuildTool release installed in the image. After bumping its
-  version in docker/ci-runner.Dockerfile, update it without
+  Pull requests run the RemoteBuildTool release installed in the image. Once a bumped
+  <VersionPrefix> in its csproj is on the feed, update it without
   re-registering the agents:  bash runner/build-image.sh
 EOF
