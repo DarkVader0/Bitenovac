@@ -27,20 +27,26 @@ jobs:
 
       - run: bash runner/in-container.sh plan
 
-  debug:
-    name: Debug
+  debug-build:
+    name: Debug build
     needs: plan
     runs-on: [self-hosted, linux, x64, bitenovac]
     timeout-minutes: 1
     steps:
       - uses: actions/checkout@v7
 
-      - id: build
-        name: Build
+      - name: Build
         run: bash runner/in-container.sh build Debug
 
-      - id: test
-        name: Test + coverage gate
+  debug-test:
+    name: Debug test
+    needs: debug-build
+    runs-on: [self-hosted, linux, x64, bitenovac]
+    timeout-minutes: 1
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Test + coverage gate
         run: bash runner/in-container.sh test Debug
 
       - name: Upload coverage report
@@ -51,8 +57,8 @@ jobs:
           path: artifacts/coverage-report/Debug
           if-no-files-found: ignore
 
-  release:
-    name: Release
+  release-build:
+    name: Release build
     needs: plan
     runs-on: [self-hosted, linux, x64, bitenovac]
     timeout-minutes: 1
@@ -62,12 +68,20 @@ jobs:
       - name: Build
         run: bash runner/in-container.sh build Release
 
+  release-test:
+    name: Release test
+    needs: release-build
+    runs-on: [self-hosted, linux, x64, bitenovac]
+    timeout-minutes: 1
+    steps:
+      - uses: actions/checkout@v7
+
       - name: Test
         run: bash runner/in-container.sh test Release
 
   cleanup:
     name: Cleanup
-    needs: [debug, release]
+    needs: [debug-test, release-test]
     if: always()
     runs-on: [self-hosted, linux, x64, bitenovac]
     timeout-minutes: 1
@@ -82,19 +96,21 @@ jobs:
 
   pr:
     name: PR
-    needs: [plan, debug, release]
+    needs: [plan, debug-build, debug-test, release-build, release-test]
     if: always()
     runs-on: [self-hosted, linux, x64, bitenovac]
     timeout-minutes: 1
     steps:
       - name: Check results
         run: |
-          echo "plan:    ${{ needs.plan.result }}"
-          echo "debug:   ${{ needs.debug.result }}"
-          echo "release: ${{ needs.release.result }}"
+          echo "plan:          ${{ needs.plan.result }}"
+          echo "debug build:   ${{ needs.debug-build.result }}"
+          echo "debug test:    ${{ needs.debug-test.result }}"
+          echo "release build: ${{ needs.release-build.result }}"
+          echo "release test:  ${{ needs.release-test.result }}"
 
           failed=0
-          for result in "${{ needs.plan.result }}" "${{ needs.debug.result }}" "${{ needs.release.result }}"; do
+          for result in "${{ needs.plan.result }}" "${{ needs.debug-build.result }}" "${{ needs.debug-test.result }}" "${{ needs.release-build.result }}" "${{ needs.release-test.result }}"; do
             case "${result}" in
               success) ;;
               *) failed=1 ;;

@@ -28,8 +28,8 @@ jobs:
 
       - run: bash runner/in-container.sh plan
 
-  debug:
-    name: Debug
+  debug-build:
+    name: Debug build
     needs: plan
     runs-on: [self-hosted, linux, x64, bitenovac]
     timeout-minutes: 1
@@ -39,11 +39,19 @@ jobs:
       - name: Build
         run: bash runner/in-container.sh build Debug
 
+  debug-test:
+    name: Debug test
+    needs: debug-build
+    runs-on: [self-hosted, linux, x64, bitenovac]
+    timeout-minutes: 1
+    steps:
+      - uses: actions/checkout@v7
+
       - name: Test + coverage gate
         run: bash runner/in-container.sh test Debug
 
-  release:
-    name: Release
+  release-build:
+    name: Release build
     needs: plan
     runs-on: [self-hosted, linux, x64, bitenovac]
     timeout-minutes: 1
@@ -53,12 +61,20 @@ jobs:
       - name: Build
         run: bash runner/in-container.sh build Release
 
+  release-test:
+    name: Release test
+    needs: release-build
+    runs-on: [self-hosted, linux, x64, bitenovac]
+    timeout-minutes: 1
+    steps:
+      - uses: actions/checkout@v7
+
       - name: Test
         run: bash runner/in-container.sh test Release
 
   promote:
     name: Promote
-    needs: [debug, release]
+    needs: [debug-test, release-test]
     runs-on: [self-hosted, linux, x64, bitenovac]
     timeout-minutes: 1
     steps:
