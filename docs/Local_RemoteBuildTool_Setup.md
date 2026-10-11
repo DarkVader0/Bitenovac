@@ -200,6 +200,36 @@ sudo ls /var/lib/docker/volumes/bitenovac-official/_data
 
 ---
 
+## Logs
+
+Every PR, Cache refresh and Official run keeps its logs in the `bitenovac-logs` volume, one folder
+per pull request or build and one folder per run attempt inside it:
+
+```
+PR_18/16473829-1/               kept 30 days
+CacheRefresh_412/16473901-1/    kept 30 days
+Official_2026.10.11.001/...     kept 1 year
+Official_failed_57/...          kept 1 year; a release that dropped nothing
+```
+
+Each attempt folder holds the full output of every stage (`plan.log`, `build-Debug.log`,
+`test-Debug.log`, `release.log`, ...) and an MSBuild binary log per restore, build, publish and
+pack (`build-Debug.binlog`, `publish-<app>.binlog`, ...). Every run prunes what is past its
+retention when it finishes.
+
+To read them (Ubuntu):
+
+```bash
+sudo ls /var/lib/docker/volumes/bitenovac-logs/_data/PR_18
+sudo cat /var/lib/docker/volumes/bitenovac-logs/_data/PR_18/16473829-1/test-Debug.log
+```
+
+Open a `.binlog` in the [MSBuild Structured Log Viewer](https://msbuildlog.com) to see why a project
+built, what every property evaluated to, and how long each target took. Binary logs need
+RemoteBuildTool 0.0.4 or later in the runner image; console logs work with any.
+
+---
+
 ## Remove everything
 
 **1.** On GitHub, Settings → Actions → Runners: remove both runners.

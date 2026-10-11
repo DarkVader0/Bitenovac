@@ -31,6 +31,11 @@ fail() { printf '\nerror: %s\n' "$*" >&2; exit 1; }
 
 [[ $# -gt 0 ]] || fail "No command given. Pass a Bitenovac.RemoteBuildTool command, for example: test Debug"
 
+# The run's folder in the logs volume, set by the workflow; see runner/logs.sh for the layout. The
+# pattern keeps a crafted value from escaping the volume.
+[[ -z "${REMOTEBUILDTOOL_LOG_RUN:-}" || "${REMOTEBUILDTOOL_LOG_RUN}" =~ ^[A-Za-z]+_[A-Za-z0-9_]+/[0-9]+-[0-9]+$ ]] \
+    || fail "REMOTEBUILDTOOL_LOG_RUN '${REMOTEBUILDTOOL_LOG_RUN}' is not <Kind>_<number>/<run id>-<attempt>."
+
 sdk_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' global.json | head -n 1)"
 [[ -n "${sdk_version}" ]] || fail "Could not read the SDK version from global.json."
 
@@ -86,6 +91,8 @@ for variable in GITHUB_ACTIONS GITHUB_RUN_ID REMOTEBUILDTOOL_MAX_CPU REMOTEBUILD
     [[ -n "${!variable:-}" ]] && run_args+=(--env "${variable}=${!variable}")
 done
 
+[[ -n "${REMOTEBUILDTOOL_LOG_RUN:-}" ]] && run_args+=(--env "REMOTEBUILDTOOL_LOGS_DIR=/mnt/logs/${REMOTEBUILDTOOL_LOG_RUN}")
+
 exec docker run "${run_args[@]}" --entrypoint bash "${IMAGE}" -c '
     set -euo pipefail
     mkdir -p "${TMPDIR}"
@@ -93,5 +100,9 @@ exec docker run "${run_args[@]}" --entrypoint bash "${IMAGE}" -c '
     # reportgenerator, which only the coverage merge in "test" runs.
     [[ "$1" == "test" ]] && dotnet tool restore > /dev/null
 
-    exec /opt/remotebuildtool/remotebuildtool "$@"
+    [[ -n "${REMOTEBUILDTOOL_LOGS_DIR:-}" ]] || exec /opt/remotebuildtool/remotebuildtool "$@"
+
+    # One file per command, such as build-Debug.log; pipefail makes the exit code the tool'"'"'s.
+    mkdir -p "${REMOTEBUILDTOOL_LOGS_DIR}"
+    /opt/remotebuildtool/remotebuildtool "$@" 2>&1 | tee -a "${REMOTEBUILDTOOL_LOGS_DIR}/$(IFS=-; printf "%s" "$*").log"
 ' ci "$@"

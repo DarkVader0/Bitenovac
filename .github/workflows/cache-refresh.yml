@@ -16,6 +16,7 @@ env:
   DOTNET_NOLOGO: "true"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
   REMOTEBUILDTOOL_PR_VOLUME: bitenovac-pr-master-${{ github.run_id }}
+  REMOTEBUILDTOOL_LOG_RUN: CacheRefresh_${{ github.run_number }}/${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   plan:
@@ -72,5 +73,10 @@ jobs:
     runs-on: [self-hosted, linux, x64, bitenovac]
     timeout-minutes: 1
     steps:
+      - uses: actions/checkout@v7
+
       - name: Drop this run's volume
         run: docker volume rm -f "${REMOTEBUILDTOOL_PR_VOLUME}"
+
+      - name: Prune old logs
+        run: bash runner/logs.sh prune

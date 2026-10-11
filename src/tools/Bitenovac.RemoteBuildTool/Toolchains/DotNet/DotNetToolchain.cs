@@ -72,7 +72,8 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
             options.RepositoryRoot,
             debug.Select(project => project.FullPath),
             configuration: "Debug",
-            options.SyntheticSolutionPath("restore"));
+            options.SyntheticSolutionPath("restore"),
+            options.BinaryLogPath("restore"));
 
         if (restoreExitCode != 0)
         {
@@ -110,11 +111,11 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
             {
                 case Deployment.Publish:
                     output.WriteLine($"--- {name}: publish");
-                    exitCode = MsBuildRunner.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name));
+                    exitCode = MsBuildRunner.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name), options.BinaryLogPath($"publish-{name}"));
                     break;
                 case Deployment.Pack:
                     output.WriteLine($"--- {name}: pack");
-                    exitCode = MsBuildRunner.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"));
+                    exitCode = MsBuildRunner.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"), options.BinaryLogPath($"pack-{name}"));
                     break;
                 default:
                     output.WriteLine($"--- {name}: nothing to deploy");
@@ -149,7 +150,8 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
                 options.RepositoryRoot,
                 unrestored.Select(entry => entry.FullPath),
                 configuration,
-                options.SyntheticSolutionPath($"restore-{configuration}"));
+                options.SyntheticSolutionPath($"restore-{configuration}"),
+                options.BinaryLogPath($"restore-{configuration}"));
 
             if (restoreExitCode != 0)
             {
@@ -164,7 +166,8 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
             entries.Select(entry => entry.FullPath),
             configuration,
             options.SyntheticSolutionPath($"build-{configuration}"),
-            defaultProperties);
+            defaultProperties,
+            options.BinaryLogPath($"build-{configuration}"));
 
         if (exitCode != 0)
             output.WriteError($"error: build failed (exit {exitCode}).");

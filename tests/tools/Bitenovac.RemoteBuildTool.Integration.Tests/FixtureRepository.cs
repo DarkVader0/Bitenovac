@@ -89,13 +89,14 @@ internal sealed class FixtureRepository : IDisposable
     /// <summary>
     /// Replaces the specified options of this fixture and returns it.
     /// </summary>
-    public FixtureRepository With(bool? cacheless = null, string? prStoreRoot = null, bool? coverageHtml = null)
+    public FixtureRepository With(bool? cacheless = null, string? prStoreRoot = null, bool? coverageHtml = null, string? logsRoot = null)
     {
         Options = Options with
         {
             Cacheless = cacheless ?? Options.Cacheless,
             PrStoreRoot = prStoreRoot ?? Options.PrStoreRoot,
             CoverageHtml = coverageHtml ?? Options.CoverageHtml,
+            LogsRoot = logsRoot ?? Options.LogsRoot,
         };
 
         return this;
