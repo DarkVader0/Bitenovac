@@ -1,3 +1,4 @@
+using System.Globalization;
 using Bitenovac.DecompressionCalculator.Model;
 
 namespace Bitenovac.DecompressionCalculator.Web.Planning;
@@ -32,6 +33,26 @@ public sealed class IssueMap
     public string? this[string path] => _messages.GetValueOrDefault(Combine(path));
 
     public string? Self => _messages.GetValueOrDefault(_prefix);
+
+    /// <summary>
+    /// Returns the indexes of the items in a list that have at least one issue, such as the dives of a plan.
+    /// </summary>
+    public IReadOnlySet<int> IndexesWithIssues(string path)
+    {
+        var prefix = $"{Combine(path)}[";
+        var indexes = new HashSet<int>();
+        foreach (var key in _messages.Keys)
+        {
+            if (key.StartsWith(prefix, StringComparison.Ordinal)
+                && key.IndexOf(']', prefix.Length) is var end and > 0
+                && int.TryParse(key.AsSpan(prefix.Length, end - prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var index))
+            {
+                indexes.Add(index);
+            }
+        }
+
+        return indexes;
+    }
 
     public IssueMap Scope(string path) => new(_messages, Combine(path));
 

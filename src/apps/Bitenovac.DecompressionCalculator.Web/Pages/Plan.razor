@@ -37,12 +37,22 @@
     </button>
 </header>
 
-<DiveEditor Value="_plan.Dives[0]" Units="_plan.Units" Issues="_issues.Scope(nameof(DivePlanDocument.Dives), 0)"
-            ValueChanged="dive => ChangeAsync(_plan with { Dives = ListEdit.Replace(_plan.Dives, 0, dive) })"/>
+<DiveTabs Count="_plan.Dives.Count" Selected="_selected" SelectedChanged="index => _selected = index"
+          DivesWithIssues="DivesWithIssues" OnAdd="() => AddDiveAsync(_plan)"/>
+
+<DiveEditor Value="_plan.Dives[_selected]" Number="_selected + 1" CanRemove="_plan.Dives.Count > 1" Units="_plan.Units"
+            Issues="_issues.Scope(nameof(DivePlanDocument.Dives), _selected)" OnRemove="() => RemoveDiveAsync(_plan)"
+            ValueChanged="dive => ChangeAsync(_plan with { Dives = ListEdit.Replace(_plan.Dives, _selected, dive) })"/>
 
 @if (_calculation.IsCalculated)
 {
-    <DiveResultView Result="_calculation.Dives[0]" Units="_plan.Units"/>
+    @if (_plan.Dives.Count > 1)
+    {
+        <SeriesSummary Plan="_plan" Results="_calculation.Dives" Selected="_selected" SelectedChanged="index => _selected = index"/>
+    }
+
+    <DiveResultView Result="_calculation.Dives[_selected]" Units="_plan.Units"
+                    Title="@(_plan.Dives.Count > 1 ? $"Results · Dive {_selected + 1}" : "Results")"/>
 }
 else
 {
@@ -50,6 +60,10 @@ else
         <h2>Results</h2>
         <div class="alert alert-warning">
             <p>Correct the highlighted fields to see the plan.</p>
+            @if (OtherDivesWithIssues is { Length: > 0 } others)
+            {
+                <p>Also check @string.Join(", ", others.Select(static index => $"dive {index + 1}")).</p>
+            }
             @if (SettingsHaveIssues)
             {
                 <button type="button" class="secondary" @onclick="() => _settingsOpen = true">Open settings</button>
@@ -106,9 +120,14 @@ else
     private bool _settingsOpen;
     private bool _missing;
     private Guid _loadedId;
+    private int _selected;
 
     [Parameter]
     public Guid Id { get; set; }
+
+    private IReadOnlySet<int> DivesWithIssues => _issues.IndexesWithIssues(nameof(DivePlanDocument.Dives));
+
+    private int[] OtherDivesWithIssues => [.. DivesWithIssues.Where(index => index != _selected).Order()];
 
     private bool SettingsHaveIssues => _calculation?.Issues.Any(static issue =>
         issue.Path.StartsWith(nameof(DivePlanDocument.Settings), StringComparison.Ordinal)
@@ -122,6 +141,7 @@ else
         }
 
         _loadedId = Id;
+        _selected = 0;
         _settingsOpen = false;
         var saved = await Store.LoadAsync(Id);
         _missing = saved is not { Dives.Count: > 0 };
@@ -137,6 +157,19 @@ else
         var plan = PlanCopies.New(units, DateTime.UtcNow);
         await Store.SaveAsync(plan);
         Navigation.NavigateTo($"plan/{plan.Id:D}");
+    }
+
+    private async Task AddDiveAsync(DivePlanDocument plan)
+    {
+        _selected = plan.Dives.Count;
+        await ChangeAsync(plan with { Dives = ListEdit.Add(plan.Dives, NewInputs.NextDive(plan)) });
+    }
+
+    private async Task RemoveDiveAsync(DivePlanDocument plan)
+    {
+        var removed = _selected;
+        _selected = Math.Max(0, removed - 1);
+        await ChangeAsync(plan with { Dives = ListEdit.RemoveAt(plan.Dives, removed) });
     }
 
     private void CloseOnEscape(KeyboardEventArgs args)
@@ -157,6 +190,7 @@ else
     private void Show(DivePlanDocument plan)
     {
         _plan = plan;
+        _selected = Math.Clamp(_selected, 0, plan.Dives.Count - 1);
         _calculation = PlanCalculator.Calculate(plan);
         _issues = IssueMap.From(_calculation.Issues);
     }

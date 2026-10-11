@@ -354,6 +354,62 @@ a.icon-button {
     background-color: var(--danger);
 }
 
+/* ----------------------------------------------------------------------- series -- */
+
+.dive-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+    overflow-x: auto;
+}
+
+.dive-tab {
+    position: relative;
+    flex-shrink: 0;
+    background-color: transparent;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.dive-tab:hover {
+    background-color: var(--surface-sunken);
+}
+
+.dive-tab.selected {
+    background-color: var(--brand-bright);
+    border-color: var(--brand-bright);
+    color: #fff;
+}
+
+.dive-tab.add {
+    border-style: dashed;
+}
+
+.card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem;
+}
+
+.card-header h2 {
+    margin: 0;
+}
+
+.surface-interval {
+    margin: 0 0 1rem;
+}
+
+.series-row {
+    cursor: pointer;
+}
+
+.series-failed {
+    color: var(--danger);
+}
+
 /* ------------------------------------------------------------------------ plans -- */
 
 .page-title {
