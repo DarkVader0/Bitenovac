@@ -117,12 +117,12 @@ public sealed class DiveResult
     public double MaximumDepth { get; }
 
     /// <summary>
-    /// Gets the central nervous system oxygen toxicity of the dive, in percent of the limit.
+    /// Gets the central nervous system oxygen toxicity, in percent of the limit.
     /// </summary>
     public double CnsPercent { get; }
 
     /// <summary>
-    /// Gets the whole-body oxygen exposure of the dive, in oxygen tolerance units.
+    /// Gets the whole-body oxygen exposure, in oxygen tolerance units.
     /// </summary>
     public double OxygenToleranceUnits { get; }
 

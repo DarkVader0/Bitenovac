@@ -74,7 +74,21 @@ public sealed class PlanCalculatorTests
         Assert.Equal(1, series[1].Index);
         Assert.True(series[1].StopTime > series[0].StopTime);
     }
+    
+    [Fact]
+    public void Calculate_ShouldCarryTheEarlierDivesOxygenExposure_WhenDivesFollowEachOther()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(DecompressionDive, DecompressionDive with { SurfaceIntervalMinutes = 30 });
 
+        // Act
+        var dives = PlanCalculator.Calculate(plan).Dives;
+
+        // Assert
+        Assert.True(dives[1].CnsPercent >= dives[0].CnsPercent * (1 + Math.Pow(0.5, 30.0 / 90)));
+        Assert.True(dives[1].OxygenToleranceUnits >= dives[0].OxygenToleranceUnits * 2);
+    }
+    
     [Fact]
     public void Calculate_ShouldReportTheFailureOnTheDive_WhenNoCylinderCanBeBreathed()
     {
