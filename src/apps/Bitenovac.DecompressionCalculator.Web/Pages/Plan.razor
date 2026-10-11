@@ -1,7 +1,16 @@
-@page "/"
-@inject CurrentPlanStore Store
+@page "/plan/{Id:guid}"
+@inject PlanStore Store
+@inject NavigationManager Navigation
 
 <PageTitle>@(_plan?.Name ?? "Bitenovac")</PageTitle>
+
+@if (_missing)
+{
+    <h1>Plan not found</h1>
+    <p>This plan is not saved in this browser.</p>
+    <a href="plans">Show saved plans</a>
+    return;
+}
 
 @if (_plan is null || _calculation is null)
 {
@@ -9,6 +18,11 @@
 }
 
 <header class="plan-header">
+    <a class="icon-button" href="plans" title="Plans" aria-label="Plans">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+        </svg>
+    </a>
     <input class="plan-name" type="text" aria-label="Plan name" value="@_plan.Name"
            @onchange="args => ChangeAsync(_plan with { Name = args.Value as string ?? string.Empty })"/>
     <button type="button" class="icon-button" title="Settings" aria-label="Settings" aria-expanded="@_settingsOpen"
@@ -71,7 +85,7 @@ else
                     </div>
                 </div>
                 <div class="field">
-                    <span class="field-label">Start over</span>
+                    <span class="field-label">Another plan</span>
                     <button type="button" class="secondary" @onclick="() => StartOverAsync(_plan.Units)">New plan</button>
                 </div>
             </div>
@@ -90,26 +104,39 @@ else
     private PlanCalculation? _calculation;
     private IssueMap _issues = IssueMap.Empty;
     private bool _settingsOpen;
+    private bool _missing;
+    private Guid _loadedId;
+
+    [Parameter]
+    public Guid Id { get; set; }
 
     private bool SettingsHaveIssues => _calculation?.Issues.Any(static issue =>
         issue.Path.StartsWith(nameof(DivePlanDocument.Settings), StringComparison.Ordinal)
         || issue.Path.StartsWith(nameof(DivePlanDocument.Algorithm), StringComparison.Ordinal)) ?? false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        var saved = await Store.LoadAsync();
-        Show(saved is { Dives.Count: > 0 }
-            ? saved with { Dives = [.. saved.Dives.Select(CylinderRoles.Apply)] }
-            : NewPlan(UnitSystem.Metric));
-    }
+        if (Id == _loadedId)
+        {
+            return;
+        }
 
-    private static DivePlanDocument NewPlan(UnitSystem units) =>
-        DivePlanDocument.CreateNew(Guid.NewGuid(), "New plan", units, DateTime.UtcNow);
+        _loadedId = Id;
+        _settingsOpen = false;
+        var saved = await Store.LoadAsync(Id);
+        _missing = saved is not { Dives.Count: > 0 };
+        if (saved is { Dives.Count: > 0 })
+        {
+            Show(saved with { Dives = [.. saved.Dives.Select(CylinderRoles.Apply)] });
+            await Store.MarkOpenedAsync(Id);
+        }
+    }
 
     private async Task StartOverAsync(UnitSystem units)
     {
-        _settingsOpen = false;
-        await ChangeAsync(NewPlan(units));
+        var plan = PlanCopies.New(units, DateTime.UtcNow);
+        await Store.SaveAsync(plan);
+        Navigation.NavigateTo($"plan/{plan.Id:D}");
     }
 
     private void CloseOnEscape(KeyboardEventArgs args)

@@ -1,0 +1,29 @@
+@page "/"
+@inject PlanStore Store
+@inject NavigationManager Navigation
+
+<PageTitle>Bitenovac</PageTitle>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (await Store.LastOpenedAsync() is { } lastId && await Store.LoadAsync(lastId) is not null)
+        {
+            Open(lastId);
+            return;
+        }
+
+        var plans = await Store.ListAsync();
+        if (plans.Count > 0)
+        {
+            Open(plans[0].Id);
+            return;
+        }
+
+        var plan = PlanCopies.New(UnitSystem.Metric, DateTime.UtcNow);
+        await Store.SaveAsync(plan);
+        Open(plan.Id);
+    }
+
+    private void Open(Guid id) => Navigation.NavigateTo($"plan/{id:D}", replace: true);
+}
