@@ -411,6 +411,61 @@ public sealed class DivePlannerTests
         Assert.True(plan.CentralNervousSystemFraction > 0);
     }
 
+    [Fact]
+    public void CreatePlan_ShouldCarryTheOxygenExposureOfAPriorDive_WhenTheDiveIsRepetitive()
+    {
+        // Arrange
+        var profile = new DiveProfile([TestFactory.CreateSegment(30, 10)]);
+        Cylinder[] cylinders = [TestFactory.CreateCylinder(GasMixture.Air)];
+        var settings = TestFactory.CreateSettings();
+        var prior = new PriorDive(profile, cylinders, settings, TimeSpan.FromMinutes(90), GasMixture.Air);
+        var single = new DivePlanner(new FakeAlgorithm()).CreatePlan(new DivePlanRequest(profile, cylinders, settings));
+
+        // Act
+        var repetitive = new DivePlanner(new FakeAlgorithm())
+            .CreatePlan(new DivePlanRequest(profile, cylinders, settings, [prior]));
+
+        // Assert
+        Assert.Equal(single.CentralNervousSystemFraction * (0.5 + 1), repetitive.CentralNervousSystemFraction, Precision);
+        Assert.Equal(single.OxygenToleranceUnits * 2, repetitive.OxygenToleranceUnits, Precision);
+    }
+
+    [Fact]
+    public void CreatePlan_ShouldDecayEachPriorDivesExposureOverEveryLaterSurfaceInterval_WhenSeveralDivesPrecede()
+    {
+        // Arrange
+        var profile = new DiveProfile([TestFactory.CreateSegment(30, 10)]);
+        Cylinder[] cylinders = [TestFactory.CreateCylinder(GasMixture.Air)];
+        var settings = TestFactory.CreateSettings();
+        var prior = new PriorDive(profile, cylinders, settings, TimeSpan.FromMinutes(90), GasMixture.Air);
+        var single = new DivePlanner(new FakeAlgorithm()).CreatePlan(new DivePlanRequest(profile, cylinders, settings));
+
+        // Act
+        var third = new DivePlanner(new FakeAlgorithm())
+            .CreatePlan(new DivePlanRequest(profile, cylinders, settings, [prior, prior]));
+
+        // Assert
+        Assert.Equal(single.CentralNervousSystemFraction * (0.25 + 0.5 + 1), third.CentralNervousSystemFraction, Precision);
+        Assert.Equal(single.OxygenToleranceUnits * 3, third.OxygenToleranceUnits, Precision);
+    }
+
+    [Fact]
+    public void CreatePlan_ShouldPlanEveryPriorDiveOnTheDivesBeforeIt_WhenTheDiveIsRepetitive()
+    {
+        // Arrange
+        var algorithm = new FakeAlgorithm();
+        var profile = new DiveProfile([TestFactory.CreateSegment(30, 10)]);
+        Cylinder[] cylinders = [TestFactory.CreateCylinder(GasMixture.Air)];
+        var settings = TestFactory.CreateSettings();
+        var prior = new PriorDive(profile, cylinders, settings, TimeSpan.FromMinutes(60), GasMixture.Air);
+
+        // Act
+        new DivePlanner(algorithm).CreatePlan(new DivePlanRequest(profile, cylinders, settings, [prior, prior]));
+
+        // Assert
+        Assert.Equal([0, 1, 2], algorithm.BeginDivePriorDiveCounts);
+    }
+
     private sealed class FakeState : IDecompressionState
     {
     }
@@ -428,13 +483,15 @@ public sealed class DivePlannerTests
 
         public List<DiveSegment> LoadedSegments { get; } = [];
 
-        public int BeginDiveCallCount { get; private set; }
+        public int BeginDiveCallCount => BeginDivePriorDiveCounts.Count;
+
+        public List<int> BeginDivePriorDiveCounts { get; } = [];
 
         public DivePlanRequest? FinalAscentRequest { get; private set; }
 
         public IDecompressionState BeginDive(DivePlanRequest request)
         {
-            BeginDiveCallCount++;
+            BeginDivePriorDiveCounts.Add(request.PriorDives.Count);
             return new FakeState();
         }
 

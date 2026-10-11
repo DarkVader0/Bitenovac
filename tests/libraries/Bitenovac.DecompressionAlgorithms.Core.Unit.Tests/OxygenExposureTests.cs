@@ -174,4 +174,89 @@ public sealed class OxygenExposureTests
         // Assert
         Assert.True(nitroxResult.OxygenToleranceUnits > airResult.OxygenToleranceUnits);
     }
+
+    [Fact]
+    public void Calculate_ShouldThrowArgumentNullException_WhenCarriedIsNull()
+    {
+        // Arrange
+        OxygenExposureResult carried = null!;
+
+        // Act
+        Action act = () => OxygenExposure.Calculate([], TestFactory.CreateSettings(), carried);
+
+        // Assert
+        Assert.Throws<ArgumentNullException>(act);
+    }
+
+    [Fact]
+    public void Calculate_ShouldAddTheExposureToTheCarriedExposure_WhenExposureIsCarriedIntoTheDive()
+    {
+        // Arrange
+        var segments = new[] { TestFactory.CreateSegment(0, 1, GasMixture.Oxygen) };
+        var carried = new OxygenExposureResult(0.1, 5);
+
+        // Act
+        var result = OxygenExposure.Calculate(segments, TestFactory.CreateSettings(), carried);
+
+        // Assert
+        Assert.Equal(0.1 + 0.00317571, result.CentralNervousSystemFraction, FractionPrecision);
+        Assert.Equal(5 + 1.0, result.OxygenToleranceUnits, Precision);
+    }
+
+    [Theory]
+    [InlineData(0, 1.0)]
+    [InlineData(90, 0.5)]
+    [InlineData(180, 0.25)]
+    [InlineData(45, 0.70710678)]
+    public void AfterSurfaceInterval_ShouldHalveTheCentralNervousSystemToxicityEveryNinetyMinutes_WhenAtTheSurface(
+        double minutes, double remainingPart)
+    {
+        // Arrange
+        var exposure = new OxygenExposureResult(0.4, 120);
+
+        // Act
+        var result = OxygenExposure.AfterSurfaceInterval(exposure, TimeSpan.FromMinutes(minutes));
+
+        // Assert
+        Assert.Equal(0.4 * remainingPart, result.CentralNervousSystemFraction, FractionPrecision);
+    }
+
+    [Fact]
+    public void AfterSurfaceInterval_ShouldKeepTheOxygenToleranceUnits_WhenAtTheSurface()
+    {
+        // Arrange
+        var exposure = new OxygenExposureResult(0.4, 120);
+
+        // Act
+        var result = OxygenExposure.AfterSurfaceInterval(exposure, TimeSpan.FromHours(12));
+
+        // Assert
+        Assert.Equal(120, result.OxygenToleranceUnits, Precision);
+    }
+
+    [Fact]
+    public void AfterSurfaceInterval_ShouldThrowArgumentNullException_WhenExposureIsNull()
+    {
+        // Arrange
+        OxygenExposureResult exposure = null!;
+
+        // Act
+        Action act = () => OxygenExposure.AfterSurfaceInterval(exposure, TimeSpan.FromMinutes(60));
+
+        // Assert
+        Assert.Throws<ArgumentNullException>(act);
+    }
+
+    [Fact]
+    public void AfterSurfaceInterval_ShouldThrowArgumentOutOfRangeException_WhenTheIntervalIsNegative()
+    {
+        // Arrange
+        var interval = TimeSpan.FromMinutes(-1);
+
+        // Act
+        Action act = () => OxygenExposure.AfterSurfaceInterval(OxygenExposureResult.None, interval);
+
+        // Assert
+        Assert.Throws<ArgumentOutOfRangeException>(act);
+    }
 }
