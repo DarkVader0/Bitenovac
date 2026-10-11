@@ -410,6 +410,10 @@ a.icon-button {
     color: var(--danger);
 }
 
+.series-waiting {
+    color: var(--text-muted);
+}
+
 /* ------------------------------------------------------------------------ plans -- */
 
 .page-title {
