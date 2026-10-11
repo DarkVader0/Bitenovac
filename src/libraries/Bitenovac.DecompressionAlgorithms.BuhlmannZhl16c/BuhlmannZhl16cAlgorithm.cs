@@ -47,7 +47,7 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
     private const int ShallowStopDepthMeter = 3;
     private const int SixMeterStopDepthMeter = 6;
     private const double LastBandBoundaryMeter = 6.0;
-    private const double SafetyStopDepthMeter = 5.0;
+    private const double SafetyStopDepthMeter = 6.0;
     private const double DepthToleranceMeter = 1e-9;
     private const double GasFractionTolerance = 1e-9;
     private const double PureOxygenFraction = 0.999;
@@ -534,7 +534,7 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
             || CeilingMeter(state, GradientFactorAt(firstStopMeter, anchorMeter)) > firstStopMeter)
         {
             HoldUntilClear(state, state.CurrentDepthMeter, firstStopMeter,
-                GradientFactorAt(firstStopMeter, anchorMeter), cylinders, settings, output);
+                GradientFactorAt(firstStopMeter, anchorMeter), cylinders, settings, output, TimeSpan.Zero);
         }
 
         var stopMeter = (double)firstStopMeter;
@@ -550,8 +550,9 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
             SwitchGasIfRicher(state, stopMeter, cylinders, settings, output);
 
             var nextStopMeter = NextStopBelow(stopMeter, lastStopMeter);
+            var safetyHold = settings.SafetyStop && nextStopMeter <= DepthToleranceMeter ? SafetyStopDuration : TimeSpan.Zero;
             HoldUntilClear(state, stopMeter, nextStopMeter,
-                GradientFactorAt(nextStopMeter, anchorMeter), cylinders, settings, output);
+                GradientFactorAt(nextStopMeter, anchorMeter), cylinders, settings, output, safetyHold);
             stopMeter = nextStopMeter;
         }
     }
@@ -691,8 +692,8 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
     /// </summary>
     /// <remarks>
     /// The stop is held in increments of the settings' stop time rounding, with oxygen breaks
-    /// inserted when the settings enable them. Consecutive increments on the same gas are emitted
-    /// as a single stop segment.
+    /// inserted when the settings enable them, and then for <paramref name="extraHold"/> more.
+    /// Consecutive increments on the same gas are emitted as a single stop segment.
     /// </remarks>
     private static void HoldUntilClear(BuhlmannState state,
         double stopMeter,
@@ -700,7 +701,8 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
         double allowedGradientFactor,
         IReadOnlyList<Cylinder> cylinders,
         DivePlanSettings settings,
-        SegmentBuffer? output)
+        SegmentBuffer? output,
+        TimeSpan extraHold)
     {
         var incrementMinutes = settings.StopTimeIncrement.TotalMinutes;
         var heldMinutes = 0.0;
@@ -745,6 +747,12 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
                     $"The decompression stop at {stopMeter} m does not clear within 24 hours; " +
                     "the gradient factors and available gases cannot decompress this dive.");
             }
+        }
+
+        if (extraHold > TimeSpan.Zero)
+        {
+            ApplySegment(state, new DiveSegment(stopDepth, extraHold, state.CurrentGas, SegmentKind.Stop, state.CurrentLoop));
+            heldMinutes += extraHold.TotalMinutes;
         }
 
         FlushHeldStop(state, stopDepth, ref heldMinutes, output);
