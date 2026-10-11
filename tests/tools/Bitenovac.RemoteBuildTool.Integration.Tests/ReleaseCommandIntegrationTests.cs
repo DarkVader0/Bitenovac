@@ -85,6 +85,25 @@ public sealed class ReleaseCommandIntegrationTests
     }
 
     [Fact]
+    public void Run_ShouldWriteABinaryLogPerMsBuildInvocation_WhenTheRunKeepsLogs()
+    {
+        // Arrange
+        using var fixture = CreateWithApp();
+        var logs = fixture.Combine("artifacts/logs");
+        fixture.With(logsRoot: logs);
+        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
+
+        // Act
+        var exitCode = ReleaseCommand.Run(fixture.Options, _output.Pipeline, Today);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal(
+            ["build-Release.binlog", "pack-Lib.binlog", "publish-App.binlog", "restore.binlog"],
+            Directory.EnumerateFiles(logs).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void Run_ShouldTakeTheNextNumber_WhenTheDayAlreadyHasADrop()
     {
         // Arrange

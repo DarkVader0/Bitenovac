@@ -190,7 +190,8 @@ public sealed class FailurePathIntegrationTests
                 fixture.Root,
                 [fixture.Combine(FixtureRepository.LibraryProject)],
                 "Debug",
-                fixture.Options.SyntheticSolutionPath("restore"));
+                fixture.Options.SyntheticSolutionPath("restore"),
+                fixture.Options.BinaryLogPath("restore"));
         }
         finally
         {

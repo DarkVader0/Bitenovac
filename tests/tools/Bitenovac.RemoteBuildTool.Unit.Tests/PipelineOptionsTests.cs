@@ -269,6 +269,59 @@ public sealed class PipelineOptionsTests : IDisposable
     }
 
     [Fact]
+    public void FromEnvironment_ShouldKeepNoLogs_WhenTheLogsDirectoryIsNotSet()
+    {
+        // Arrange
+        _environment.Clear();
+
+        // Act
+        var options = PipelineOptions.FromEnvironment();
+
+        // Assert
+        Assert.Null(options.LogsRoot);
+    }
+
+    [Fact]
+    public void FromEnvironment_ShouldUseTheDeclaredLogsDirectory_WhenItIsSet()
+    {
+        // Arrange
+        _environment.Clear();
+        _environment.Set("REMOTEBUILDTOOL_LOGS_DIR", "/mnt/logs/PR_18/1-1");
+
+        // Act
+        var options = PipelineOptions.FromEnvironment();
+
+        // Assert
+        Assert.Equal("/mnt/logs/PR_18/1-1", options.LogsRoot);
+    }
+
+    [Fact]
+    public void BinaryLogPath_ShouldBeNull_WhenTheRunKeepsNoLogs()
+    {
+        // Arrange
+        var options = TestFactory.Options("repo", "main", "pr");
+
+        // Act
+        var path = options.BinaryLogPath("build-Debug");
+
+        // Assert
+        Assert.Null(path);
+    }
+
+    [Fact]
+    public void BinaryLogPath_ShouldNameTheLogAfterTheInvocation_WhenTheRunKeepsLogs()
+    {
+        // Arrange
+        var options = TestFactory.Options("repo", "main", "pr") with { LogsRoot = "logs" };
+
+        // Act
+        var path = options.BinaryLogPath("build-Debug");
+
+        // Assert
+        Assert.Equal(Path.Combine("logs", "build-Debug.binlog"), path);
+    }
+
+    [Fact]
     public void Configurations_ShouldBeDebugAndRelease()
     {
         // Arrange

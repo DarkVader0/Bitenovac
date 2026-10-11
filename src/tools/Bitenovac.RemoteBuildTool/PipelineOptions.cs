@@ -10,7 +10,8 @@ internal sealed record PipelineOptions(
     string PrStoreRoot,
     string DropRoot,
     bool Cacheless,
-    bool CoverageHtml)
+    bool CoverageHtml,
+    string? LogsRoot = null)
 {
     public static readonly string[] Configurations = ["Debug", "Release"];
 
@@ -35,7 +36,11 @@ internal sealed record PipelineOptions(
         var cacheless = IsTrue(Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_CACHELESS"));
         var coverageHtml = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_COVERAGE_HTML") != "0";
 
-        return new PipelineOptions(repositoryRoot, mainStoreRoot, prStoreRoot, dropRoot, cacheless, coverageHtml);
+        var logsRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_LOGS_DIR") is { Length: > 0 } logs
+            ? logs
+            : null;
+
+        return new PipelineOptions(repositoryRoot, mainStoreRoot, prStoreRoot, dropRoot, cacheless, coverageHtml, logsRoot);
     }
 
     public string PlanFile => Path.Combine(PrStoreRoot, "plan.json");
@@ -44,6 +49,17 @@ internal sealed record PipelineOptions(
         Path.Combine(PrStoreRoot, $"{stage}.slnx");
 
     public string RestoreOutputsRoot => Path.Combine(PrStoreRoot, "restore");
+
+    /// <summary>
+    /// Returns where one MSBuild invocation writes its binary log.
+    /// </summary>
+    /// <param name="name">The name of the invocation, unique within the run; for example <c>build-Debug</c>.</param>
+    /// <returns>
+    /// The path of <c>&lt;name&gt;.binlog</c> under <see cref="LogsRoot"/>, or <see langword="null"/>
+    /// when the run keeps no logs.
+    /// </returns>
+    public string? BinaryLogPath(string name) =>
+        LogsRoot is null ? null : Path.Combine(LogsRoot, $"{name}.binlog");
 
     /// <summary>
     /// Returns the number of processes and MSBuild nodes that one job may run at once.

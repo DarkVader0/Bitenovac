@@ -56,7 +56,6 @@ readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly RUNNER_HOME="/opt/bitenovac-runner"
 readonly NUGET_VOLUME="bitenovac-runner-nuget"
 readonly MAIN_VOLUME="bitenovac-main"
-#TODO: make this useful
 readonly LOGS_VOLUME="bitenovac-logs"
 readonly OFFICIAL_VOLUME="bitenovac-official"
 
@@ -363,7 +362,8 @@ cat <<EOF
 
   Jobs build in throwaway containers; ${NUGET_VOLUME}, ${MAIN_VOLUME}, ${LOGS_VOLUME} and
   ${OFFICIAL_VOLUME} persist. The Official workflow drops one directory per release into
-  ${OFFICIAL_VOLUME}, named yyyy.MM.dd.NNN.
+  ${OFFICIAL_VOLUME}, named yyyy.MM.dd.NNN. Every PR, Cache refresh and Official run keeps its
+  console output and MSBuild binary logs in ${LOGS_VOLUME} — see runner/logs.sh.
   A per-run store (bitenovac-pr-<run id>) is created and dropped by the workflow itself — see
   .github/workflows/pr.yml, cache-refresh.yml and official.yml.
 

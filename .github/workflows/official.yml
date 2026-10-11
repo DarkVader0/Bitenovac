@@ -16,6 +16,7 @@ env:
   DOTNET_NOLOGO: "true"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
   REMOTEBUILDTOOL_PR_VOLUME: bitenovac-pr-official-${{ github.run_id }}
+  REMOTEBUILDTOOL_LOG_RUN: Official_pending_${{ github.run_number }}/${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   release:
@@ -34,3 +35,11 @@ jobs:
       - name: Drop this run's volume
         if: always()
         run: docker volume rm -f "${REMOTEBUILDTOOL_PR_VOLUME}"
+
+      - name: Name logs after the drop
+        if: always()
+        run: bash runner/logs.sh seal-official "${{ github.run_number }}"
+
+      - name: Prune old logs
+        if: always()
+        run: bash runner/logs.sh prune
