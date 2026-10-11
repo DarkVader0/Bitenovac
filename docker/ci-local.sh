@@ -23,7 +23,7 @@
 #       --no-cache         Do not reuse the NuGet package cache between runs.
 #
 # The image is built from docker/ci-runner.Dockerfile with the SDK version read from global.json,
-# and is rebuilt when that version, a docker/ file or the pinned RemoteBuildTool version changes.
+# and is rebuilt when that version, a docker/ file or the RemoteBuildTool <VersionPrefix> changes.
 #
 # main here is a Docker volume local to this machine, not the shared one CI promotes into. It
 # persists between local runs so repeated local iteration stays warm, and 'docker volume rm
@@ -83,7 +83,10 @@ if [[ "${rebuild}" == true ]] || ! docker image inspect "${IMAGE}" > /dev/null 2
 else
     # Mostly a cache hit. Re-running after editing the entrypoint or bumping RemoteBuildTool must not run the old one.
     log "Refreshing ${IMAGE}"
-    bash "${REPO_ROOT}/runner/build-image.sh" --quiet > /dev/null
+    # A bumped <VersionPrefix> is not on the feed until it is released, so a branch that bumps it
+    # keeps running the image it already has.
+    bash "${REPO_ROOT}/runner/build-image.sh" --quiet > /dev/null \
+        || printf '\033[33mwarning:\033[0m could not refresh %s; running the existing image. Is the RemoteBuildTool version in its csproj released yet?\n' "${IMAGE}" >&2
 fi
 
 mkdir -p "${OUT_DIR}"

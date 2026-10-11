@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #
-# Builds the runner image, with the RemoteBuildTool release pinned in docker/ci-runner.Dockerfile
-# installed into it. Pull requests run the RemoteBuildTool this image holds, so re-run this after
-# bumping that pin, changing global.json or anything else in docker/ci-runner.Dockerfile.
+# Builds the runner image, with the RemoteBuildTool release named by <VersionPrefix> in its csproj
+# installed into it. Pull requests run the RemoteBuildTool this image holds, so re-run this once a
+# bumped version is on the feed, or after changing global.json or docker/ci-runner.Dockerfile.
 #
 # Usage:
 #   bash runner/build-image.sh [docker build options...]
 #
 # Environment:
-#   REMOTEBUILDTOOL_VERSION   Install this release instead of the pinned one.
+#   REMOTEBUILDTOOL_VERSION   Install this release instead of the one in the csproj.
 #   REMOTEBUILDTOOL_SOURCE    NuGet feed to install it from. Defaults to nuget.org.
 
 set -euo pipefail
@@ -18,8 +18,14 @@ readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 sdk_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${REPO_ROOT}/global.json" | head -n 1)"
 [[ -n "${sdk_version}" ]] || { printf 'error: could not read the SDK version from %s/global.json.\n' "${REPO_ROOT}" >&2; exit 1; }
 
-build_args=(--build-arg "DOTNET_SDK_VERSION=${sdk_version}")
-[[ -n "${REMOTEBUILDTOOL_VERSION:-}" ]] && build_args+=(--build-arg "REMOTEBUILDTOOL_VERSION=${REMOTEBUILDTOOL_VERSION}")
+readonly TOOL_PROJECT="${REPO_ROOT}/src/tools/Bitenovac.RemoteBuildTool/Bitenovac.RemoteBuildTool.csproj"
+tool_version="${REMOTEBUILDTOOL_VERSION:-$(sed -n 's/.*<VersionPrefix>[[:space:]]*\([^<[:space:]]*\)[[:space:]]*<\/VersionPrefix>.*/\1/p' "${TOOL_PROJECT}" | head -n 1)}"
+[[ -n "${tool_version}" ]] || { printf 'error: could not read <VersionPrefix> from %s.\n' "${TOOL_PROJECT}" >&2; exit 1; }
+
+build_args=(
+    --build-arg "DOTNET_SDK_VERSION=${sdk_version}"
+    --build-arg "REMOTEBUILDTOOL_VERSION=${tool_version}"
+)
 [[ -n "${REMOTEBUILDTOOL_SOURCE:-}" ]] && build_args+=(--build-arg "REMOTEBUILDTOOL_SOURCE=${REMOTEBUILDTOOL_SOURCE}")
 
 exec docker build \

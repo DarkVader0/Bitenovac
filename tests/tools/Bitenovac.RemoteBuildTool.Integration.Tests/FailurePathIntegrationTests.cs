@@ -83,7 +83,7 @@ public sealed class FailurePathIntegrationTests
         // Assert
         Assert.Equal(0, exitCode);
         Assert.DoesNotContain("==> Building", buildOutput.ToString(), StringComparison.Ordinal);
-        Assert.True(File.Exists(fixture.Combine("src/Lib/bin/Debug/net10.0/Lib.dll")));
+        Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
     }
 
     [Fact]

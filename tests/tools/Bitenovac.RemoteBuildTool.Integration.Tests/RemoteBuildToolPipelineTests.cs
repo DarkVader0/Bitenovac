@@ -31,7 +31,7 @@ public sealed class RemoteBuildToolPipelineTests
         Assert.All(entries, entry => Assert.False(entry.Hit));
         Assert.All(entries, entry => Assert.True(entry.ShouldGateCoverage));
 
-        Assert.True(File.Exists(fixture.Combine("src/Lib/bin/Debug/net10.0/Lib.dll")));
+        Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
         Assert.True(File.Exists(fixture.Combine("artifacts/coverage-report/Debug/Cobertura.xml")));
 
         var mainStore = new LocalVolumeArtifactStore(fixture.Options.MainStoreRoot);
@@ -72,7 +72,7 @@ public sealed class RemoteBuildToolPipelineTests
         var entries = PlanState.Load(fixture.Options.PlanFile).For("Debug");
         Assert.All(entries, entry => Assert.True(entry.Hit));
 
-        Assert.True(File.Exists(fixture.Combine("src/Lib/bin/Debug/net10.0/Lib.dll")));
+        Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
         Assert.Contains("materialised 2 cache hit(s) from main", reported, StringComparison.Ordinal);
 
         Assert.Contains("(reused)", reported, StringComparison.Ordinal);

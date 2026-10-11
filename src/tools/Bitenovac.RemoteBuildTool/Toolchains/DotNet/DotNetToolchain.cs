@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Bitenovac.RemoteBuildTool.MsBuild;
 using Bitenovac.RemoteBuildTool.Planning;
 using Bitenovac.RemoteBuildTool.Testing;
@@ -13,8 +14,8 @@ namespace Bitenovac.RemoteBuildTool.Toolchains.DotNet;
 /// tested by running the executable of each Microsoft.Testing.Platform test project.
 /// </para>
 /// <para>
-/// On release, an executable that is not a .NET tool is published under <c>apps/</c>, and any
-/// other packable project is packed under <c>packages/</c>.
+/// On release, an executable that is not a .NET tool and not <c>IsPublishable=false</c> is
+/// published under <c>apps/</c>, and any other packable project is packed under <c>packages/</c>.
 /// </para>
 /// </remarks>
 internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
@@ -35,6 +36,8 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
 
     public const string PackAsToolProperty = "PackAsTool";
 
+    public const string IsPublishableProperty = "IsPublishable";
+
     private MsBuildProjectEvaluator? _evaluator;
 
     public string Name => ToolchainName;
@@ -44,10 +47,14 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
     public IReadOnlyList<string> Discover() =>
         ProjectDiscovery.FindRelativePaths(repositoryRoot);
 
-    // Created on first use: build and test never evaluate, and one collection must serve every
-    // evaluation, since loading the same project twice into it throws.
-    public IReadOnlyList<EvaluatedProject> Evaluate(IReadOnlyList<string> relativePaths, string configuration) =>
-        [.. (_evaluator ??= new MsBuildProjectEvaluator(repositoryRoot)).EvaluateAll(relativePaths, configuration).Values];
+    // Created on first use: build and test never evaluate, so a run that has no MSBuild project
+    // never needs MSBuild in-process. One collection must serve every evaluation, since loading
+    // the same project twice into it throws.
+    public IReadOnlyList<EvaluatedProject> Evaluate(IReadOnlyList<string> relativePaths, string configuration)
+    {
+        MsBuildRegistration.EnsureRegistered();
+        return EvaluateRegistered(relativePaths, configuration);
+    }
 
     public ToolchainPreparation Prepare(
         PipelineOptions options,
@@ -87,9 +94,11 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
 
     public int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output)
     {
-        var properties = new Dictionary<string, string> { ["Version"] = version };
+        // VersionPrefix, not Version: SDK targets derive Version from VersionPrefix only while Version
+        // is unset, so a release Version would mask a project's own VersionPrefix.
+        var defaultProperties = new Dictionary<string, string> { ["VersionPrefix"] = version };
 
-        var exitCode = Build(options, entries, "Release", properties, output);
+        var exitCode = Build(options, entries, "Release", defaultProperties, output);
         if (exitCode != 0)
             return exitCode;
 
@@ -101,11 +110,11 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
             {
                 case Deployment.Publish:
                     output.WriteLine($"--- {name}: publish");
-                    exitCode = MsBuildRunner.Publish(options.RepositoryRoot, entry.FullPath, properties, Path.Combine(dropDirectory, "apps", name));
+                    exitCode = MsBuildRunner.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name));
                     break;
                 case Deployment.Pack:
                     output.WriteLine($"--- {name}: pack");
-                    exitCode = MsBuildRunner.Pack(options.RepositoryRoot, entry.FullPath, properties, Path.Combine(dropDirectory, "packages"));
+                    exitCode = MsBuildRunner.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"));
                     break;
                 default:
                     output.WriteLine($"--- {name}: nothing to deploy");
@@ -126,7 +135,7 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         PipelineOptions options,
         IReadOnlyList<PlanEntry> entries,
         string configuration,
-        IReadOnlyDictionary<string, string> properties,
+        IReadOnlyDictionary<string, string> defaultProperties,
         PipelineOutput output)
     {
         var unrestored = entries
@@ -155,7 +164,7 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
             entries.Select(entry => entry.FullPath),
             configuration,
             options.SyntheticSolutionPath($"build-{configuration}"),
-            properties);
+            defaultProperties);
 
         if (exitCode != 0)
             output.WriteError($"error: build failed (exit {exitCode}).");
@@ -172,7 +181,20 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         return TestRunner.Run(executable, resultsFilePrefix, resultsDirectory);
     }
 
-    public void Dispose() => _evaluator?.Dispose();
+    public void Dispose()
+    {
+        if (_evaluator is not null)
+            DisposeEvaluator();
+    }
+
+    // Kept out of line so the JIT cannot inline Microsoft.Build code into a caller compiled before
+    // registration, or into Dispose on a run that never registered.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private IReadOnlyList<EvaluatedProject> EvaluateRegistered(IReadOnlyList<string> relativePaths, string configuration) =>
+        [.. (_evaluator ??= new MsBuildProjectEvaluator(repositoryRoot)).EvaluateAll(relativePaths, configuration).Values];
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void DisposeEvaluator() => _evaluator!.Dispose();
 
     private static Deployment DeploymentOf(PlanEntry entry)
     {
@@ -180,11 +202,20 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         var isExecutable = outputType.Equals("Exe", StringComparison.OrdinalIgnoreCase)
             || outputType.Equals("WinExe", StringComparison.OrdinalIgnoreCase);
 
-        if (isExecutable && !IsTrue(entry.Properties.GetValueOrDefault(PackAsToolProperty)))
-            return Deployment.Publish;
+        var isTool = IsTrue(entry.Properties.GetValueOrDefault(PackAsToolProperty));
 
-        return IsTrue(entry.Properties.GetValueOrDefault(IsPackableProperty)) ? Deployment.Pack : Deployment.None;
+        // An unpublishable executable is not packed either: the SDK leaves IsPackable on by
+        // default, so falling through would ship it as a package instead.
+        return (isExecutable && !isTool) switch
+        {
+            true when IsFalse(entry.Properties.GetValueOrDefault(IsPublishableProperty)) => Deployment.None,
+            true => Deployment.Publish,
+            false when IsTrue(entry.Properties.GetValueOrDefault(IsPackableProperty)) => Deployment.Pack,
+            false => Deployment.None,
+        };
     }
+
+    private static bool IsFalse(string? value) => string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsTrue(string? value) => string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
 

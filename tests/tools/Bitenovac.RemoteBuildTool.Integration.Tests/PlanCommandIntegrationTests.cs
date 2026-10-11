@@ -25,10 +25,10 @@ public sealed class PlanCommandIntegrationTests
     {
         // Arrange
         using var fixture = FixtureRepository.Create();
-        fixture.Write(FixtureRepository.LibraryProject, """
+        fixture.Write(FixtureRepository.LibraryProject, $"""
             <Project Sdk="Microsoft.NET.Sdk">
                 <PropertyGroup>
-                    <TargetFrameworks>net10.0;net9.0</TargetFrameworks>
+                    <TargetFrameworks>{FixtureRepository.TargetFramework};netstandard2.0</TargetFrameworks>
                 </PropertyGroup>
             </Project>
             """);

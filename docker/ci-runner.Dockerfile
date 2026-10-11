@@ -26,10 +26,12 @@ ENV DOTNET_ROOT=/usr/share/dotnet \
 
 FROM sdk
 
-ARG REMOTEBUILDTOOL_VERSION=0.0.2
+# No default: runner/build-image.sh passes the <VersionPrefix> from the RemoteBuildTool csproj.
+ARG REMOTEBUILDTOOL_VERSION
 ARG REMOTEBUILDTOOL_SOURCE=https://api.nuget.org/v3/index.json
 
-RUN dotnet tool install Bitenovac.RemoteBuildTool \
+RUN test -n "${REMOTEBUILDTOOL_VERSION}" || { echo "error: pass --build-arg REMOTEBUILDTOOL_VERSION; runner/build-image.sh does." >&2; exit 1; } \
+    && dotnet tool install Bitenovac.RemoteBuildTool \
         --version "${REMOTEBUILDTOOL_VERSION}" \
         --tool-path /opt/remotebuildtool \
         --add-source "${REMOTEBUILDTOOL_SOURCE}"
