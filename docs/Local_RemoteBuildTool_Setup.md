@@ -163,6 +163,9 @@ The number is the date (UTC) and a counter for that day, so a second build on th
 `2026.10.07.002`. A build that fails drops nothing and does not use up a number. Run one by hand
 from GitHub, Actions → Official → Run workflow.
 
+An executable with `<IsPublishable>false</IsPublishable>`, such as the benchmarks, is built but
+left out of the drop.
+
 To see the drops (Ubuntu):
 
 ```bash

@@ -8,6 +8,21 @@
         <Using Include="Xunit"/>
     </ItemGroup>
 
+    <Target Name="GenerateBuildInfo" BeforeTargets="BeforeCompile">
+        <PropertyGroup>
+            <BuildInfoFile>$(IntermediateOutputPath)BuildInfo.g.cs</BuildInfoFile>
+        </PropertyGroup>
+        <WriteLinesToFile
+            File="$(BuildInfoFile)"
+            Lines="namespace $(RootNamespace)%3B;internal static class BuildInfo { public const string TargetFramework = &quot;$(TargetFramework)&quot;%3B }"
+            Overwrite="true"
+            WriteOnlyWhenDifferent="true"/>
+        <ItemGroup>
+            <Compile Include="$(BuildInfoFile)"/>
+            <FileWrites Include="$(BuildInfoFile)"/>
+        </ItemGroup>
+    </Target>
+
     <ItemGroup>
         <PackageReference Include="xunit.v3.mtp-v2"/>
     </ItemGroup>

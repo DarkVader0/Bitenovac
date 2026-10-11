@@ -100,8 +100,21 @@ internal interface IToolchain : IDisposable
     /// <param name="output">The output to report progress to.</param>
     /// <returns>The process exit code.</returns>
     /// <remarks>
+    /// <para>
     /// Every project of another toolchain that <paramref name="entries"/> reference has already been
     /// built. The cache is not used, because cached output does not carry the release version.
+    /// </para>
+    /// <para>Every toolchain applies the same release rules in its own project format:</para>
+    /// <list type="bullet">
+    /// <item>
+    /// <paramref name="version"/> is only a default. A project that declares its own version keeps
+    /// it, in its output and in its package alike.
+    /// </item>
+    /// <item>
+    /// A project can opt out of the drop. It is still built, but nothing of it is copied into
+    /// <paramref name="dropDirectory"/>.
+    /// </item>
+    /// </list>
     /// </remarks>
     int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output);
 

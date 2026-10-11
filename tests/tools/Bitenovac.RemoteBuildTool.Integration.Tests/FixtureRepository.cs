@@ -11,6 +11,11 @@ internal sealed class FixtureRepository : IDisposable
     public const string LibraryProject = "src/Lib/Lib.csproj";
     public const string TestProject = "tests/Lib.Tests/Lib.Tests.csproj";
 
+    /// <summary>
+    /// Gets the target framework this test project was built for, which every fixture project targets.
+    /// </summary>
+    public const string TargetFramework = BuildInfo.TargetFramework;
+
     private FixtureRepository(string root)
     {
         Root = root;
@@ -135,10 +140,10 @@ internal sealed class FixtureRepository : IDisposable
             Write(destination, File.ReadAllText(Path.Combine(AppContext.BaseDirectory, source)));
         }
 
-        Write("Directory.Build.props", """
+        Write("Directory.Build.props", $"""
             <Project>
                 <PropertyGroup>
-                    <TargetFramework>net10.0</TargetFramework>
+                    <TargetFramework>{TargetFramework}</TargetFramework>
                     <Nullable>enable</Nullable>
                     <ImplicitUsings>enable</ImplicitUsings>
                     <LangVersion>latest</LangVersion>

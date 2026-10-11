@@ -125,6 +125,7 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
                 [DotNetToolchain.OutputTypeProperty] = project.GetPropertyValue("OutputType"),
                 [DotNetToolchain.IsPackableProperty] = project.GetPropertyValue("IsPackable"),
                 [DotNetToolchain.PackAsToolProperty] = project.GetPropertyValue("PackAsTool"),
+                [DotNetToolchain.IsPublishableProperty] = project.GetPropertyValue("IsPublishable"),
             },
             OwnHashInputs: ownHashInputs);
     }
