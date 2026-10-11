@@ -26,7 +26,6 @@ ENV DOTNET_ROOT=/usr/share/dotnet \
 
 FROM sdk
 
-# No default: runner/build-image.sh passes the <VersionPrefix> from the RemoteBuildTool csproj.
 ARG REMOTEBUILDTOOL_VERSION
 ARG REMOTEBUILDTOOL_SOURCE=https://api.nuget.org/v3/index.json
 
