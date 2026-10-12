@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsLibrary>true</IsLibrary>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Bitenovac.DecompressionAlgorithms.Units\Bitenovac.DecompressionAlgorithms.Units.csproj"/>
+        <ProjectReference Include="..\Bitenovac.DecompressionAlgorithms.Core\Bitenovac.DecompressionAlgorithms.Core.csproj"/>
+        <ProjectReference Include="..\Bitenovac.DecompressionAlgorithms.BuhlmannZhl16c\Bitenovac.DecompressionAlgorithms.BuhlmannZhl16c.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Bitenovac.DecompressionCalculator.Model.Unit.Tests"/>
+    </ItemGroup>
+
+</Project>
