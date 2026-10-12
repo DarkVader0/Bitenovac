@@ -3,7 +3,7 @@
     <PropertyGroup>
         <ExcludeFromCoverage>true</ExcludeFromCoverage>
         <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
-        <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+        <WasmFingerprintAssets>false</WasmFingerprintAssets>
     </PropertyGroup>
 
     <ItemGroup>

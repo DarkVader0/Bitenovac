@@ -7,19 +7,18 @@
     <title>Bitenovac</title>
     <meta name="description" content="Plans decompression dives for open circuit and rebreathers, offline." />
     <base href="/" />
-    <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="css/app.css" />
     <link rel="icon" type="image/svg+xml" href="icon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="favicon.png" />
     <link href="Bitenovac.DecompressionCalculator.Web.styles.css" rel="stylesheet" />
     <link href="manifest.webmanifest" rel="manifest" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Bitenovac" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" content="#03173d" />
-    <script type="importmap"></script>
-    <script type="module" src="js/pwa#[.{fingerprint}].js"></script>
+    <script type="module" src="js/pwa.js"></script>
 </head>
 
 <body>
@@ -36,7 +35,7 @@
         <a href="." class="reload">Reload</a>
         <span class="dismiss">🗙</span>
     </div>
-    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script src="_framework/blazor.webassembly.js"></script>
 </body>
 
 </html>
