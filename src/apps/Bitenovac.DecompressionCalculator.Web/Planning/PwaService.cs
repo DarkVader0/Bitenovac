@@ -6,11 +6,15 @@ namespace Bitenovac.DecompressionCalculator.Web.Planning;
 /// Represents what the browser offers for installing and updating the app.
 /// </summary>
 /// <param name="CanInstall">Whether the browser can install the app from a prompt.</param>
-/// <param name="CanAddToHomeScreen">Whether the app can only be installed by hand, as on iOS.</param>
+/// <param name="ManualInstall">
+/// Where the app can only be installed by hand: <c>ios</c> from the share sheet, <c>mac</c> from Safari's
+/// File menu; <see langword="null"/> otherwise.
+/// </param>
 /// <param name="UpdateReady">Whether a new version is downloaded and waits for a reload.</param>
-public sealed record PwaState(bool CanInstall, bool CanAddToHomeScreen, bool UpdateReady)
+/// <remarks>Neither way to install is offered once the app is installed or the offer was dismissed.</remarks>
+public sealed record PwaState(bool CanInstall, string? ManualInstall, bool UpdateReady)
 {
-    public static PwaState None { get; } = new(false, false, false);
+    public static PwaState None { get; } = new(false, null, false);
 }
 
 /// <summary>
@@ -43,6 +47,8 @@ public sealed class PwaService(IJSRuntime js) : IAsyncDisposable
     }
 
     public async ValueTask<bool> InstallAsync() => await (await ModuleAsync()).InvokeAsync<bool>("install");
+
+    public async ValueTask DismissInstallAsync() => await (await ModuleAsync()).InvokeVoidAsync("dismissInstall");
 
     public async ValueTask ApplyUpdateAsync() => await (await ModuleAsync()).InvokeVoidAsync("applyUpdate");
 

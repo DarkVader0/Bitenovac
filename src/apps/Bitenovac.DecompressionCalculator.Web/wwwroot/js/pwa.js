@@ -56,18 +56,42 @@ window.addEventListener("appinstalled", () => {
     notify();
 });
 
+const dismissedKey = "bitenovac.install-dismissed-at";
+const dismissedFor = 30 * 24 * 60 * 60 * 1000;
+
 const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 
 const isIos = () => /iPad|iPhone|iPod/.test(navigator.userAgent)
     || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
+const isMacSafari = () => /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints === 0
+    && /Version\/[\d.]+.*Safari/.test(navigator.userAgent) && !/Chrome|Chromium|Edg|Firefox/.test(navigator.userAgent);
+
+const manualInstall = () => isIos() ? "ios" : isMacSafari() ? "mac" : null;
+
+const recentlyDismissed = () => {
+    try {
+        return Date.now() - Number(localStorage.getItem(dismissedKey) ?? 0) < dismissedFor;
+    } catch {
+        return false;
+    }
+};
+
 export function state() {
-    const standalone = isStandalone();
+    const offered = !isStandalone() && !recentlyDismissed();
     return {
-        canInstall: installPrompt !== null && !standalone,
-        canAddToHomeScreen: installPrompt === null && !standalone && isIos(),
+        canInstall: offered && installPrompt !== null,
+        manualInstall: offered && installPrompt === null ? manualInstall() : null,
         updateReady: waitingWorker !== null
     };
+}
+
+export function dismissInstall() {
+    try {
+        localStorage.setItem(dismissedKey, String(Date.now()));
+    } catch {
+    }
+    notify();
 }
 
 export async function install() {

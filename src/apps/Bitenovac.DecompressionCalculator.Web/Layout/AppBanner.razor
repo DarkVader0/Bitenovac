@@ -1,0 +1,61 @@
+@implements IDisposable
+@inject PwaService Pwa
+
+@if (Pwa.State.UpdateReady)
+{
+    <div class="app-banner no-print" role="status">
+        <span>A new version of Bitenovac is ready.</span>
+        <button type="button" @onclick="ReloadAsync" disabled="@_reloading">Reload</button>
+    </div>
+}
+else if (Pwa.State.CanInstall)
+{
+    <div class="app-banner no-print" role="status">
+        <span>Install Bitenovac to plan dives offline.</span>
+        <div class="app-banner-actions">
+            <button type="button" @onclick="InstallAsync">Install</button>
+            <button type="button" class="app-banner-dismiss" @onclick="DismissAsync">Not now</button>
+        </div>
+    </div>
+}
+else if (Pwa.State.ManualInstall is { } platform)
+{
+    <div class="app-banner no-print" role="status">
+        <span>
+            @(platform == "mac"
+                ? "Install Bitenovac to plan dives offline: in Safari, choose File, then Add to Dock."
+                : "Install Bitenovac to plan dives offline: tap Share, then Add to Home Screen.")
+        </span>
+        <div class="app-banner-actions">
+            <button type="button" class="app-banner-dismiss" @onclick="DismissAsync">Got it</button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _reloading;
+
+    protected override void OnInitialized() => Pwa.Changed += OnChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Pwa.StartAsync();
+        }
+    }
+
+    public void Dispose() => Pwa.Changed -= OnChanged;
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async Task ReloadAsync()
+    {
+        _reloading = true;
+        await Pwa.ApplyUpdateAsync();
+    }
+
+    private async Task InstallAsync() => await Pwa.InstallAsync();
+
+    private async Task DismissAsync() => await Pwa.DismissInstallAsync();
+}

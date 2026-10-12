@@ -557,25 +557,39 @@ button.danger {
     background-color: var(--danger);
 }
 
-.install-hint {
-    flex-basis: 100%;
-    margin: 0;
-    color: var(--text-muted);
-}
-
-.update-banner {
+.app-banner {
     position: fixed;
     right: 0;
     bottom: 0;
     left: 0;
     z-index: 30;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
+    gap: 0.5rem 1rem;
     padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
     background-color: var(--brand);
     color: #fff;
+}
+
+.app-banner-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+button.app-banner-dismiss {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+button.app-banner-dismiss:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* The banner is fixed over the page, so the page ends above it instead of under it. */
+body:has(.app-banner) {
+    padding-bottom: 8rem;
 }
 
 .empty {
