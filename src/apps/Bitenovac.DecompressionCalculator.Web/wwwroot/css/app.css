@@ -302,6 +302,7 @@ details > .field-grid {
 
 .plan-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem;
     margin: 0 0 1rem;
@@ -554,6 +555,27 @@ a.icon-button {
 
 button.danger {
     background-color: var(--danger);
+}
+
+.install-hint {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.update-banner {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    background-color: var(--brand);
+    color: #fff;
 }
 
 .empty {

@@ -1,24 +1,39 @@
 {
-  "name": "Bitenovac Decompression Calculator",
+  "name": "Bitenovac Decompression Planner",
   "short_name": "Bitenovac",
-  "description": "Plans decompression schedules offline.",
+  "description": "Plans decompression dives for open circuit and rebreathers, offline.",
   "id": "./",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#ffffff",
+  "background_color": "#03173d",
   "theme_color": "#03173d",
+  "categories": ["sports", "utilities"],
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
     },
     {
       "src": "icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ]
 }

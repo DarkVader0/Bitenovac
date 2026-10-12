@@ -1,0 +1,28 @@
+@implements IDisposable
+@inject PwaService Pwa
+
+@if (Pwa.State.CanInstall)
+{
+    <button type="button" class="secondary no-print" @onclick="InstallAsync">Install app</button>
+}
+else if (Pwa.State.CanAddToHomeScreen)
+{
+    <button type="button" class="secondary no-print" aria-expanded="@_showHint" @onclick="() => _showHint = !_showHint">Install app</button>
+}
+
+@if (_showHint && Pwa.State.CanAddToHomeScreen)
+{
+    <p class="install-hint no-print">To install, tap Share in Safari, then Add to Home Screen. The app then works offline.</p>
+}
+
+@code {
+    private bool _showHint;
+
+    protected override void OnInitialized() => Pwa.Changed += OnChanged;
+
+    public void Dispose() => Pwa.Changed -= OnChanged;
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async Task InstallAsync() => await Pwa.InstallAsync();
+}
