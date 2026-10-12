@@ -71,27 +71,10 @@ internal static class TestCommand
             toRun.Add((entry, name));
         }
 
-        var results = new TestRunResult[toRun.Count];
-        var outputGate = new Lock();
-
-        Parallel.For(0, toRun.Count, new ParallelOptions { MaxDegreeOfParallelism = PipelineOptions.MaxParallelism() }, index =>
-        {
-            var (entry, name) = toRun[index];
-            try
-            {
-                results[index] = toolchains.For(entry.Toolchain).RunTests(entry, configuration, name, coverageDirectory);
-            }
-            catch (InvalidOperationException exception)
-            {
-                results[index] = new TestRunResult(TestRunOutcome.Failed, -1, coverageDirectory, exception.Message + Environment.NewLine);
-            }
-
-            lock (outputGate)
-            {
-                output.WriteLine($"--- {name}");
-                output.Out.Write(results[index].Output);
-            }
-        });
+        var jobs = toRun
+            .Select(run => new TestJob(run.Name, () => toolchains.For(run.Entry.Toolchain).RunTests(run.Entry, configuration, run.Name, coverageDirectory)))
+            .ToList();
+        var results = TestSuite.RunAll(jobs, coverageDirectory, PipelineOptions.MaxParallelism(), output.Out);
 
         for (var index = 0; index < toRun.Count; index++)
         {
@@ -221,42 +204,9 @@ internal static class TestCommand
             .ToDictionary(
                 entry => new ProjectId(entry.ProjectPath),
                 entry => new CoveragePolicy(entry.MinimumLineCoverage, entry.MinimumBranchCoverage));
+        var coverageNames = entries.ToDictionary(entry => new ProjectId(entry.ProjectPath), entry => entry.CoverageName);
+        var location = new CoverageReportLocation(options.RepositoryRoot, coverageDirectory, options.CoverageReportDirectory("Debug"), options.CoverageHtml);
 
-        if (gated.Count == 0)
-        {
-            output.WriteLine("No selected project is under the coverage gate; nothing to check.");
-            return 0;
-        }
-
-        if (!Directory.EnumerateFiles(coverageDirectory, "*cobertura*.xml").Any())
-        {
-            output.WriteError($"error: no coverage reports under {coverageDirectory}. Did 'test' run?");
-            return 1;
-        }
-
-        output.WriteLine("==> Merging coverage reports");
-        var reportDirectory = options.CoverageReportDirectory("Debug");
-        var merged = CoverageReportGenerator.Merge(options.RepositoryRoot, coverageDirectory, reportDirectory, options.CoverageHtml);
-        var measuredByName = CoverageReportReader.Read(merged);
-
-        var coverageNameByProject = entries.ToDictionary(entry => new ProjectId(entry.ProjectPath), entry => entry.CoverageName);
-        var measured = gated.Keys
-            .Where(project => measuredByName.ContainsKey(coverageNameByProject[project]))
-            .ToDictionary(project => project, project => measuredByName[coverageNameByProject[project]]);
-
-        var results = CoverageGate.Evaluate(gated, measured);
-        var failures = results.Where(result => !result.Passed).ToList();
-
-        foreach (var result in results)
-            output.WriteLine(result.Passed ? $"  OK   {result.Project}: {result.Reason}" : $"  FAIL {result.Reason}");
-
-        if (failures.Count > 0)
-        {
-            output.WriteError($"Open {reportDirectory}/index.html to see which lines are uncovered.");
-            return 1;
-        }
-
-        output.WriteLine("Every gated project meets its coverage policy.");
-        return 0;
+        return CoverageCheck.Run(gated, coverageNames, location, output.Out, output.Error);
     }
 }

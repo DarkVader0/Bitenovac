@@ -1,6 +1,4 @@
-using Bitenovac.RemoteBuildTool.Testing;
-
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteBuildTool.Testing.Unit.Tests;
 
 public sealed class CoverageReportReaderTests
 {

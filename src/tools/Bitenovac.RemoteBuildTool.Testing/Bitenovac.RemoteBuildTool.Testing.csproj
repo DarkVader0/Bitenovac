@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>Bitenovac.RemoteBuildTool.Testing</RootNamespace>
+        <MinimumLineCoverage>95</MinimumLineCoverage>
+        <MinimumBranchCoverage>90</MinimumBranchCoverage>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Bitenovac.RemoteBuildTool.Core\Bitenovac.RemoteBuildTool.Core.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Testing.Unit.Tests"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Unit.Tests"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Integration.Tests"/>
+    </ItemGroup>
+
+</Project>

@@ -24,6 +24,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Bitenovac.RemoteBuildTool.Core\Bitenovac.RemoteBuildTool.Core.csproj"/>
+        <ProjectReference Include="..\Bitenovac.RemoteBuildTool.Testing\Bitenovac.RemoteBuildTool.Testing.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

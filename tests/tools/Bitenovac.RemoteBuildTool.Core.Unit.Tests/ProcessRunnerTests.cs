@@ -1,6 +1,7 @@
-using Bitenovac.RemoteBuildTool.Processes;
+using System.ComponentModel;
+using Bitenovac.RemoteBuildTool.Core.Processes;
 
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteBuildTool.Core.Unit.Tests;
 
 public sealed class ProcessRunnerTests
 {
@@ -83,7 +84,7 @@ public sealed class ProcessRunnerTests
         Action act = () => ProcessRunner.RunCaptured("bitenovac-no-such-executable", [], directory.Path);
 
         // Assert
-        Assert.ThrowsAny<Exception>(act);
+        Assert.Throws<Win32Exception>(act);
     }
 
     [Fact]
@@ -96,6 +97,6 @@ public sealed class ProcessRunnerTests
         Action act = () => ProcessRunner.Run("bitenovac-no-such-executable", [], directory.Path);
 
         // Assert
-        Assert.ThrowsAny<Exception>(act);
+        Assert.Throws<Win32Exception>(act);
     }
 }
