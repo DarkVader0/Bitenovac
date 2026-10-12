@@ -250,4 +250,142 @@ public sealed class CachePlanBuilderTests
         Assert.Contains(TestFactory.Id("B"), plan.Keys);
         Assert.Contains(TestFactory.Id("C"), plan.Keys);
     }
+
+    [Fact]
+    public void Build_ShouldReportNoReason_WhenTheProjectIsAHit()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("A");
+        var inputs = TestFactory.OwnInputs(("A", ["a=1"]));
+        var ownHash = TargetHasher.ComputeOwnHash(["a=1"]);
+        var stored = TestFactory.Stored(("A", ownHash, TargetHasher.ComputeFullHash(ownHash, [])));
+
+        // Act
+        var decision = CachePlanBuilder.Build(graph, inputs, stored)[TestFactory.Id("A")];
+
+        // Assert
+        Assert.Equal(CacheMissReasons.None, decision.MissReasons);
+        Assert.Empty(decision.ChangedDependencies);
+    }
+
+    [Fact]
+    public void Build_ShouldReportOnlyForced_WhenAStoredProjectIsForced()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("A");
+        var inputs = TestFactory.OwnInputs(("A", ["a=2"]));
+        var stored = TestFactory.Stored(("A", "stale-own", "stale-full"));
+        var forced = new HashSet<ProjectId> { TestFactory.Id("A") };
+
+        // Act
+        var decision = CachePlanBuilder.Build(graph, inputs, stored, forced)[TestFactory.Id("A")];
+
+        // Assert
+        Assert.Equal(CacheMissReasons.Forced, decision.MissReasons);
+        Assert.Empty(decision.ChangedDependencies);
+    }
+
+    [Fact]
+    public void Build_ShouldReportNotCached_WhenNothingIsStoredForTheProject()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("A -> B");
+        var inputs = TestFactory.UniformOwnInputs(graph);
+
+        // Act
+        var decision = CachePlanBuilder.Build(graph, inputs, TestFactory.Stored())[TestFactory.Id("A")];
+
+        // Assert
+        Assert.Equal(CacheMissReasons.NotCached, decision.MissReasons);
+        Assert.Empty(decision.ChangedDependencies);
+    }
+
+    [Fact]
+    public void Build_ShouldReportOwnInputs_WhenOnlyTheProjectsOwnHashChanged()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("A");
+        var inputs = TestFactory.OwnInputs(("A", ["a=2"]));
+        var stored = TestFactory.Stored(("A", "stale-own", "stale-full"));
+
+        // Act
+        var decision = CachePlanBuilder.Build(graph, inputs, stored)[TestFactory.Id("A")];
+
+        // Assert
+        Assert.Equal(CacheMissReasons.OwnInputsChanged, decision.MissReasons);
+        Assert.Empty(decision.ChangedDependencies);
+    }
+
+    [Fact]
+    public void Build_ShouldNameTheChangedReference_WhenOnlyADependencyChanged()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("A -> B, C", "B", "C");
+        var inputs = TestFactory.UniformOwnInputs(graph);
+        var current = CachePlanBuilder.Build(graph, inputs, TestFactory.Stored());
+        var a = current[TestFactory.Id("A")].Computed;
+        var c = current[TestFactory.Id("C")].Computed;
+        var stored = TestFactory.Stored(
+            ("A", a.OwnHash, "stale-full"),
+            ("B", "stale-own", "stale-full"),
+            ("C", c.OwnHash, c.FullHash));
+
+        // Act
+        var decision = CachePlanBuilder.Build(graph, inputs, stored)[TestFactory.Id("A")];
+
+        // Assert
+        Assert.Equal(CacheMissReasons.DependenciesChanged, decision.MissReasons);
+        Assert.Equal([TestFactory.Id("B")], decision.ChangedDependencies);
+    }
+
+    [Fact]
+    public void Build_ShouldCountAReferenceAsChanged_WhenNothingIsStoredForIt()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("A -> B", "B");
+        var inputs = TestFactory.UniformOwnInputs(graph);
+        var a = CachePlanBuilder.Build(graph, inputs, TestFactory.Stored())[TestFactory.Id("A")].Computed;
+        var stored = TestFactory.Stored(("A", a.OwnHash, "stale-full"));
+
+        // Act
+        var decision = CachePlanBuilder.Build(graph, inputs, stored)[TestFactory.Id("A")];
+
+        // Assert
+        Assert.Equal(CacheMissReasons.DependenciesChanged, decision.MissReasons);
+        Assert.Equal([TestFactory.Id("B")], decision.ChangedDependencies);
+    }
+
+    [Fact]
+    public void Build_ShouldReportBoth_WhenTheOwnInputsAndAReferenceChanged()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("A -> B", "B");
+        var inputs = TestFactory.UniformOwnInputs(graph);
+        var stored = TestFactory.Stored(("A", "stale-own", "stale-full"), ("B", "stale-own", "stale-full"));
+
+        // Act
+        var decision = CachePlanBuilder.Build(graph, inputs, stored)[TestFactory.Id("A")];
+
+        // Assert
+        Assert.Equal(CacheMissReasons.OwnInputsChanged | CacheMissReasons.DependenciesChanged, decision.MissReasons);
+        Assert.Equal([TestFactory.Id("B")], decision.ChangedDependencies);
+    }
+
+    [Fact]
+    public void Build_ShouldReportGlobalInputs_WhenNeitherTheProjectNorItsReferencesChanged()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("A -> B", "B");
+        var inputs = TestFactory.UniformOwnInputs(graph);
+        var before = CachePlanBuilder.Build(graph, inputs, TestFactory.Stored(), globalFullHashInputs: ["tool:1"])[TestFactory.Id("A")].Computed;
+        var after = CachePlanBuilder.Build(graph, inputs, TestFactory.Stored(), globalFullHashInputs: ["tool:2"])[TestFactory.Id("B")].Computed;
+        var stored = TestFactory.Stored(("A", before.OwnHash, before.FullHash), ("B", after.OwnHash, after.FullHash));
+
+        // Act
+        var decision = CachePlanBuilder.Build(graph, inputs, stored, globalFullHashInputs: ["tool:2"])[TestFactory.Id("A")];
+
+        // Assert
+        Assert.Equal(CacheMissReasons.GlobalInputsChanged, decision.MissReasons);
+        Assert.Empty(decision.ChangedDependencies);
+    }
 }

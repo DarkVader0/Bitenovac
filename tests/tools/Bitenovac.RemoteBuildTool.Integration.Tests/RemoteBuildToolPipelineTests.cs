@@ -30,6 +30,7 @@ public sealed class RemoteBuildToolPipelineTests
         var entries = PlanState.Load(fixture.Options.PlanFile).For("Debug");
         Assert.All(entries, entry => Assert.False(entry.Hit));
         Assert.All(entries, entry => Assert.True(entry.ShouldGateCoverage));
+        Assert.All(entries, entry => Assert.Equal("not in main's cache", entry.WhyCacheMiss));
 
         Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
         Assert.True(File.Exists(fixture.Combine("artifacts/coverage-report/Debug/Cobertura.xml")));
@@ -131,6 +132,9 @@ public sealed class RemoteBuildToolPipelineTests
         Assert.True(library.ShouldGateCoverage);
         Assert.False(tests.Hit);
         Assert.False(tests.ShouldGateCoverage);
+        Assert.Equal("own inputs changed source:src/Lib/Calculator.cs", library.WhyCacheMiss);
+        Assert.Equal($"references changed: {FixtureRepository.LibraryProject}", tests.WhyCacheMiss);
+        Assert.Contains($"  miss {FixtureRepository.LibraryProject}: own inputs changed source:src/Lib/Calculator.cs", _output.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -153,5 +157,6 @@ public sealed class RemoteBuildToolPipelineTests
         Assert.All(entries, entry => Assert.True(entry.Forced));
         Assert.All(entries, entry => Assert.False(entry.Hit));
         Assert.All(entries, entry => Assert.True(entry.ShouldGateCoverage));
+        Assert.All(entries, entry => Assert.Equal("forced: the run ignores the cache", entry.WhyCacheMiss));
     }
 }

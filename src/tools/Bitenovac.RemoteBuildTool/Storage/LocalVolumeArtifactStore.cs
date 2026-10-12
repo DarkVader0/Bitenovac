@@ -124,6 +124,33 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
         return true;
     }
 
+    /// <summary>
+    /// Reads one file of the entry for the specified project and configuration as text, without
+    /// copying the rest of the entry.
+    /// </summary>
+    /// <param name="project">The project to look up.</param>
+    /// <param name="configuration">The build configuration.</param>
+    /// <param name="path">The file's path within the entry.</param>
+    /// <param name="content">
+    /// When this method returns, contains the file's text, if the entry holds it; otherwise, an
+    /// empty string.
+    /// </param>
+    /// <returns><see langword="true"/> if the entry holds the file; otherwise, <see langword="false"/>.</returns>
+    public bool TryReadText(ProjectId project, string configuration, string path, out string content)
+    {
+        content = "";
+
+        if (!TryReadManifest(project, configuration, out var manifest, out _))
+            return false;
+
+        var file = manifest.Files.FirstOrDefault(file => file.Path == path);
+        if (file is null || !File.Exists(BlobPath(file.Blob)))
+            return false;
+
+        content = File.ReadAllText(BlobPath(file.Blob));
+        return true;
+    }
+
     /// <inheritdoc/>
     /// <remarks>
     /// The new entry replaces everything an existing entry under the same full hash holds; the

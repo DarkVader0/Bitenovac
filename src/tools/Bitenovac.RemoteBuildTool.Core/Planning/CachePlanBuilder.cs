@@ -89,16 +89,44 @@ public static class CachePlanBuilder
 
             var shouldGateCoverage = isForced || !hasStored || storedHash.OwnHash != ownHash;
 
+            IReadOnlyList<ProjectId> changedDependencies = buildOutcome == CacheOutcome.Miss && !isForced && hasStored
+                ? [.. graph.GetDependencies(project)
+                    .Where(dependency => !stored.TryGetValue(dependency, out var storedDependency) || storedDependency.FullHash != fullHashes[dependency])
+                    .OrderBy(dependency => dependency.Value, StringComparer.Ordinal)]
+                : [];
+
             decisions[project] = new TargetDecision
             {
                 Project = project,
                 Computed = new TargetHash(ownHash, fullHash),
                 Forced = isForced,
                 BuildOutcome = buildOutcome,
+                MissReasons = MissReasons(buildOutcome, isForced, hasStored, storedHash.OwnHash != ownHash, changedDependencies.Count > 0),
+                ChangedDependencies = changedDependencies,
                 ShouldGateCoverage = shouldGateCoverage,
             };
         }
 
         return decisions;
+    }
+
+    private static CacheMissReasons MissReasons(CacheOutcome outcome, bool forced, bool hasStored, bool ownChanged, bool dependenciesChanged)
+    {
+        if (outcome == CacheOutcome.Hit)
+            return CacheMissReasons.None;
+
+        if (forced)
+            return CacheMissReasons.Forced;
+
+        if (!hasStored)
+            return CacheMissReasons.NotCached;
+
+        var reasons = CacheMissReasons.None;
+        if (ownChanged)
+            reasons |= CacheMissReasons.OwnInputsChanged;
+        if (dependenciesChanged)
+            reasons |= CacheMissReasons.DependenciesChanged;
+
+        return reasons == CacheMissReasons.None ? CacheMissReasons.GlobalInputsChanged : reasons;
     }
 }

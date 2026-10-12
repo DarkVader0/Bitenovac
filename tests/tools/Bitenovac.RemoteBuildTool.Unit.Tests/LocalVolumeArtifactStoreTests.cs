@@ -210,6 +210,72 @@ public sealed class LocalVolumeArtifactStoreTests
     }
 
     [Fact]
+    public void TryReadText_ShouldReturnFalse_WhenNothingIsStored()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var store = new LocalVolumeArtifactStore(directory.Combine("store"));
+
+        // Act
+        var found = store.TryReadText(Project, "Debug", "notes/a.txt", out var content);
+
+        // Assert
+        Assert.False(found);
+        Assert.Equal("", content);
+    }
+
+    [Fact]
+    public void TryReadText_ShouldReturnFalse_WhenTheEntryDoesNotHoldThePath()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var store = new LocalVolumeArtifactStore(directory.Combine("store"));
+        store.Put(Project, "Debug", Source(directory, "bin/A.dll", "assembly"), Hash);
+
+        // Act
+        var found = store.TryReadText(Project, "Debug", "notes/a.txt", out var content);
+
+        // Assert
+        Assert.False(found);
+        Assert.Equal("", content);
+    }
+
+    [Fact]
+    public void TryReadText_ShouldReturnTheFilesText_WhenTheEntryHoldsIt()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var store = new LocalVolumeArtifactStore(directory.Combine("store"));
+        store.Put(Project, "Debug", Source(directory, "notes/a.txt", "hello"), Hash);
+
+        // Act
+        var found = store.TryReadText(Project, "Debug", "notes/a.txt", out var content);
+
+        // Assert
+        Assert.True(found);
+        Assert.Equal("hello", content);
+    }
+
+    [Fact]
+    public void TryReadText_ShouldReturnFalse_WhenTheFilesBlobIsGone()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var root = directory.Combine("store");
+        var store = new LocalVolumeArtifactStore(root);
+        store.Put(Project, "Debug", Source(directory, "notes/a.txt", "hello"), Hash);
+        foreach (var blob in Directory.EnumerateFiles(Path.Combine(root, "blobs"), "*", SearchOption.AllDirectories))
+            File.Delete(blob);
+
+        // Act
+        var found = store.TryReadText(Project, "Debug", "notes/a.txt", out var content);
+
+        // Assert
+        Assert.False(found);
+        Assert.Equal("", content);
+    }
+
+    [Fact]
     public void TryGet_ShouldReadAsAMiss_WhenTheManifestNamesABlobThatIsGone()
     {
         // Arrange

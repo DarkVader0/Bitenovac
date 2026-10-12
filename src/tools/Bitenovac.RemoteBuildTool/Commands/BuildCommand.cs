@@ -41,6 +41,9 @@ internal static class BuildCommand
             + (skipped > 0 ? $", {skipped} already present" : "") + ".");
 
         var toBuild = entries.Where(entry => !entry.Hit || unavailable.Contains(entry)).ToList();
+        foreach (var entry in toBuild.OrderBy(entry => entry.ProjectPath, StringComparer.Ordinal))
+            output.WriteLine($"  rebuild {entry.ProjectPath}: {entry.WhyCacheMiss ?? "main's entry could not be materialised"}");
+
         var order = ToolchainOrder.Resolve(entries);
 
         foreach (var name in order)
@@ -109,20 +112,31 @@ internal static class BuildCommand
     private static int StageMisses(IReadOnlyList<PlanEntry> entries, string configuration, LocalVolumeArtifactStore prStore, ToolchainRegistry toolchains)
     {
         var staged = 0;
+        var inputsDirectory = Directory.CreateTempSubdirectory("bitenovac-remotebuildtool-inputs-").FullName;
 
-        foreach (var entry in entries.Where(entry => !entry.Hit))
+        try
         {
-            var projectDirectory = Path.GetDirectoryName(entry.FullPath)!;
+            foreach (var entry in entries.Where(entry => !entry.Hit))
+            {
+                var projectDirectory = Path.GetDirectoryName(entry.FullPath)!;
+                var inputsFile = Path.Combine(inputsDirectory, $"{staged}.txt");
+                File.WriteAllText(inputsFile, WhyCacheMiss.FormatInputs(entry.OwnHashInputs));
 
-            var files = toolchains.For(entry.Toolchain).OutputDirectories
-                .SelectMany(directory => LocalVolumeArtifactStore.EnumerateAsSources(Path.Combine(projectDirectory, directory), directory + "/"));
+                var files = toolchains.For(entry.Toolchain).OutputDirectories
+                    .SelectMany(directory => LocalVolumeArtifactStore.EnumerateAsSources(Path.Combine(projectDirectory, directory), directory + "/"))
+                    .Append((WhyCacheMiss.InputsPath, inputsFile));
 
-            prStore.Put(
-                new ProjectId(entry.ProjectPath),
-                configuration,
-                new StoredTargetHash(entry.OwnHash, entry.FullHash),
-                files);
-            staged++;
+                prStore.Put(
+                    new ProjectId(entry.ProjectPath),
+                    configuration,
+                    new StoredTargetHash(entry.OwnHash, entry.FullHash),
+                    files);
+                staged++;
+            }
+        }
+        finally
+        {
+            Directory.Delete(inputsDirectory, recursive: true);
         }
 
         return staged;
