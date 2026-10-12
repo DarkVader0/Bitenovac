@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <IsLibrary>true</IsLibrary>
+        <Description>Model-independent dive planning for the Bitenovac decompression libraries: dive plans, gas, oxygen exposure and reserve calculations.</Description>
     </PropertyGroup>
 
     <ItemGroup>

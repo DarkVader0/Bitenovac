@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <IsLibrary>true</IsLibrary>
+        <Description>Dive plan documents, validation, unit conversion and calculation for apps built on the Bitenovac decompression libraries.</Description>
     </PropertyGroup>
 
     <ItemGroup>
