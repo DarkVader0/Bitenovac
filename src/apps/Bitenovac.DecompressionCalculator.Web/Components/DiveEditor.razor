@@ -1,5 +1,30 @@
 <section class="card">
-    <h2>Dive</h2>
+    <div class="card-header">
+        <h2>Dive @Number</h2>
+        @if (CanRemove)
+        {
+            @if (_confirmRemove)
+            {
+                <div class="button-row">
+                    <button type="button" class="danger" @onclick="RemoveAsync">Remove</button>
+                    <button type="button" class="secondary" @onclick="() => _confirmRemove = false">Keep</button>
+                </div>
+            }
+            else
+            {
+                <button type="button" class="secondary" @onclick="() => _confirmRemove = true">Remove dive</button>
+            }
+        }
+    </div>
+
+    @if (Number > 1)
+    {
+        <div class="field-grid surface-interval">
+            <NumberField Label="Surface interval before this dive" Unit="min" Value="Value.SurfaceIntervalMinutes"
+                         Issue="@Issues[nameof(DiveInput.SurfaceIntervalMinutes)]"
+                         ValueChanged="value => ChangeAsync(Value with { SurfaceIntervalMinutes = value })"/>
+        </div>
+    }
 
     <CircuitEditor Value="Value.Circuit" Issues="Issues.Scope(nameof(DiveInput.Circuit))"
                    ValueChanged="circuit => ChangeAsync(Value with { Circuit = circuit })"/>
@@ -92,6 +117,18 @@
 </section>
 
 @code {
+    private bool _confirmRemove;
+    private int _shownNumber;
+
+    [Parameter]
+    public int Number { get; set; } = 1;
+
+    [Parameter]
+    public bool CanRemove { get; set; }
+
+    [Parameter]
+    public EventCallback OnRemove { get; set; }
+
     [Parameter, EditorRequired]
     public DiveInput Value { get; set; } = default!;
 
@@ -106,7 +143,22 @@
 
     private UnitLabels Labels => UnitLabels.For(Units);
 
+    protected override void OnParametersSet()
+    {
+        if (Number != _shownNumber)
+        {
+            _shownNumber = Number;
+            _confirmRemove = false;
+        }
+    }
+
     private Task ChangeAsync(DiveInput dive) => ValueChanged.InvokeAsync(CylinderRoles.Apply(dive));
+
+    private async Task RemoveAsync()
+    {
+        _confirmRemove = false;
+        await OnRemove.InvokeAsync();
+    }
 
     private Task ChangeLevelAsync(int index, LevelInput level) =>
         ChangeAsync(Value with { Levels = ListEdit.Replace(Value.Levels, index, level) });

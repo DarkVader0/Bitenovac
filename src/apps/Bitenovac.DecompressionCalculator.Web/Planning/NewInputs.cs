@@ -4,10 +4,15 @@ using Bitenovac.DecompressionCalculator.Model;
 namespace Bitenovac.DecompressionCalculator.Web.Planning;
 
 /// <summary>
-/// Provides the values a level or cylinder starts with when the user adds one.
+/// Provides the values a dive, level, or cylinder starts with when the user adds one.
 /// </summary>
 public static class NewInputs
 {
+    public const double SurfaceIntervalMinutes = 60;
+
+    public static DiveInput NextDive(DivePlanDocument plan) =>
+        plan.Dives[^1] with { SurfaceIntervalMinutes = SurfaceIntervalMinutes };
+
     public static LevelInput Level(DiveInput dive) => dive.Levels.Count == 0
         ? new LevelInput(0, 10)
         : dive.Levels[^1] with { DurationMinutes = 10 };

@@ -1,0 +1,70 @@
+@using System.Globalization
+
+<figure class="profile-chart">
+    <svg viewBox="0 0 @Width @Height" role="img" aria-label="Dive profile: depth over time">
+        <rect class="chart-water" x="@F(Area.Left)" y="@F(Area.Top)" width="@F(Area.Width)" height="@F(Area.Height)"/>
+
+        @foreach (var depth in _chart.DepthTicks)
+        {
+            var y = _chart.Y(depth, Area);
+            <g>
+                <line class="chart-grid" x1="@F(Area.Left)" y1="@F(y)" x2="@F(Area.Left + Area.Width)" y2="@F(y)"/>
+                <text class="chart-label" x="@F(Area.Left - 6)" y="@F(y + 4)" text-anchor="end">@Display.Number(depth)</text>
+            </g>
+        }
+
+        @foreach (var minutes in _chart.TimeTicks)
+        {
+            var x = _chart.X(minutes, Area);
+            <g>
+                <line class="chart-grid" x1="@F(x)" y1="@F(Area.Top)" x2="@F(x)" y2="@F(Area.Top + Area.Height)"/>
+                <text class="chart-label" x="@F(x)" y="@F(Area.Top + Area.Height + 16)" text-anchor="middle">@Display.Number(minutes)</text>
+            </g>
+        }
+
+        <polygon class="chart-dive" points="@_polyline"/>
+        <polyline class="chart-line" points="@_polyline"/>
+
+        @foreach (var stop in _chart.Stops)
+        {
+            var y = _chart.Y(stop.Depth, Area);
+            <line class="@(stop.IsGasSwitch ? "chart-switch" : "chart-stop")"
+                  x1="@F(_chart.X(stop.StartMinutes, Area))" y1="@F(y)" x2="@F(_chart.X(stop.EndMinutes, Area))" y2="@F(y)"/>
+            @if (stop.IsGasSwitch)
+            {
+                <g>
+                    <circle class="chart-switch-dot" cx="@F(_chart.X(stop.StartMinutes, Area))" cy="@F(y)" r="3.5"/>
+                    <text class="chart-gas" x="@F(_chart.X(stop.StartMinutes, Area) + 5)" y="@F(y - 7)">@stop.Gas</text>
+                </g>
+            }
+        }
+
+        <text class="chart-caption" x="@F(Area.Left + 4)" y="@F(Area.Top - 5)">@Labels.Depth</text>
+        <text class="chart-caption" x="@F(Area.Left + Area.Width)" y="@F(Height - 2)" text-anchor="end">min</text>
+    </svg>
+</figure>
+
+@code {
+    private const double Width = 360;
+    private const double Height = 220;
+    private static readonly ChartArea Area = new(34, 18, 316, 172);
+
+    private ProfileChart _chart = default!;
+    private string _polyline = string.Empty;
+
+    [Parameter, EditorRequired]
+    public DiveResult Result { get; set; } = default!;
+
+    [Parameter]
+    public UnitSystem Units { get; set; }
+
+    private UnitLabels Labels => UnitLabels.For(Units);
+
+    protected override void OnParametersSet()
+    {
+        _chart = ProfileChart.Create(Result, Units);
+        _polyline = string.Join(' ', _chart.Points.Select(point => $"{F(_chart.X(point.Minutes, Area))},{F(_chart.Y(point.Depth, Area))}"));
+    }
+
+    private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}

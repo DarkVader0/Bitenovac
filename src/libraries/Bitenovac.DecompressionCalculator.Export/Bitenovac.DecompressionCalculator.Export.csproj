@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsLibrary>true</IsLibrary>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Bitenovac.DecompressionCalculator.Model\Bitenovac.DecompressionCalculator.Model.csproj"/>
+    </ItemGroup>
+
+</Project>

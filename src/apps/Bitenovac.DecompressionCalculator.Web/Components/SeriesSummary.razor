@@ -1,0 +1,65 @@
+<section class="card">
+    <h2>Series</h2>
+    <div class="table-scroll">
+        <table class="profile">
+            <thead>
+            <tr>
+                <th></th>
+                <th class="number">Interval</th>
+                <th class="number">Depth</th>
+                <th class="number">Run</th>
+                <th class="number">Stops</th>
+                <th class="number">CNS</th>
+                <th class="number">OTU</th>
+            </tr>
+            </thead>
+            <tbody>
+            @for (var index = 0; index < Plan.Dives.Count; index++)
+            {
+                var at = index;
+                <tr class="series-row @(at == Selected ? "row-stop" : null)" @onclick="() => SelectedChanged.InvokeAsync(at)">
+                    <td>Dive @(at + 1)</td>
+                    <td class="number">@(at == 0 ? "–" : Display.Clock(TimeSpan.FromMinutes(Plan.Dives[at].SurfaceIntervalMinutes)))</td>
+                    @if (View.Results[at] is { Succeeded: true } result)
+                    {
+                        <td class="number">@Display.Number(result.MaximumDepth) @Labels.Depth</td>
+                        <td class="number">@Display.Clock(result.TotalRuntime)</td>
+                        <td class="number">@Display.Clock(result.StopTime)</td>
+                        <td class="number">@Display.Number(result.CnsPercent) %</td>
+                        <td class="number">@Display.Number(result.OxygenToleranceUnits)</td>
+                    }
+                    else if (View.Results[at] is not null)
+                    {
+                        <td colspan="5" class="series-failed">Cannot be planned</td>
+                    }
+                    else if (View.IssuesOf(at).Count > 0)
+                    {
+                        <td colspan="5" class="series-failed">Invalid</td>
+                    }
+                    else
+                    {
+                        <td colspan="5" class="series-waiting">Waiting for dive @(View.FirstInvalidDive + 1)</td>
+                    }
+                </tr>
+            }
+            </tbody>
+            <caption>Interval, runtime and stop time in minutes. CNS and OTU include the earlier dives.</caption>
+        </table>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public DivePlanDocument Plan { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public PlanView View { get; set; } = default!;
+
+    [Parameter]
+    public int Selected { get; set; }
+
+    [Parameter]
+    public EventCallback<int> SelectedChanged { get; set; }
+
+    private UnitLabels Labels => UnitLabels.For(Plan.Units);
+}

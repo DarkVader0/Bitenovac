@@ -354,6 +354,127 @@ a.icon-button {
     background-color: var(--danger);
 }
 
+/* ------------------------------------------------------------------------ chart -- */
+
+.profile-chart {
+    margin: 0 0 1rem;
+}
+
+.profile-chart svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.chart-water {
+    fill: #eef5fc;
+}
+
+.chart-grid {
+    stroke: var(--border);
+    stroke-width: 0.6;
+}
+
+.chart-label,
+.chart-caption {
+    fill: var(--text-muted);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+}
+
+.chart-dive {
+    fill: rgba(27, 110, 194, 0.12);
+}
+
+.chart-line {
+    fill: none;
+    stroke: var(--brand-bright);
+    stroke-width: 2;
+    stroke-linejoin: round;
+}
+
+.chart-stop {
+    stroke: #c98a00;
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
+.chart-switch {
+    stroke: var(--success);
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
+.chart-switch-dot {
+    fill: var(--success);
+}
+
+.chart-gas {
+    fill: var(--success);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+/* ----------------------------------------------------------------------- series -- */
+
+.dive-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+    overflow-x: auto;
+}
+
+.dive-tab {
+    position: relative;
+    flex-shrink: 0;
+    background-color: transparent;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.dive-tab:hover {
+    background-color: var(--surface-sunken);
+}
+
+.dive-tab.selected {
+    background-color: var(--brand-bright);
+    border-color: var(--brand-bright);
+    color: #fff;
+}
+
+.dive-tab.add {
+    border-style: dashed;
+}
+
+.card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem;
+}
+
+.card-header h2 {
+    margin: 0;
+}
+
+.surface-interval {
+    margin: 0 0 1rem;
+}
+
+.series-row {
+    cursor: pointer;
+}
+
+.series-failed {
+    color: var(--danger);
+}
+
+.series-waiting {
+    color: var(--text-muted);
+}
+
 /* ------------------------------------------------------------------------ plans -- */
 
 .page-title {

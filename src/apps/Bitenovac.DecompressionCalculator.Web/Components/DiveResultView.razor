@@ -1,5 +1,5 @@
 <section class="card results">
-    <h2>Results</h2>
+    <h2>@Title</h2>
 
     @if (!Result.Succeeded)
     {
@@ -37,6 +37,7 @@
         }
 
         <h3>Profile</h3>
+        <ProfileChartView Result="Result" Units="Units"/>
         <div class="table-scroll">
             <table class="profile">
                 <caption>Depth in @Labels.Depth, time and runtime in minutes</caption>
@@ -93,6 +94,9 @@
 @code {
     [Parameter, EditorRequired]
     public DiveResult Result { get; set; } = default!;
+
+    [Parameter]
+    public string Title { get; set; } = "Results";
 
     [Parameter]
     public UnitSystem Units { get; set; }

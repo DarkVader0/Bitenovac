@@ -16,6 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\libraries\Bitenovac.DecompressionCalculator.Export\Bitenovac.DecompressionCalculator.Export.csproj"/>
         <ProjectReference Include="..\..\libraries\Bitenovac.DecompressionCalculator.Model\Bitenovac.DecompressionCalculator.Model.csproj"/>
     </ItemGroup>
 
