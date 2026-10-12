@@ -1,0 +1,43 @@
+<section class="card">
+    <h2>Algorithm</h2>
+    <div class="field-grid">
+        <SelectField TValue="AlgorithmDescriptor" Label="Decompression algorithm" Options="AlgorithmCatalog.Algorithms"
+                     Text="static algorithm => algorithm.DisplayName" Value="Selected" ValueChanged="SelectAsync"/>
+
+        @switch (Value)
+        {
+            case BuhlmannZhl16cSettings buhlmann:
+                <NumberField Label="Gradient factor low" Unit="%" Step="1" Value="buhlmann.GradientFactorLow"
+                             Issue="@Issues[nameof(BuhlmannZhl16cSettings.GradientFactorLow)]"
+                             ValueChanged="value => ValueChanged.InvokeAsync(buhlmann with { GradientFactorLow = value })"/>
+                <NumberField Label="Gradient factor high" Unit="%" Step="1" Value="buhlmann.GradientFactorHigh"
+                             Issue="@Issues[nameof(BuhlmannZhl16cSettings.GradientFactorHigh)]"
+                             ValueChanged="value => ValueChanged.InvokeAsync(buhlmann with { GradientFactorHigh = value })"/>
+                break;
+        }
+    </div>
+    @if (Issues.Self is { } issue)
+    {
+        <p class="validation-message">@issue</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public AlgorithmSettings Value { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<AlgorithmSettings> ValueChanged { get; set; }
+
+    [Parameter]
+    public IssueMap Issues { get; set; } = IssueMap.Empty;
+
+    private AlgorithmDescriptor Selected =>
+        AlgorithmCatalog.Algorithms.FirstOrDefault(algorithm => algorithm.DefaultSettings.GetType() == Value.GetType())
+        ?? AlgorithmCatalog.Algorithms[0];
+
+    private Task SelectAsync(AlgorithmDescriptor algorithm) =>
+        algorithm.DefaultSettings.GetType() == Value.GetType()
+            ? Task.CompletedTask
+            : ValueChanged.InvokeAsync(algorithm.DefaultSettings);
+}

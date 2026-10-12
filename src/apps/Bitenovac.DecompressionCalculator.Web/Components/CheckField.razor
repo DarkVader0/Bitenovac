@@ -1,0 +1,17 @@
+<label class="field field-check">
+    <input type="checkbox" checked="@Value" @onchange="OnChangeAsync"/>
+    <span class="field-label">@Label</span>
+</label>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public bool Value { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ValueChanged { get; set; }
+
+    private Task OnChangeAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value is true);
+}
