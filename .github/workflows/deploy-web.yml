@@ -34,10 +34,11 @@ jobs:
         run: bash deploy/web.sh "${RUNNER_TEMP}/site" "${DROP}"
 
       - name: Upload
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ${{ runner.temp }}/site
+          include-hidden-files: true
 
       - name: Publish
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
