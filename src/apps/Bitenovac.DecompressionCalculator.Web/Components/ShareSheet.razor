@@ -1,0 +1,90 @@
+@inject ShareService Share
+
+<div class="drawer-backdrop" @onclick="OnClose"></div>
+<aside class="share-sheet" role="dialog" aria-modal="true" aria-label="Share plan" @onkeydown="CloseOnEscape">
+    <div class="drawer-header">
+        <h2>Share plan</h2>
+        <button type="button" class="secondary" @onclick="OnClose">Close</button>
+    </div>
+
+    <div class="share-options">
+        @if (_canShareFiles)
+        {
+            <button type="button" @onclick="SharePdfAsync">Share PDF</button>
+        }
+        @if (_canShareText)
+        {
+            <button type="button" class="secondary" @onclick="ShareTextAsync">Share as text</button>
+        }
+        <button type="button" class="secondary" @onclick="CopyTextAsync">Copy text</button>
+        <button type="button" class="secondary" @onclick="DownloadPdfAsync">Download PDF</button>
+        <button type="button" class="secondary" @onclick="PrintAsync">Print</button>
+    </div>
+
+    @if (_status is not null)
+    {
+        <p class="share-status" role="status">@_status</p>
+    }
+</aside>
+
+@code {
+    private bool _canShareFiles;
+    private bool _canShareText;
+    private string? _status;
+
+    [Parameter, EditorRequired]
+    public DivePlanDocument Plan { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private string Title => string.IsNullOrWhiteSpace(Plan.Name) ? FileNames.Fallback : Plan.Name;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canShareFiles = await Share.CanShareFilesAsync();
+        _canShareText = await Share.CanShareTextAsync();
+    }
+
+    private async Task SharePdfAsync()
+    {
+        var pdf = DiveSheet.Create(Plan, DateTime.UtcNow);
+        var outcome = await Share.ShareFileAsync(pdf, FileNames.Pdf(Plan.Name), ShareService.PdfType, Title, Title);
+        if (outcome == ShareOutcome.Failed)
+        {
+            await Share.DownloadAsync(pdf, FileNames.Pdf(Plan.Name), ShareService.PdfType);
+            _status = "Sharing is not available here, so the PDF was downloaded instead.";
+        }
+        else
+        {
+            _status = null;
+        }
+    }
+
+    private async Task ShareTextAsync()
+    {
+        var outcome = await Share.ShareTextAsync(Title, PlanSummary.Text(Plan, DateTime.UtcNow));
+        _status = outcome == ShareOutcome.Failed ? "Sharing is not available here. Use Copy text instead." : null;
+    }
+
+    private async Task CopyTextAsync()
+    {
+        _status = await Share.CopyTextAsync(PlanSummary.Text(Plan, DateTime.UtcNow))
+            ? "Copied. Paste it into any message."
+            : "The browser did not allow copying.";
+    }
+
+    private async Task DownloadPdfAsync()
+    {
+        await Share.DownloadAsync(DiveSheet.Create(Plan, DateTime.UtcNow), FileNames.Pdf(Plan.Name), ShareService.PdfType);
+        _status = "Downloaded.";
+    }
+
+    private async Task PrintAsync()
+    {
+        await OnClose.InvokeAsync();
+        await Share.PrintAsync();
+    }
+
+    private Task CloseOnEscape(KeyboardEventArgs args) => args.Key == "Escape" ? OnClose.InvokeAsync() : Task.CompletedTask;
+}
