@@ -834,6 +834,12 @@ td.phase {
     border-left-color: var(--danger);
 }
 
+.gas-missing dt,
+.gas-missing dd {
+    color: var(--danger);
+    font-weight: 600;
+}
+
 .gas-card h4 {
     margin: 0 0 0.5rem;
     font-size: 1.1rem;

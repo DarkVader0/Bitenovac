@@ -82,6 +82,10 @@
                     <dl>
                         <div><dt>Used</dt><dd>@Display.Number(cylinder.GasUsed) @Labels.GasVolume</dd></div>
                         <div><dt>Pressure</dt><dd>@Display.Number(cylinder.StartPressure) → @Display.Number(cylinder.EndPressure) @Labels.Pressure</dd></div>
+                        @if (cylinder.Shortfall > 0)
+                        {
+                            <div class="gas-missing"><dt>Missing</dt><dd>@Display.Number(cylinder.Shortfall) @Labels.GasVolume</dd></div>
+                        }
                         <div><dt>Reserve needed</dt><dd>@Display.Number(cylinder.RequiredReserve) @Labels.GasVolume</dd></div>
                         <div><dt>Left</dt><dd>@Display.Number(cylinder.ProjectedRemaining) @Labels.GasVolume</dd></div>
                     </dl>
