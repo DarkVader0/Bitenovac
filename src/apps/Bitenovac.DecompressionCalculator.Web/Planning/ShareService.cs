@@ -13,7 +13,7 @@ public enum ShareOutcome
 }
 
 /// <summary>
-/// Shares, copies, downloads, and prints through the browser, using the app's own share script.
+/// Shares and downloads the plan's PDF, and prints the plan, through the browser, using the app's own share script.
 /// </summary>
 public sealed class ShareService(IJSRuntime js) : IAsyncDisposable
 {
@@ -23,15 +23,8 @@ public sealed class ShareService(IJSRuntime js) : IAsyncDisposable
 
     public async ValueTask<bool> CanShareFilesAsync() => await (await ModuleAsync()).InvokeAsync<bool>("canShareFiles");
 
-    public async ValueTask<bool> CanShareTextAsync() => await (await ModuleAsync()).InvokeAsync<bool>("canShareText");
-
     public async ValueTask<ShareOutcome> ShareFileAsync(byte[] bytes, string fileName, string type, string title, string text) =>
         Outcome(await (await ModuleAsync()).InvokeAsync<string>("shareFile", bytes, fileName, type, title, text));
-
-    public async ValueTask<ShareOutcome> ShareTextAsync(string title, string text) =>
-        Outcome(await (await ModuleAsync()).InvokeAsync<string>("shareText", title, text));
-
-    public async ValueTask<bool> CopyTextAsync(string text) => await (await ModuleAsync()).InvokeAsync<bool>("copyText", text);
 
     public async ValueTask DownloadAsync(byte[] bytes, string fileName, string type) =>
         await (await ModuleAsync()).InvokeVoidAsync("download", bytes, fileName, type);

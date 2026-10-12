@@ -1,0 +1,36 @@
+@typeparam TValue
+
+<select class="cell-input @(Invalid ? "invalid" : null)" aria-label="@Label" aria-invalid="@(Invalid ? "true" : null)" @onchange="OnChangeAsync">
+    @for (var index = 0; index < Options.Count; index++)
+    {
+        var option = Options[index];
+        <option value="@index" selected="@IsSelected(option)">@Text(option)</option>
+    }
+</select>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TValue> Options { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public Func<TValue, string> Text { get; set; } = static value => $"{value}";
+
+    [Parameter]
+    public TValue Value { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<TValue> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool Invalid { get; set; }
+
+    private bool IsSelected(TValue option) => EqualityComparer<TValue>.Default.Equals(option, Value);
+
+    private Task OnChangeAsync(ChangeEventArgs args) =>
+        int.TryParse(args.Value as string, out var index) && index >= 0 && index < Options.Count
+            ? ValueChanged.InvokeAsync(Options[index])
+            : Task.CompletedTask;
+}

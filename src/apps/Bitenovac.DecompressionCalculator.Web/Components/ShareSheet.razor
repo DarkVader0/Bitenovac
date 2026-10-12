@@ -12,11 +12,6 @@
         {
             <button type="button" @onclick="SharePdfAsync">Share PDF</button>
         }
-        @if (_canShareText)
-        {
-            <button type="button" class="secondary" @onclick="ShareTextAsync">Share as text</button>
-        }
-        <button type="button" class="secondary" @onclick="CopyTextAsync">Copy text</button>
         <button type="button" class="secondary" @onclick="DownloadPdfAsync">Download PDF</button>
         <button type="button" class="secondary" @onclick="PrintAsync">Print</button>
     </div>
@@ -29,7 +24,6 @@
 
 @code {
     private bool _canShareFiles;
-    private bool _canShareText;
     private string? _status;
 
     [Parameter, EditorRequired]
@@ -43,7 +37,6 @@
     protected override async Task OnInitializedAsync()
     {
         _canShareFiles = await Share.CanShareFilesAsync();
-        _canShareText = await Share.CanShareTextAsync();
     }
 
     private async Task SharePdfAsync()
@@ -59,19 +52,6 @@
         {
             _status = null;
         }
-    }
-
-    private async Task ShareTextAsync()
-    {
-        var outcome = await Share.ShareTextAsync(Title, PlanSummary.Text(Plan, DateTime.UtcNow));
-        _status = outcome == ShareOutcome.Failed ? "Sharing is not available here. Use Copy text instead." : null;
-    }
-
-    private async Task CopyTextAsync()
-    {
-        _status = await Share.CopyTextAsync(PlanSummary.Text(Plan, DateTime.UtcNow))
-            ? "Copied. Paste it into any message."
-            : "The browser did not allow copying.";
     }
 
     private async Task DownloadPdfAsync()

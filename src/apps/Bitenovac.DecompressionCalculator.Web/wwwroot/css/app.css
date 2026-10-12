@@ -154,10 +154,6 @@ button.secondary:hover {
     align-items: start;
 }
 
-.field-grid.compact {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));
-}
-
 .field {
     display: flex;
     flex-direction: column;
@@ -202,16 +198,6 @@ button.secondary:hover {
     padding-right: 0.75rem;
     color: var(--text-muted);
     white-space: nowrap;
-}
-
-.field-static {
-    display: flex;
-    align-items: center;
-    min-height: var(--touch-target);
-    padding: 0 0.75rem;
-    color: var(--text-muted);
-    border: 1px dashed var(--border);
-    border-radius: var(--radius);
 }
 
 .field-check {
@@ -260,42 +246,86 @@ details > .field-grid {
     padding-bottom: 1rem;
 }
 
-.rows {
+/* Levels and cylinders are edited as table rows: the header names each column once, so a row is
+   one line on a phone. Fixed layout shares the width out instead of growing with the content. */
+.input-table {
     margin: 0 0 0.75rem;
+    table-layout: fixed;
+}
+
+.input-table.cylinders-imperial {
+    min-width: 23rem;
+}
+
+.input-table th,
+.input-table td {
+    padding: 0.15rem;
+    border-bottom: 0;
+    white-space: normal;
+}
+
+.input-table th {
+    padding-bottom: 0;
+    font-weight: 400;
+}
+
+.input-table th .unit {
     padding: 0;
-    list-style: none;
 }
 
-.level-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr var(--touch-target);
-    gap: 0.75rem;
-    align-items: start;
-    padding: 0.5rem 0;
+.input-table .col-remove {
+    width: calc(var(--touch-target) + 0.3rem);
 }
 
-.level-row .icon-button {
-    margin-top: 1.55rem;
+.input-table .col-role {
+    width: 5.25rem;
 }
 
-.cylinder {
-    margin: 0 0 0.75rem;
-    padding: 0.75rem;
-    background-color: var(--surface-sunken);
-    border-radius: var(--radius);
+.cell-input {
+    width: 100%;
+    padding: 0.5rem 0.25rem;
+    font-size: 1rem;
 }
 
-.cylinder .field-input {
-    background-color: var(--surface);
+.cell-input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
 }
 
-.cylinder-header {
+.cell-input::-webkit-inner-spin-button,
+.cell-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cell-input.invalid {
+    outline: 0;
+    border-color: var(--danger);
+}
+
+.cell-static {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     min-height: var(--touch-target);
-    margin: -0.25rem 0 0.5rem;
-    font-weight: 600;
+    padding: 0 0.35rem;
+    color: var(--text-muted);
+}
+
+.row-issues td {
+    padding-top: 0;
+}
+
+.row-issues p {
+    margin: 0;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 /* ----------------------------------------------------------------- page header -- */
@@ -764,6 +794,27 @@ caption {
 
 .row-stop td {
     background-color: var(--surface-sunken);
+}
+
+td.phase {
+    width: 2rem;
+    padding-right: 0;
+    line-height: 0;
+}
+
+.phase-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: var(--text-muted);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.phase-stop,
+.phase-gasswitch {
+    stroke: var(--brand-bright);
 }
 
 .gas-list {

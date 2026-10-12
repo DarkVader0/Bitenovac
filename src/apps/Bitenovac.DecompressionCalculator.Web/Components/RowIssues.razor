@@ -1,0 +1,19 @@
+@if (Messages.OfType<string>().ToList() is { Count: > 0 } shown)
+{
+    <tr class="row-issues">
+        <td colspan="@Columns">
+            @foreach (var message in shown)
+            {
+                <p class="validation-message">@message</p>
+            }
+        </td>
+    </tr>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public int Columns { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<string?> Messages { get; set; } = [];
+}

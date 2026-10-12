@@ -1,0 +1,26 @@
+<svg class="phase-icon phase-@Kind.ToString().ToLowerInvariant()" viewBox="0 0 24 24" role="img" aria-label="@Display.Name(Kind)">
+    <title>@Display.Name(Kind)</title>
+    @switch (Kind)
+    {
+        case SegmentKind.Descent:
+            <path d="M5 5 L18 18 M18 9 V18 H9"/>
+            break;
+        case SegmentKind.Bottom:
+            <path d="M3 12 H20 M14 6 L20 12 L14 18"/>
+            break;
+        case SegmentKind.Ascent:
+            <path d="M5 19 L18 6 M9 6 H18 V15"/>
+            break;
+        case SegmentKind.Stop:
+            <path d="M4 8 V16 M20 8 V16 M4 12 H20"/>
+            break;
+        default:
+            <path d="M4 8 H18 M14 4 L18 8 L14 12 M20 16 H6 M10 12 L6 16 L10 20"/>
+            break;
+    }
+</svg>
+
+@code {
+    [Parameter, EditorRequired]
+    public SegmentKind Kind { get; set; }
+}

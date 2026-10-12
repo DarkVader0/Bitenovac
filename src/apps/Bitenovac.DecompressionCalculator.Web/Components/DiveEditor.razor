@@ -34,25 +34,57 @@
     {
         <p class="validation-message">@levelsIssue</p>
     }
-    <ol class="rows">
+    @{
+        var removableLevels = Value.Levels.Count > 1;
+    }
+    <table class="input-table">
+        <colgroup>
+            <col/>
+            <col/>
+            @if (removableLevels)
+            {
+                <col class="col-remove"/>
+            }
+        </colgroup>
+        <thead>
+        <tr>
+            <th>Depth <span class="unit">@Labels.Depth</span></th>
+            <th>Time <span class="unit">min</span></th>
+            @if (removableLevels)
+            {
+                <th><span class="visually-hidden">Remove</span></th>
+            }
+        </tr>
+        </thead>
+        <tbody>
         @for (var index = 0; index < Value.Levels.Count; index++)
         {
             var at = index;
             var level = Value.Levels[at];
             var issues = Issues.Scope(nameof(DiveInput.Levels), at);
-            <li class="level-row">
-                <NumberField Label="Depth" Unit="@Labels.Depth" Value="level.Depth" Issue="@issues[nameof(LevelInput.Depth)]"
-                             ValueChanged="value => ChangeLevelAsync(at, level with { Depth = value })"/>
-                <NumberField Label="Time" Unit="min" Value="level.DurationMinutes" Issue="@issues[nameof(LevelInput.DurationMinutes)]"
-                             ValueChanged="value => ChangeLevelAsync(at, level with { DurationMinutes = value })"/>
-                @if (Value.Levels.Count > 1)
+            <tr>
+                <td>
+                    <NumberCell Label="@($"Level {at + 1} depth in {Labels.Depth}")" Value="level.Depth"
+                                Invalid="issues[nameof(LevelInput.Depth)] is not null"
+                                ValueChanged="value => ChangeLevelAsync(at, level with { Depth = value })"/>
+                </td>
+                <td>
+                    <NumberCell Label="@($"Level {at + 1} time in minutes")" Value="level.DurationMinutes"
+                                Invalid="issues[nameof(LevelInput.DurationMinutes)] is not null"
+                                ValueChanged="value => ChangeLevelAsync(at, level with { DurationMinutes = value })"/>
+                </td>
+                @if (removableLevels)
                 {
-                    <button type="button" class="icon-button" title="Remove level" aria-label="Remove level @(at + 1)"
-                            @onclick="() => ChangeAsync(Value with { Levels = ListEdit.RemoveAt(Value.Levels, at) })">✕</button>
+                    <td>
+                        <button type="button" class="icon-button" title="Remove level" aria-label="Remove level @(at + 1)"
+                                @onclick="() => ChangeAsync(Value with { Levels = ListEdit.RemoveAt(Value.Levels, at) })">✕</button>
+                    </td>
                 }
-            </li>
+            </tr>
+            <RowIssues Columns="@(removableLevels ? 3 : 2)" Messages="[issues[nameof(LevelInput.Depth)], issues[nameof(LevelInput.DurationMinutes)]]"/>
         }
-    </ol>
+        </tbody>
+    </table>
     <button type="button" class="secondary" @onclick="() => ChangeAsync(Value with { Levels = ListEdit.Add(Value.Levels, NewInputs.Level(Value)) })">
         Add level
     </button>
@@ -62,55 +94,110 @@
     {
         <p class="validation-message">@cylindersIssue</p>
     }
-    <ol class="rows">
-        @for (var index = 0; index < Value.Cylinders.Count; index++)
-        {
-            var at = index;
-            var cylinder = Value.Cylinders[at];
-            var issues = Issues.Scope(nameof(DiveInput.Cylinders), at);
-            <li class="cylinder">
-                <div class="cylinder-header">
-                    <span>Cylinder @(at + 1)</span>
-                    @if (Value.Cylinders.Count > 1)
+    @{
+        var imperial = Units == UnitSystem.Imperial;
+        var removableCylinders = Value.Cylinders.Count > 1;
+        var columns = (imperial ? 6 : 5) + (removableCylinders ? 1 : 0);
+    }
+    <div class="table-scroll">
+        <table class="input-table @(imperial ? "cylinders-imperial" : "cylinders")">
+            <colgroup>
+                <col/>
+                <col/>
+                <col/>
+                @if (imperial)
+                {
+                    <col/>
+                }
+                <col/>
+                <col class="col-role"/>
+                @if (removableCylinders)
+                {
+                    <col class="col-remove"/>
+                }
+            </colgroup>
+            <thead>
+            <tr>
+                <th>O2 <span class="unit">%</span></th>
+                <th>He <span class="unit">%</span></th>
+                <th>Size <span class="unit">@Labels.CylinderSize</span></th>
+                @if (imperial)
+                {
+                    <th>Rated <span class="unit">@Labels.Pressure</span></th>
+                }
+                <th>Fill <span class="unit">@Labels.Pressure</span></th>
+                <th>Use</th>
+                @if (removableCylinders)
+                {
+                    <th><span class="visually-hidden">Remove</span></th>
+                }
+            </tr>
+            </thead>
+            <tbody>
+            @for (var index = 0; index < Value.Cylinders.Count; index++)
+            {
+                var at = index;
+                var cylinder = Value.Cylinders[at];
+                var issues = Issues.Scope(nameof(DiveInput.Cylinders), at);
+                var name = $"Cylinder {at + 1}";
+                <tr>
+                    <td>
+                        <NumberCell Label="@($"{name} oxygen in %")" Value="cylinder.OxygenPercent"
+                                    Invalid="issues[nameof(CylinderInput.OxygenPercent)] is not null"
+                                    ValueChanged="value => ChangeCylinderAsync(at, cylinder with { OxygenPercent = value })"/>
+                    </td>
+                    <td>
+                        <NumberCell Label="@($"{name} helium in %")" Value="cylinder.HeliumPercent"
+                                    Invalid="issues[nameof(CylinderInput.HeliumPercent)] is not null"
+                                    ValueChanged="value => ChangeCylinderAsync(at, cylinder with { HeliumPercent = value })"/>
+                    </td>
+                    <td>
+                        <NumberCell Label="@($"{name} size in {Labels.CylinderSize}")" Value="cylinder.Size"
+                                    Invalid="issues[nameof(CylinderInput.Size)] is not null"
+                                    ValueChanged="value => ChangeCylinderAsync(at, cylinder with { Size = value })"/>
+                    </td>
+                    @if (imperial)
                     {
-                        <button type="button" class="icon-button" title="Remove cylinder" aria-label="Remove cylinder @(at + 1)"
-                                @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.RemoveAt(Value.Cylinders, at) })">✕</button>
+                        <td>
+                            <NumberCell Label="@($"{name} rated pressure in {Labels.Pressure}")" Value="cylinder.RatedPressure"
+                                        Invalid="issues[nameof(CylinderInput.RatedPressure)] is not null"
+                                        ValueChanged="value => ChangeCylinderAsync(at, cylinder with { RatedPressure = value })"/>
+                        </td>
                     }
-                </div>
-                <div class="field-grid compact">
-                    <NumberField Label="Oxygen" Unit="%" Value="cylinder.OxygenPercent" Issue="@issues[nameof(CylinderInput.OxygenPercent)]"
-                                 ValueChanged="value => ChangeCylinderAsync(at, cylinder with { OxygenPercent = value })"/>
-                    <NumberField Label="Helium" Unit="%" Value="cylinder.HeliumPercent" Issue="@issues[nameof(CylinderInput.HeliumPercent)]"
-                                 ValueChanged="value => ChangeCylinderAsync(at, cylinder with { HeliumPercent = value })"/>
-                    <NumberField Label="Size" Unit="@Labels.CylinderSize" Value="cylinder.Size" Issue="@issues[nameof(CylinderInput.Size)]"
-                                 ValueChanged="value => ChangeCylinderAsync(at, cylinder with { Size = value })"/>
-                    @if (Units == UnitSystem.Imperial)
+                    <td>
+                        <NumberCell Label="@($"{name} fill pressure in {Labels.Pressure}")" Value="cylinder.StartPressure"
+                                    Invalid="issues[nameof(CylinderInput.StartPressure)] is not null"
+                                    ValueChanged="value => ChangeCylinderAsync(at, cylinder with { StartPressure = value })"/>
+                    </td>
+                    <td>
+                        @if (CylinderRoles.Resolve(Value.Circuit, cylinder) == CylinderPurpose.Oxygen)
+                        {
+                            <span class="cell-static">O2</span>
+                        }
+                        else
+                        {
+                            <SelectCell TValue="CylinderPurpose" Label="@($"{name} used as")" Options="CylinderRoles.Selectable(Value.Circuit)"
+                                        Text="purpose => Display.ShortName(purpose, Value.Circuit)" Value="cylinder.Purpose"
+                                        Invalid="issues[nameof(CylinderInput.Purpose)] is not null"
+                                        ValueChanged="value => ChangeCylinderAsync(at, cylinder with { Purpose = value })"/>
+                        }
+                    </td>
+                    @if (removableCylinders)
                     {
-                        <NumberField Label="Rated pressure" Unit="@Labels.Pressure" Value="cylinder.RatedPressure"
-                                     Issue="@issues[nameof(CylinderInput.RatedPressure)]"
-                                     ValueChanged="value => ChangeCylinderAsync(at, cylinder with { RatedPressure = value })"/>
+                        <td>
+                            <button type="button" class="icon-button" title="Remove cylinder" aria-label="Remove @name"
+                                    @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.RemoveAt(Value.Cylinders, at) })">✕</button>
+                        </td>
                     }
-                    <NumberField Label="Fill pressure" Unit="@Labels.Pressure" Value="cylinder.StartPressure"
-                                 Issue="@issues[nameof(CylinderInput.StartPressure)]"
-                                 ValueChanged="value => ChangeCylinderAsync(at, cylinder with { StartPressure = value })"/>
-                    @if (CylinderRoles.Resolve(Value.Circuit, cylinder) == CylinderPurpose.Oxygen)
-                    {
-                        <div class="field">
-                            <span class="field-label">Used as</span>
-                            <span class="field-static">Oxygen</span>
-                        </div>
-                    }
-                    else
-                    {
-                        <SelectField TValue="CylinderPurpose" Label="Used as" Options="CylinderRoles.Selectable(Value.Circuit)"
-                                     Text="purpose => Display.Name(purpose, Value.Circuit)" Value="cylinder.Purpose"
-                                     Issue="@issues[nameof(CylinderInput.Purpose)]"
-                                     ValueChanged="value => ChangeCylinderAsync(at, cylinder with { Purpose = value })"/>
-                    }
-                </div>
-            </li>
-        }
-    </ol>
+                </tr>
+                <RowIssues Columns="columns"
+                           Messages="[issues[nameof(CylinderInput.OxygenPercent)], issues[nameof(CylinderInput.HeliumPercent)],
+                                      issues[nameof(CylinderInput.Size)], issues[nameof(CylinderInput.RatedPressure)],
+                                      issues[nameof(CylinderInput.StartPressure)], issues[nameof(CylinderInput.Purpose)]]"/>
+            }
+            </tbody>
+        </table>
+    </div>
     <button type="button" class="secondary" @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.Add(Value.Cylinders, NewInputs.Cylinder(Units)) })">
         Add cylinder
     </button>

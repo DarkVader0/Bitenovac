@@ -1,0 +1,18 @@
+<input type="number" inputmode="decimal" step="any" class="cell-input @(Invalid ? "invalid" : null)" value="@NumberInput.Text(Value)"
+       aria-label="@Label" aria-invalid="@(Invalid ? "true" : null)" @onchange="OnChangeAsync"/>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public double Value { get; set; }
+
+    [Parameter]
+    public EventCallback<double> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool Invalid { get; set; }
+
+    private Task OnChangeAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(NumberInput.Parse(args.Value));
+}
