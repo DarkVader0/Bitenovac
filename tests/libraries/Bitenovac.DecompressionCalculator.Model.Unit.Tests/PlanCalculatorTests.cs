@@ -108,6 +108,26 @@ public sealed class PlanCalculatorTests
     }
 
     [Fact]
+    public void Calculate_ShouldStateTheGasVolumesInCubicFeet_WhenAnImperialDiveRunsOutOfGas()
+    {
+        // Arrange
+        var plan = DivePlanDocument.CreateNew(TestFactory.PlanId, "Test plan", UnitSystem.Imperial, TestFactory.Now) with
+        {
+            Dives = [TestFactory.Dive(depth: 100, minutes: 60, cylinders:
+                [TestFactory.Cylinder(size: 10, ratedPressure: 3000, startPressure: 3000)])]
+        };
+
+        // Act
+        var calculation = PlanCalculator.Calculate(plan);
+
+        // Assert
+        var dive = Assert.Single(calculation.Dives);
+        Assert.False(dive.Succeeded);
+        Assert.Contains(" cu ft of Air from a cylinder holding ", dive.FailureMessage, StringComparison.Ordinal);
+        Assert.DoesNotContain(" L", dive.FailureMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Calculate_ShouldPlanOnTheLoop_WhenTheDiveIsOnAClosedCircuitRebreather()
     {
         // Arrange

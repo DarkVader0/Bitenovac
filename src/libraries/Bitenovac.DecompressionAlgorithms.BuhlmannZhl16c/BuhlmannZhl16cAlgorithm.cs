@@ -183,8 +183,10 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
     /// </exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> was not produced by this model.</exception>
     /// <exception cref="InvalidOperationException">
-    /// No available gas is breathable at a required depth, or a decompression stop fails to clear
-    /// within twenty-four hours.
+    /// No available gas is breathable at a required depth.
+    /// </exception>
+    /// <exception cref="StopNotClearedException">
+    /// A decompression stop fails to clear within twenty-four hours.
     /// </exception>
     /// <remarks>
     /// <para>
@@ -743,9 +745,7 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
 
             if (totalMinutes > MaximumStopMinutes)
             {
-                throw new InvalidOperationException(
-                    $"The decompression stop at {stopMeter} m does not clear within 24 hours; " +
-                    "the gradient factors and available gases cannot decompress this dive.");
+                throw new StopNotClearedException(stopDepth, TimeSpan.FromMinutes(MaximumStopMinutes));
             }
         }
 

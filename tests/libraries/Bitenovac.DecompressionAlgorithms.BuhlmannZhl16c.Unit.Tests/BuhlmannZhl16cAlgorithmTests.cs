@@ -741,7 +741,7 @@ public sealed class BuhlmannZhl16cAlgorithmTests
     }
 
     [Fact]
-    public void CalculateFinalAscent_ShouldThrowInvalidOperationException_WhenStopDoesNotClearWithinTwentyFourHours()
+    public void CalculateFinalAscent_ShouldThrowStopNotClearedException_WhenStopDoesNotClearWithinTwentyFourHours()
     {
         // Arrange
         var algorithm = new BuhlmannZhl16cAlgorithm(0.05, 0.05);
@@ -754,7 +754,9 @@ public sealed class BuhlmannZhl16cAlgorithmTests
         Action act = () => algorithm.CalculateFinalAscent(state, request);
 
         // Assert
-        Assert.Throws<InvalidOperationException>(act);
+        var exception = Assert.Throws<StopNotClearedException>(act);
+        Assert.Equal(TimeSpan.FromHours(24), exception.Limit);
+        Assert.True(exception.StopDepth > Depth.FromMeter(0));
     }
 
     [Fact]
