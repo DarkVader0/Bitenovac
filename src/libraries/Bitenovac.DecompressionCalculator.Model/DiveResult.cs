@@ -29,7 +29,10 @@ public sealed record ProfileRow(
 /// </summary>
 /// <param name="Gas">The gas in the cylinder, such as <c>Air</c>, <c>NX50</c>, or <c>TX18/45</c>.</param>
 /// <param name="Purpose">What the cylinder is carried for.</param>
-/// <param name="GasUsed">The gas breathed from it, at the surface, in liters or cubic feet.</param>
+/// <param name="GasUsed">
+/// The gas the dive needs from it, at the surface, in liters or cubic feet; more than it holds when
+/// <see cref="Shortfall"/> is not zero.
+/// </param>
 /// <param name="StartPressure">The fill pressure, in bar or psi.</param>
 /// <param name="EndPressure">The pressure left at the end of the dive, in bar or psi.</param>
 /// <param name="IsExhausted">Whether the dive needs more gas than the cylinder holds.</param>
@@ -45,7 +48,14 @@ public sealed record CylinderRow(
     bool IsExhausted,
     double RequiredReserve,
     double ProjectedRemaining,
-    bool ReserveSatisfied);
+    bool ReserveSatisfied)
+{
+    /// <summary>
+    /// Gets the gas the dive needs beyond what the cylinder holds, at the surface, in liters or cubic
+    /// feet; zero when the cylinder holds enough.
+    /// </summary>
+    public double Shortfall { get; init; }
+}
 
 /// <summary>
 /// Represents a planned ascent that rises above the decompression ceiling, in the plan's units.
@@ -255,5 +265,8 @@ public sealed class DiveResult
         usage.IsExhausted,
         UnitConversion.FromGasVolume(reserve.RequiredReserve, units),
         UnitConversion.FromGasVolume(reserve.ProjectedRemaining, units),
-        reserve.IsSatisfied);
+        reserve.IsSatisfied)
+    {
+        Shortfall = UnitConversion.FromGasVolume(usage.Shortfall, units)
+    };
 }

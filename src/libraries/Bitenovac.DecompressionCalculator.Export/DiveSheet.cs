@@ -164,6 +164,13 @@ public static class DiveSheet
                 PdfFont.HelveticaBold, 9.5, SheetWriter.Danger);
         }
 
+        foreach (var cylinder in result.Cylinders.Where(static cylinder => cylinder.Shortfall > 0))
+        {
+            sheet.Paragraph(
+                $"{cylinder.Gas} runs out: the dive needs {Formats.Number(cylinder.Shortfall)} {labels.GasVolume} more than the cylinder holds.",
+                PdfFont.HelveticaBold, 9.5, SheetWriter.Danger);
+        }
+
         if (!result.ReserveSatisfied)
         {
             sheet.Paragraph("A cylinder does not hold the reserve gas the plan requires.", PdfFont.HelveticaBold, 9.5, SheetWriter.Danger);

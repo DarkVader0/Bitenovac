@@ -125,6 +125,61 @@ public sealed class CylinderGasUsageTests
     }
 
     [Fact]
+    public void Constructor_ShouldKeepTheShortfall_WhenTheCylinderEndsEmpty()
+    {
+        // Arrange
+        var cylinder = TestFactory.CreateCylinder(startPressureBar: 200);
+
+        // Act
+        var usage = new CylinderGasUsage(cylinder, Volume.FromLiter(3000), Pressure.Zero, Volume.FromLiter(600));
+
+        // Assert
+        Assert.Equal(600, usage.Shortfall.InLiter, Precision);
+        Assert.True(usage.IsExhausted);
+    }
+
+    [Fact]
+    public void Constructor_ShouldHaveNoShortfall_WhenNoneIsGiven()
+    {
+        // Arrange
+        var cylinder = TestFactory.CreateCylinder(startPressureBar: 200);
+
+        // Act
+        var usage = new CylinderGasUsage(cylinder, Volume.FromLiter(100), Pressure.FromBar(190));
+
+        // Assert
+        Assert.Equal(Volume.Zero, usage.Shortfall);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(3001)]
+    public void Constructor_ShouldThrowArgumentOutOfRangeException_WhenTheShortfallIsOutsideTheGasUsed(double shortfallLiter)
+    {
+        // Arrange
+        var cylinder = TestFactory.CreateCylinder(startPressureBar: 200);
+
+        // Act
+        Action act = () => new CylinderGasUsage(cylinder, Volume.FromLiter(3000), Pressure.Zero, Volume.FromLiter(shortfallLiter));
+
+        // Assert
+        Assert.Throws<ArgumentOutOfRangeException>(act);
+    }
+
+    [Fact]
+    public void Constructor_ShouldThrowArgumentOutOfRangeException_WhenAShortCylinderStillHoldsGas()
+    {
+        // Arrange
+        var cylinder = TestFactory.CreateCylinder(startPressureBar: 200);
+
+        // Act
+        Action act = () => new CylinderGasUsage(cylinder, Volume.FromLiter(3000), Pressure.FromBar(1), Volume.FromLiter(600));
+
+        // Assert
+        Assert.Throws<ArgumentOutOfRangeException>(act);
+    }
+
+    [Fact]
     public void IsExhausted_ShouldReturnTrue_WhenTheEndPressureIsZero()
     {
         // Arrange

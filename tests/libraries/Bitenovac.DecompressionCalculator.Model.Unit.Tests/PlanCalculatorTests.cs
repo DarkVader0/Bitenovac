@@ -5,6 +5,8 @@ namespace Bitenovac.DecompressionCalculator.Model.Unit.Tests;
 
 public sealed class PlanCalculatorTests
 {
+    private const int Precision = 6;
+
     private static readonly DiveInput DecompressionDive = TestFactory.Dive(depth: 40, minutes: 25,
         cylinders: [TestFactory.Cylinder(size: 24, startPressure: 230)]);
 
@@ -108,7 +110,7 @@ public sealed class PlanCalculatorTests
     }
 
     [Fact]
-    public void Calculate_ShouldStateTheGasVolumesInCubicFeet_WhenAnImperialDiveRunsOutOfGas()
+    public void Calculate_ShouldPlanTheDiveAndReportTheMissingGas_WhenTheCylinderRunsOut()
     {
         // Arrange
         var plan = DivePlanDocument.CreateNew(TestFactory.PlanId, "Test plan", UnitSystem.Imperial, TestFactory.Now) with
@@ -122,9 +124,27 @@ public sealed class PlanCalculatorTests
 
         // Assert
         var dive = Assert.Single(calculation.Dives);
-        Assert.False(dive.Succeeded);
-        Assert.Contains(" cu ft of Air from a cylinder holding ", dive.FailureMessage, StringComparison.Ordinal);
-        Assert.DoesNotContain(" L", dive.FailureMessage, StringComparison.Ordinal);
+        Assert.True(dive.Succeeded, dive.FailureMessage);
+        Assert.NotEmpty(dive.Profile);
+        var cylinder = Assert.Single(dive.Cylinders);
+        Assert.True(cylinder.IsExhausted);
+        Assert.Equal(0, cylinder.EndPressure, Precision);
+        Assert.Equal(cylinder.GasUsed - 10, cylinder.Shortfall, Precision);
+    }
+
+    [Fact]
+    public void Calculate_ShouldReportNoMissingGas_WhenTheCylinderHoldsEnough()
+    {
+        // Arrange
+        var plan = TestFactory.Plan();
+
+        // Act
+        var calculation = PlanCalculator.Calculate(plan);
+
+        // Assert
+        var cylinder = Assert.Single(Assert.Single(calculation.Dives).Cylinders);
+        Assert.False(cylinder.IsExhausted);
+        Assert.Equal(0, cylinder.Shortfall);
     }
 
     [Fact]

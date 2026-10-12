@@ -27,6 +27,31 @@ public sealed class CylinderGasUsage
     public CylinderGasUsage(Cylinder cylinder,
         Volume gasUsed,
         Pressure endPressure)
+        : this(cylinder, gasUsed, endPressure, Volume.Zero)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CylinderGasUsage"/> class for a cylinder that may
+    /// not hold all the gas the dive demands.
+    /// </summary>
+    /// <param name="cylinder">The cylinder to which this usage relates.</param>
+    /// <param name="gasUsed">
+    /// The volume of free gas the dive demands from the cylinder, measured at surface conditions.
+    /// </param>
+    /// <param name="endPressure">The pressure remaining in the cylinder at the end of the dive.</param>
+    /// <param name="shortfall">
+    /// The part of <paramref name="gasUsed"/> the cylinder does not hold, measured at surface conditions.
+    /// </param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="gasUsed"/> or <paramref name="shortfall"/> is negative, <paramref name="shortfall"/>
+    /// exceeds <paramref name="gasUsed"/>, <paramref name="endPressure"/> is negative or exceeds the
+    /// cylinder's start pressure, or <paramref name="shortfall"/> is positive while gas remains.
+    /// </exception>
+    public CylinderGasUsage(Cylinder cylinder,
+        Volume gasUsed,
+        Pressure endPressure,
+        Volume shortfall)
     {
         if (gasUsed.InLiter < 0.0)
         {
@@ -46,9 +71,22 @@ public sealed class CylinderGasUsage
                 "The end pressure must not exceed the cylinder's start pressure.");
         }
 
+        if (shortfall.InLiter < 0.0 || shortfall > gasUsed)
+        {
+            throw new ArgumentOutOfRangeException(nameof(shortfall), shortfall.InLiter,
+                "The shortfall must be between zero and the gas used.");
+        }
+
+        if (shortfall.InLiter > 0.0 && endPressure.InBar > 0.0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(shortfall), shortfall.InLiter,
+                "A cylinder that is short of gas must end empty.");
+        }
+
         Cylinder = cylinder;
         GasUsed = gasUsed;
         EndPressure = endPressure;
+        Shortfall = shortfall;
     }
 
     /// <summary>
@@ -57,12 +95,21 @@ public sealed class CylinderGasUsage
     public Cylinder Cylinder { get; }
 
     /// <summary>
-    /// Gets the volume of free gas consumed from the cylinder over the dive.
+    /// Gets the volume of free gas the dive demands from the cylinder.
     /// </summary>
     /// <value>
-    /// The consumed volume, measured at surface conditions.
+    /// The demanded volume, measured at surface conditions. It exceeds what the cylinder holds by
+    /// <see cref="Shortfall"/>.
     /// </value>
     public Volume GasUsed { get; }
+
+    /// <summary>
+    /// Gets the volume of free gas the dive demands beyond what the cylinder holds.
+    /// </summary>
+    /// <value>
+    /// The missing volume, measured at surface conditions; zero when the cylinder holds enough.
+    /// </value>
+    public Volume Shortfall { get; }
 
     /// <summary>
     /// Gets the pressure remaining in the cylinder at the end of the dive.
