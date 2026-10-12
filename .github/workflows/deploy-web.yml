@@ -1,0 +1,43 @@
+name: Deploy web
+
+on:
+  workflow_dispatch:
+    inputs:
+      drop:
+        description: Official drop to deploy, for example 2026.10.11.001. Empty for the newest.
+        required: false
+        default: ''
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: [self-hosted, linux, x64, bitenovac]
+    timeout-minutes: 1
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Prepare
+        env:
+          DROP: ${{ inputs.drop }}
+        run: bash deploy/web.sh "${RUNNER_TEMP}/site" "${DROP}"
+
+      - name: Upload
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/site
+
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -183,6 +183,39 @@ NUGET_API_KEY=<KEY> bash deploy/libraries.sh [2026.10.11.001]
 
 ---
 
+## Publishing the Web app
+
+The Web app is a static site on GitHub Pages, served from the root of its own domain. Every
+Official drop holds it, published, under `apps/Bitenovac.DecompressionCalculator.Web`.
+
+1. Wait for the next Official build, or run one: Actions → Official → Run workflow.
+2. Publish it from that drop: Actions → Deploy web → Run workflow. Leave the drop empty for the
+   newest one. Installed copies offer the new version with a Reload banner on their next visit.
+
+`deploy/web.sh` copies the site out of the drop and adds what Pages needs: `.nojekyll`, so the
+`_framework` folder is served, and a `404.html` copy of `index.html`, so a reloaded `/plan/...`
+still opens the app.
+
+### First time only: point Pages at the domain
+
+**1.** At the domain's DNS provider, add a `CNAME` record from the app's subdomain to
+`darkvader0.github.io`.
+
+**2.** On GitHub, your profile Settings → Pages → Add a domain, and add the `TXT` record it gives
+you. A verified domain cannot be taken over by another account's Pages site.
+
+**3.** In this repository, Settings → Pages: set Source to **GitHub Actions**, enter the custom
+domain, and once the DNS check passes, tick **Enforce HTTPS**. The app installs and works offline
+only over HTTPS.
+
+To prepare the site by hand on the runner host:
+
+```bash
+bash deploy/web.sh /tmp/site [2026.10.11.001]
+```
+
+---
+
 ## Fill the cache again
 
 Every hour the **Cache refresh** workflow fills the cache by itself: it builds, tests and
