@@ -9,6 +9,12 @@ const notify = () => listeners.forEach(listener => listener());
 
 const setWaiting = worker => {
     waitingWorker = worker;
+    worker.addEventListener("statechange", () => {
+        if (waitingWorker === worker && (worker.state === "activated" || worker.state === "redundant")) {
+            waitingWorker = null;
+            notify();
+        }
+    });
     notify();
 };
 
