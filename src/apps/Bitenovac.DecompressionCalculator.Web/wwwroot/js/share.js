@@ -8,25 +8,8 @@ export function canShareFiles() {
     }
 }
 
-export function canShareText() {
-    return typeof navigator.share === "function";
-}
-
 export async function shareFile(bytes, name, type, title, text) {
     return await share({ files: [new File([bytes], name, { type })], title, text });
-}
-
-export async function shareText(title, text) {
-    return await share({ title, text });
-}
-
-export async function copyText(text) {
-    try {
-        await navigator.clipboard.writeText(text);
-        return true;
-    } catch {
-        return false;
-    }
 }
 
 export function download(bytes, name, type) {
