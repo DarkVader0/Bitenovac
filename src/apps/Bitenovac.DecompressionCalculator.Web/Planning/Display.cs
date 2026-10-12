@@ -35,6 +35,13 @@ public static class Display
     public static string Name(CylinderPurpose purpose, CircuitInput circuit) =>
         purpose == CylinderPurpose.Diluent && circuit is SemiClosedCircuitInput ? "Loop supply" : Name(purpose);
 
+    public static string Name(CircuitInput circuit) => circuit switch
+    {
+        ClosedCircuitInput => "CCR",
+        SemiClosedCircuitInput => "SCR",
+        _ => "Open circuit"
+    };
+
     public static string Name(SegmentKind kind) => kind switch
     {
         SegmentKind.Descent => "Descent",

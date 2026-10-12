@@ -1,0 +1,77 @@
+@page "/plans"
+@inject PlanStore Store
+@inject NavigationManager Navigation
+
+<PageTitle>Plans · Bitenovac</PageTitle>
+
+<header class="plan-header">
+    <h1 class="page-title">Plans</h1>
+    <button type="button" @onclick="NewAsync">New plan</button>
+</header>
+
+@if (_plans is null)
+{
+    return;
+}
+
+@if (_plans.Count == 0)
+{
+    <p class="empty">No saved plans yet.</p>
+}
+else
+{
+    <ul class="plan-list">
+        @foreach (var plan in _plans)
+        {
+            <li class="plan-item">
+                <a class="plan-link" href="@($"plan/{plan.Id:D}")">
+                    <span class="plan-item-name">@(string.IsNullOrWhiteSpace(plan.Name) ? "Untitled plan" : plan.Name)</span>
+                    <span class="plan-item-meta">@PlanCopies.Describe(plan)</span>
+                    <span class="plan-item-meta">Changed @plan.ModifiedAt.ToLocalTime().ToString("g")</span>
+                </a>
+                @if (_confirmDelete == plan.Id)
+                {
+                    <div class="button-row">
+                        <button type="button" class="danger" @onclick="() => DeleteAsync(plan.Id)">Delete</button>
+                        <button type="button" class="secondary" @onclick="() => _confirmDelete = null">Cancel</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="button-row">
+                        <button type="button" class="secondary" @onclick="() => DuplicateAsync(plan)">Duplicate</button>
+                        <button type="button" class="secondary" @onclick="() => _confirmDelete = plan.Id">Delete</button>
+                    </div>
+                }
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private IReadOnlyList<DivePlanDocument>? _plans;
+    private Guid? _confirmDelete;
+
+    protected override async Task OnInitializedAsync() => _plans = await Store.ListAsync();
+
+    private async Task NewAsync()
+    {
+        var units = _plans is [var latest, ..] ? latest.Units : UnitSystem.Metric;
+        var plan = PlanCopies.New(units, DateTime.UtcNow);
+        await Store.SaveAsync(plan);
+        Navigation.NavigateTo($"plan/{plan.Id:D}");
+    }
+
+    private async Task DuplicateAsync(DivePlanDocument plan)
+    {
+        await Store.SaveAsync(PlanCopies.Duplicate(plan, DateTime.UtcNow));
+        _plans = await Store.ListAsync();
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        await Store.DeleteAsync(id);
+        _confirmDelete = null;
+        _plans = await Store.ListAsync();
+    }
+}

@@ -7,6 +7,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped<CurrentPlanStore>();
+builder.Services.AddScoped<IKeyValueStorage, BrowserStorage>();
+builder.Services.AddScoped<PlanStore>();
 
 await builder.Build().RunAsync();
