@@ -22,6 +22,14 @@ public static class Display
     public static string Name(CylinderPurpose purpose, CircuitInput circuit) =>
         purpose == CylinderPurpose.Diluent && circuit is SemiClosedCircuitInput ? "Loop supply" : Names.Of(purpose);
 
+    public static string ShortName(CylinderPurpose purpose, CircuitInput circuit) => purpose switch
+    {
+        CylinderPurpose.BottomGas => "Bottom",
+        CylinderPurpose.DecoGas => "Deco",
+        CylinderPurpose.Diluent when circuit is SemiClosedCircuitInput => "Supply",
+        _ => Names.Of(purpose)
+    };
+
     public static string Name(CircuitInput circuit) => Names.Of(circuit);
 
     public static string Name(SegmentKind kind) => Names.Of(kind);

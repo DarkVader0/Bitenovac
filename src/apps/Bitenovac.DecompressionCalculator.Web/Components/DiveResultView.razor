@@ -40,10 +40,10 @@
         <ProfileChartView Result="Result" Units="Units"/>
         <div class="table-scroll">
             <table class="profile">
-                <caption>Depth in @Labels.Depth, time and runtime in minutes</caption>
+                <caption>Depth at the end of each phase in @Labels.Depth, time and runtime in minutes</caption>
                 <thead>
                 <tr>
-                    <th></th>
+                    <th><span class="visually-hidden">Phase</span></th>
                     <th class="number">Depth</th>
                     <th class="number">Time</th>
                     <th class="number">Run</th>
@@ -58,8 +58,8 @@
                 @foreach (var phase in Result.Profile)
                 {
                     <tr class="@(phase.Kind is SegmentKind.Stop or SegmentKind.GasSwitch ? "row-stop" : null)">
-                        <td>@Display.Name(phase.Kind)</td>
-                        <td class="number">@Depths(phase)</td>
+                        <td class="phase"><PhaseIcon Kind="phase.Kind"/></td>
+                        <td class="number">@Display.Number(phase.EndDepth)</td>
                         <td class="number">@Display.Clock(phase.Duration)</td>
                         <td class="number">@Display.Clock(phase.Runtime)</td>
                         <td>@phase.Gas</td>
@@ -103,9 +103,4 @@
 
     private UnitLabels Labels => UnitLabels.For(Units);
 
-    private bool ShowsApparatus => Result.Profile.Any(static phase => phase.Circuit != BreathingLoop.OpenCircuit.ToString());
-
-    private static string Depths(ProfileRow phase) => phase.StartDepth == phase.EndDepth
-        ? Display.Number(phase.EndDepth)
-        : $"{Display.Number(phase.StartDepth)} → {Display.Number(phase.EndDepth)}";
-}
+    private bool ShowsApparatus => Result.Profile.Any(static phase => phase.Circuit != BreathingLoop.OpenCircuit.ToString());}
