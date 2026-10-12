@@ -81,7 +81,7 @@ public sealed class GasConsumptionTests
     }
 
     [Fact]
-    public void Calculate_ShouldThrowInvalidOperationException_WhenTheDemandExceedsWhatTheCylinderHolds()
+    public void Calculate_ShouldThrowInsufficientGasException_WhenTheDemandExceedsWhatTheCylinderHolds()
     {
         // Arrange
         var segments = new[] { TestFactory.CreateSegment(0, 1) };
@@ -91,7 +91,9 @@ public sealed class GasConsumptionTests
         Action act = () => GasConsumption.Calculate(segments, cylinders, TestFactory.CreateSettings());
 
         // Assert
-        Assert.Throws<InvalidOperationException>(act);
+        var exception = Assert.Throws<InsufficientGasException>(act);
+        Assert.Equal(cylinders[0].Gas, exception.Gas);
+        Assert.True(exception.Demand > exception.Available);
     }
 
     [Fact]

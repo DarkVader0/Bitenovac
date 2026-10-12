@@ -90,7 +90,7 @@ public static class PlanCalculator
         }
         catch (InvalidOperationException exception)
         {
-            return DiveResult.Failed(index, exception.Message);
+            return DiveResult.Failed(index, FailureMessages.Describe(exception, plan.Units));
         }
     }
 }

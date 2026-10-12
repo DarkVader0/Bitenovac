@@ -1,4 +1,3 @@
-using System.Globalization;
 using Bitenovac.DecompressionAlgorithms.Core.Environment;
 using Bitenovac.DecompressionAlgorithms.Core.Equipment;
 using Bitenovac.DecompressionAlgorithms.Core.Planning;
@@ -44,8 +43,11 @@ public static class GasConsumption
     /// </exception>
     /// <exception cref="ArgumentException"><paramref name="cylinders"/> is empty.</exception>
     /// <exception cref="InvalidOperationException">
-    /// A segment's supply gas does not match any supplied cylinder, a closed-circuit segment has no
-    /// oxygen cylinder to draw on, or the demand for gas exceeds what the matching cylinder holds.
+    /// A segment's supply gas does not match any supplied cylinder, or a closed-circuit segment has no
+    /// oxygen cylinder to draw on.
+    /// </exception>
+    /// <exception cref="InsufficientGasException">
+    /// The demand for gas exceeds what the matching cylinder holds.
     /// </exception>
     /// <remarks>
     /// Each segment draws from the cylinder holding its supply gas, preferring the diluent supply when
@@ -236,7 +238,7 @@ public static class GasConsumption
     /// </param>
     /// <param name="surfacePressure">The surface pressure against which free-gas volumes are referenced.</param>
     /// <returns>The gas usage for the cylinder.</returns>
-    /// <exception cref="InvalidOperationException">The demand for gas exceeds what the cylinder holds.</exception>
+    /// <exception cref="InsufficientGasException">The demand for gas exceeds what the cylinder holds.</exception>
     private static CylinderGasUsage BuildUsage(Cylinder cylinder,
         double consumedMilliliters,
         Pressure surfacePressure)
@@ -244,10 +246,9 @@ public static class GasConsumption
         var availableMilliliters = cylinder.StartGasVolume(surfacePressure).InMilliliter;
         if (consumedMilliliters > availableMilliliters)
         {
-            throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
-                $"The demand for gas exceeds what the matching cylinder holds: the profile draws " +
-                $"{consumedMilliliters / 1000.0:0.##} L of {cylinder.Gas} from a cylinder holding " +
-                $"{availableMilliliters / 1000.0:0.##} L."));
+            throw new InsufficientGasException(cylinder.Gas,
+                Volume.FromMilliliter(consumedMilliliters),
+                Volume.FromMilliliter(availableMilliliters));
         }
 
         var gasUsed = Volume.FromMilliliter(consumedMilliliters);
