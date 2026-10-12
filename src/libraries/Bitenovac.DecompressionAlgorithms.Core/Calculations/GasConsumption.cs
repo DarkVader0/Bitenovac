@@ -46,9 +46,6 @@ public static class GasConsumption
     /// A segment's supply gas does not match any supplied cylinder, or a closed-circuit segment has no
     /// oxygen cylinder to draw on.
     /// </exception>
-    /// <exception cref="InsufficientGasException">
-    /// The demand for gas exceeds what the matching cylinder holds.
-    /// </exception>
     /// <remarks>
     /// Each segment draws from the cylinder holding its supply gas, preferring the diluent supply when
     /// breathed through a rebreather, at the rate its apparatus demands. Only decompression stops use
@@ -238,27 +235,26 @@ public static class GasConsumption
     /// </param>
     /// <param name="surfacePressure">The surface pressure against which free-gas volumes are referenced.</param>
     /// <returns>The gas usage for the cylinder.</returns>
-    /// <exception cref="InsufficientGasException">The demand for gas exceeds what the cylinder holds.</exception>
+    /// <remarks>
+    /// A demand beyond what the cylinder holds is not an error: the cylinder ends empty and the
+    /// excess is reported as its <see cref="CylinderGasUsage.Shortfall"/>.
+    /// </remarks>
     private static CylinderGasUsage BuildUsage(Cylinder cylinder,
         double consumedMilliliters,
         Pressure surfacePressure)
     {
         var availableMilliliters = cylinder.StartGasVolume(surfacePressure).InMilliliter;
-        if (consumedMilliliters > availableMilliliters)
-        {
-            throw new InsufficientGasException(cylinder.Gas,
-                Volume.FromMilliliter(consumedMilliliters),
-                Volume.FromMilliliter(availableMilliliters));
-        }
-
-        var gasUsed = Volume.FromMilliliter(consumedMilliliters);
+        var shortfallMilliliters = Math.Max(consumedMilliliters - availableMilliliters, 0.0);
 
         var remainingFraction = availableMilliliters > 0.0
-            ? (availableMilliliters - consumedMilliliters) / availableMilliliters
+            ? Math.Max(availableMilliliters - consumedMilliliters, 0.0) / availableMilliliters
             : 0.0;
         var endPressure = Pressure.FromMillibar(cylinder.StartPressure.InMillibar * remainingFraction);
 
-        return new CylinderGasUsage(cylinder, gasUsed, endPressure);
+        return new CylinderGasUsage(cylinder,
+            Volume.FromMilliliter(consumedMilliliters),
+            endPressure,
+            Volume.FromMilliliter(shortfallMilliliters));
     }
 
     /// <summary>

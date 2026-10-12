@@ -44,6 +44,22 @@ internal static class TestFactory
         };
     }
 
+    public static DivePlanDocument OutOfGasPlan()
+    {
+        var plan = Plan();
+        return plan with
+        {
+            Dives =
+            [
+                plan.Dives[0] with
+                {
+                    Levels = [new LevelInput(30, 40)],
+                    Cylinders = [new CylinderInput(21, 0, 7, 0, 200, CylinderPurpose.BottomGas)]
+                }
+            ]
+        };
+    }
+
     public static DivePlanDocument ViolatingPlan()
     {
         var plan = Plan();

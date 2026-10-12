@@ -81,19 +81,37 @@ public sealed class GasConsumptionTests
     }
 
     [Fact]
-    public void Calculate_ShouldThrowInsufficientGasException_WhenTheDemandExceedsWhatTheCylinderHolds()
+    public void Calculate_ShouldReportTheShortfall_WhenTheDemandExceedsWhatTheCylinderHolds()
     {
         // Arrange
         var segments = new[] { TestFactory.CreateSegment(0, 1) };
         var cylinders = new[] { TestFactory.CreateCylinder(sizeLiter: 1, startPressureBar: 10) };
+        var settings = TestFactory.CreateSettings();
+        var available = cylinders[0].StartGasVolume(settings.SurfacePressure);
 
         // Act
-        Action act = () => GasConsumption.Calculate(segments, cylinders, TestFactory.CreateSettings());
+        var usage = GasConsumption.Calculate(segments, cylinders, settings);
 
         // Assert
-        var exception = Assert.Throws<InsufficientGasException>(act);
-        Assert.Equal(cylinders[0].Gas, exception.Gas);
-        Assert.True(exception.Demand > exception.Available);
+        Assert.True(usage[0].IsExhausted);
+        Assert.Equal(0, usage[0].EndPressure.InBar, Precision);
+        Assert.True(usage[0].Shortfall > Volume.Zero);
+        Assert.Equal(usage[0].GasUsed.InLiter - available.InLiter, usage[0].Shortfall.InLiter, Precision);
+    }
+
+    [Fact]
+    public void Calculate_ShouldReportNoShortfall_WhenTheCylinderHoldsEnough()
+    {
+        // Arrange
+        var segments = new[] { TestFactory.CreateSegment(0, 1) };
+        var cylinders = new[] { TestFactory.CreateCylinder() };
+
+        // Act
+        var usage = GasConsumption.Calculate(segments, cylinders, TestFactory.CreateSettings());
+
+        // Assert
+        Assert.False(usage[0].IsExhausted);
+        Assert.Equal(Volume.Zero, usage[0].Shortfall);
     }
 
     [Fact]

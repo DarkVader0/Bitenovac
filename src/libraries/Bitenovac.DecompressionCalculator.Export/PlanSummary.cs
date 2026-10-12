@@ -88,6 +88,7 @@ public static class PlanSummary
             text.AppendLine(
                 $"{cylinder.Gas}: {Formats.Number(cylinder.GasUsed)} {labels.GasVolume} used, " +
                 $"{Formats.Number(cylinder.StartPressure)} to {Formats.Number(cylinder.EndPressure)} {labels.Pressure}" +
+                (cylinder.Shortfall > 0 ? $" - runs out, {Formats.Number(cylinder.Shortfall)} {labels.GasVolume} short" : string.Empty) +
                 (cylinder.ReserveSatisfied ? string.Empty : " - reserve not met"));
         }
 

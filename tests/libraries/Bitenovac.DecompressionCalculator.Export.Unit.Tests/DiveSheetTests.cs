@@ -88,6 +88,23 @@ public sealed class DiveSheetTests
     }
 
     [Fact]
+    public void Create_ShouldDrawTheDiveAndSayHowMuchGasIsMissing_WhenACylinderRunsOut()
+    {
+        // Arrange
+        var plan = TestFactory.OutOfGasPlan();
+        var cylinder = TestFactory.Calculate(plan).Cylinders[0];
+
+        // Act
+        var pdf = Sheet(plan);
+
+        // Assert
+        Assert.Contains(TestFactory.Shown("Runtime"), pdf, StringComparison.Ordinal);
+        Assert.Contains(
+            TestFactory.Shown($"Air runs out: the dive needs {Formats.Number(cylinder.Shortfall)} L more than the cylinder holds."),
+            pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Create_ShouldWarnAboutTheCeilingAndTheReserve_WhenTheDiveBreaksThem()
     {
         // Arrange

@@ -63,6 +63,20 @@ public sealed class PlanSummaryTests
     }
 
     [Fact]
+    public void Text_ShouldSayHowMuchGasIsMissing_WhenACylinderRunsOut()
+    {
+        // Arrange
+        var plan = TestFactory.OutOfGasPlan();
+        var cylinder = TestFactory.Calculate(plan).Cylinders[0];
+
+        // Act
+        var text = PlanSummary.Text(plan, TestFactory.Now);
+
+        // Assert
+        Assert.Contains($" - runs out, {Formats.Number(cylinder.Shortfall)} L short", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Text_ShouldNameEachDiveWithItsSurfaceInterval_WhenThePlanIsASeries()
     {
         // Arrange
