@@ -1,0 +1,38 @@
+name: Deploy libraries
+
+on:
+  workflow_dispatch:
+    inputs:
+      drop:
+        description: Official drop to deploy, for example 2026.10.11.001. Empty for the newest.
+        required: false
+        default: ''
+
+concurrency:
+  group: deploy-libraries
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: [self-hosted, linux, x64, bitenovac]
+    timeout-minutes: 1
+    environment: nuget
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to nuget.org
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+          DROP: ${{ inputs.drop }}
+        run: bash deploy/libraries.sh "${DROP}"

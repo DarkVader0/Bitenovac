@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <IsLibrary>true</IsLibrary>
+        <Description>The Bühlmann ZHL-16C decompression model with gradient factors for the Bitenovac dive planner.</Description>
     </PropertyGroup>
 
     <ItemGroup>
