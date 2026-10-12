@@ -7,17 +7,14 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Bitenovac.DecompressionCalculator.Export"/>
+        <PackageReference Include="Bitenovac.DecompressionCalculator.Model"/>
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly"/>
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all"/>
     </ItemGroup>
 
     <ItemGroup>
         <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\..\libraries\Bitenovac.DecompressionCalculator.Export\Bitenovac.DecompressionCalculator.Export.csproj"/>
-        <ProjectReference Include="..\..\libraries\Bitenovac.DecompressionCalculator.Model\Bitenovac.DecompressionCalculator.Model.csproj"/>
     </ItemGroup>
 
 </Project>
