@@ -158,6 +158,31 @@ NUGET_API_KEY=<KEY> bash deploy/remotebuildtool.sh [2026.10.11.001]
 
 ---
 
+## Releasing the libraries
+
+The five libraries under `src/libraries` are published to nuget.org together, under one version:
+`<VersionPrefix>` in the library group of `Directory.Build.props`. The Web app restores them from
+nuget.org at the version pinned in `Directory.Packages.props`, not from the source.
+
+1. Bump the shared `<VersionPrefix>` in `Directory.Build.props` and merge it.
+2. Wait for the next Official build, or run one: Actions → Official → Run workflow. The packages
+   keep the library version rather than the date.
+3. Publish them from that drop: Actions → Deploy libraries → Run workflow. Leave the drop empty for
+   the newest one. A version that is already on nuget.org fails the run.
+4. Once nuget.org lists the new version, move the Web app onto it by changing its two
+   `PackageVersion` entries in `Directory.Packages.props`.
+
+The first time only, add a second Trusted Publishing policy on nuget.org, like the one above but
+with the workflow file `deploy-libraries.yml`.
+
+To publish by hand on the runner host instead, with a key from nuget.org:
+
+```bash
+NUGET_API_KEY=<KEY> bash deploy/libraries.sh [2026.10.11.001]
+```
+
+---
+
 ## Fill the cache again
 
 Every hour the **Cache refresh** workflow fills the cache by itself: it builds, tests and
