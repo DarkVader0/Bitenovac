@@ -58,7 +58,9 @@ internal static class TestFactory
         string fullHash = "full-hash",
         bool forced = false,
         bool hit = false,
-        bool shouldGateCoverage = true) =>
+        bool shouldGateCoverage = true,
+        IReadOnlyList<string>? ownHashInputs = null,
+        string? whyCacheMiss = null) =>
         new(
             projectPath,
             fullPath,
@@ -75,7 +77,9 @@ internal static class TestFactory
             fullHash,
             forced,
             hit,
-            shouldGateCoverage);
+            shouldGateCoverage,
+            ownHashInputs ?? [],
+            whyCacheMiss);
 
     public static PlanState Plan(string configuration, params PlanEntry[] entries) =>
         new(new Dictionary<string, List<PlanEntry>> { [configuration] = [.. entries] });

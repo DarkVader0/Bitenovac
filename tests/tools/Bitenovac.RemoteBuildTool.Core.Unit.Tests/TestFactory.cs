@@ -5,7 +5,7 @@ using Bitenovac.RemoteBuildTool.Core.Planning;
 namespace Bitenovac.RemoteBuildTool.Core.Unit.Tests;
 
 /// <summary>
-/// Provides the graphs, hashes and coverage inputs shared by the Core tests.
+/// Provides the graphs, hashes, coverage inputs and temporary directories shared by the Core tests.
 /// </summary>
 internal static class TestFactory
 {
@@ -65,4 +65,29 @@ internal static class TestFactory
     public static CoveragePolicy Policy(double line = 100, double branch = 100) => new(line, branch);
 
     public static CoverageMeasurement Measurement(double line, double branch) => new(line, branch);
+
+    public static TemporaryDirectory Directory() => new();
+}
+
+/// <summary>
+/// Represents a directory under the system temporary folder that is deleted on disposal.
+/// </summary>
+internal sealed class TemporaryDirectory : IDisposable
+{
+    public TemporaryDirectory() =>
+        Path = System.IO.Directory.CreateTempSubdirectory("bitenovac-remotebuildtool-core-tests-").FullName;
+
+    public string Path { get; }
+
+    /// <summary>
+    /// Returns the path of <paramref name="relativePath"/> under this directory, accepting forward slashes.
+    /// </summary>
+    public string Combine(string relativePath) =>
+        System.IO.Path.Combine(Path, relativePath.Replace('/', System.IO.Path.DirectorySeparatorChar));
+
+    public void Dispose()
+    {
+        if (System.IO.Directory.Exists(Path))
+            System.IO.Directory.Delete(Path, recursive: true);
+    }
 }

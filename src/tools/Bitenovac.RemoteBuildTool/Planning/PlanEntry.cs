@@ -11,6 +11,8 @@ namespace Bitenovac.RemoteBuildTool.Planning;
 /// <param name="Toolchain">The <see cref="Toolchains.IToolchain.Name"/> of the toolchain that owns the project.</param>
 /// <param name="References">The repository-relative paths of the projects this one references.</param>
 /// <param name="Properties">The owning toolchain's own data; see <see cref="Toolchains.EvaluatedProject.Properties"/>.</param>
+/// <param name="OwnHashInputs">The inputs <paramref name="OwnHash"/> was computed from, stored with the build output.</param>
+/// <param name="WhyCacheMiss">Why the project is rebuilt, or <see langword="null"/> for a hit.</param>
 internal sealed record PlanEntry(
     string ProjectPath,
     string FullPath,
@@ -27,4 +29,6 @@ internal sealed record PlanEntry(
     string FullHash,
     bool Forced,
     bool Hit,
-    bool ShouldGateCoverage);
+    bool ShouldGateCoverage,
+    IReadOnlyList<string> OwnHashInputs,
+    string? WhyCacheMiss);

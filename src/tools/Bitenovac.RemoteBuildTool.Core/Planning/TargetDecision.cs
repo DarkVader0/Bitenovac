@@ -35,6 +35,24 @@ public sealed record TargetDecision
     public required CacheOutcome BuildOutcome { get; init; }
 
     /// <summary>
+    /// Gets why the project is a miss.
+    /// </summary>
+    /// <value>
+    /// <see cref="CacheMissReasons.None"/> for a hit. A forced project, or one with nothing stored,
+    /// reports only that reason.
+    /// </value>
+    public required CacheMissReasons MissReasons { get; init; }
+
+    /// <summary>
+    /// Gets the referenced projects whose full hash differs from the one stored for them.
+    /// </summary>
+    /// <value>
+    /// The changed references, ordered ordinally; empty unless <see cref="MissReasons"/> includes
+    /// <see cref="CacheMissReasons.DependenciesChanged"/>.
+    /// </value>
+    public required IReadOnlyList<ProjectId> ChangedDependencies { get; init; }
+
+    /// <summary>
     /// Gets a value that indicates whether the project must be held to its coverage policy.
     /// </summary>
     /// <value>

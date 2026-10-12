@@ -1,4 +1,4 @@
-using Bitenovac.RemoteBuildTool.Processes;
+using Bitenovac.RemoteBuildTool.Core.Processes;
 
 namespace Bitenovac.RemoteBuildTool.Testing;
 

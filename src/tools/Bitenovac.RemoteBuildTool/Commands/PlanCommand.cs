@@ -71,6 +71,9 @@ internal static class PlanCommand
 
             var hits = entries.Count(entry => entry.Hit);
             output.WriteLine($"{configuration}: {entries.Count} project(s), {hits} cache hit(s), {entries.Count - hits} to build.");
+
+            foreach (var entry in entries.Where(entry => !entry.Hit).OrderBy(entry => entry.ProjectPath, StringComparer.Ordinal))
+                output.WriteLine($"  miss {entry.ProjectPath}: {entry.WhyCacheMiss}");
         }
 
         planState.Save(options.PlanFile);
@@ -105,6 +108,11 @@ internal static class PlanCommand
         {
             var project = evaluated[id];
             var decision = decisions[id];
+            var storedInputs = decision.MissReasons.HasFlag(CacheMissReasons.OwnInputsChanged)
+                && mainStore.TryReadText(id, configuration, WhyCacheMiss.InputsPath, out var content)
+                    ? WhyCacheMiss.ParseInputs(content)
+                    : null;
+
             return new PlanEntry(
                 ProjectPath: id.Value,
                 FullPath: project.FullPath,
@@ -121,7 +129,9 @@ internal static class PlanCommand
                 FullHash: decision.Computed.FullHash,
                 Forced: decision.Forced,
                 Hit: decision.BuildOutcome == CacheOutcome.Hit,
-                ShouldGateCoverage: decision.ShouldGateCoverage);
+                ShouldGateCoverage: decision.ShouldGateCoverage,
+                OwnHashInputs: project.OwnHashInputs,
+                WhyCacheMiss: WhyCacheMiss.Describe(decision, project.OwnHashInputs, storedInputs));
         }).ToList();
     }
 }
