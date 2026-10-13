@@ -15,9 +15,47 @@
     --warning: #b85c00;
     --success: #1c8043;
 
+    --on-brand: #ffffff;
+    --brand-hover: #1861ac;
+    --code: #c02d76;
+    --chart-dive: rgba(27, 110, 194, 0.12);
+    --safety-stop: #e8890c;
+    --overlay: rgba(255, 255, 255, 0.9);
+    --danger-fill: rgba(179, 33, 33, 0.08);
+    --warning-fill: rgba(232, 137, 12, 0.12);
+
     /* Deliberately generous: the primary use is a wet finger on a boat deck. */
     --touch-target: 3rem;
     --radius: 6px;
+}
+
+/* The dark theme, when the page is marked data-theme="dark": dark surfaces, lighter text, and red,
+   orange and blue lifted to stay readable on them. Paper always prints light. */
+@media screen {
+    :root[data-theme="dark"] {
+        color-scheme: dark;
+
+        --brand-bright: #4a90d9;
+        --brand-hover: #3a7fc8;
+
+        --surface: #15181d;
+        --surface-sunken: #1f232a;
+        --border: #3a3f47;
+        --text: #e7e9ec;
+        --text-muted: #a3a9b2;
+        --link: #74b4f5;
+
+        --danger: #f07070;
+        --warning: #f2a54a;
+        --success: #52c17f;
+
+        --code: #f28fbf;
+        --chart-dive: rgba(74, 144, 217, 0.2);
+        --safety-stop: #f2a54a;
+        --overlay: rgba(21, 24, 29, 0.92);
+        --danger-fill: rgba(240, 112, 112, 0.14);
+        --warning-fill: rgba(242, 165, 74, 0.16);
+    }
 }
 
 *, *::before, *::after {
@@ -55,7 +93,7 @@ a {
 }
 
 code {
-    color: #c02d76;
+    color: var(--code);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -92,12 +130,12 @@ button {
     background-color: var(--brand-bright);
     border: 1px solid transparent;
     border-radius: var(--radius);
-    color: #fff;
+    color: var(--on-brand);
     cursor: pointer;
 }
 
 button:hover {
-    background-color: #1861ac;
+    background-color: var(--brand-hover);
 }
 
 button:disabled {
@@ -363,7 +401,7 @@ button:has(> .icon) {
     }
 
     select.cell-input {
-        padding-right: 0;
+        padding-right: 1.2rem;
         font-size: 0.9375rem;
     }
 }
@@ -373,11 +411,25 @@ button:has(> .icon) {
     -moz-appearance: textfield;
 }
 
-select.cell-input {
+/* The browser's own dropdown arrow differs on every system; a small chevron in the text colour
+   marks every dropdown instead, closer to the edge in a narrow table cell. */
+select {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
+    padding-right: 2.25rem;
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+        linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+    background-position: calc(100% - 1.15rem) 50%, calc(100% - 0.8rem) 50%;
+    background-size: 0.35rem 0.35rem;
+    background-repeat: no-repeat;
     cursor: pointer;
+}
+
+select.cell-input {
+    padding-right: 1.35rem;
+    background-position: calc(100% - 0.85rem) 50%, calc(100% - 0.5rem) 50%;
 }
 
 .cell-input::-webkit-inner-spin-button,
@@ -457,12 +509,6 @@ a.icon-button {
     background-color: var(--surface-sunken);
 }
 
-.icon-button svg {
-    width: 1.5rem;
-    height: 1.5rem;
-    fill: currentColor;
-}
-
 .badge {
     position: absolute;
     top: 0.35rem;
@@ -494,7 +540,7 @@ a.icon-button {
 }
 
 .chart-dive {
-    fill: rgba(27, 110, 194, 0.12);
+    fill: var(--chart-dive);
 }
 
 .chart-line {
@@ -526,7 +572,7 @@ a.icon-button {
 }
 
 .chart-stop-safety {
-    stroke: #e8890c;
+    stroke: var(--safety-stop);
 }
 
 .chart-switch {
@@ -584,7 +630,7 @@ a.icon-button {
     line-height: 1.35;
     white-space: nowrap;
     pointer-events: none;
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: var(--overlay);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
@@ -718,7 +764,7 @@ a.icon-button {
 .dive-tab.selected {
     background-color: var(--brand-bright);
     border-color: var(--brand-bright);
-    color: #fff;
+    color: var(--on-brand);
 }
 
 .dive-tab.add {
@@ -809,7 +855,7 @@ button.danger {
     gap: 0.5rem 1rem;
     padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
     background-color: var(--brand);
-    color: #fff;
+    color: var(--on-brand);
 }
 
 .app-banner-actions {
@@ -956,7 +1002,7 @@ body:has(.app-banner) {
         box-shadow: none;
     }
 
-    .settings-button,
+    .plan-header .settings-button,
     .settings-done,
     .settings-backdrop {
         display: none;
@@ -1095,6 +1141,28 @@ body:has(.app-banner) {
 
 /* ---------------------------------------------------------------------- results -- */
 
+.results-chart-title {
+    display: none;
+}
+
+/* On a wide screen the stops come first and the chart closes the results; phones keep the chart
+   under the profile heading. */
+@media (min-width: 1024px) {
+    section.results {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .results-chart {
+        order: 1;
+        margin-top: 1rem;
+    }
+
+    .results-chart-title {
+        display: block;
+    }
+}
+
 .figures {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
@@ -1142,7 +1210,7 @@ body:has(.app-banner) {
 }
 
 .alert-warning {
-    border-color: #c98a00;
+    border-color: var(--warning);
 }
 
 .table-scroll {
@@ -1214,19 +1282,14 @@ td.phase {
 }
 
 .phase-icon {
-    width: 1.25rem;
-    height: 1.25rem;
-    fill: none;
-    stroke: var(--text-muted);
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    display: inline-flex;
+    color: var(--text-muted);
 }
 
 .phase-stop,
 .phase-safetystop,
 .phase-gasswitch {
-    stroke: var(--brand-bright);
+    color: var(--brand-bright);
 }
 
 .gas .number {
@@ -1240,7 +1303,7 @@ td.phase {
 
 /* Red: the cylinder runs out before the dive ends. Orange: it lasts, but without the reserve. */
 tr.gas-error td {
-    background-color: rgba(179, 33, 33, 0.08);
+    background-color: var(--danger-fill);
 }
 
 tr.gas-error .gas-end,
@@ -1250,7 +1313,7 @@ tr.gas-error .gas-short {
 }
 
 tr.gas-warning td {
-    background-color: rgba(232, 137, 12, 0.12);
+    background-color: var(--warning-fill);
 }
 
 tr.gas-warning .gas-left {
@@ -1337,7 +1400,7 @@ tr.gas-warning td:first-child {
 .blazor-error-boundary {
     background: var(--danger);
     padding: 1rem;
-    color: #fff;
+    color: var(--on-brand);
 }
 
 .blazor-error-boundary::after {

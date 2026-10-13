@@ -11,5 +11,6 @@ builder.Services.AddScoped<IKeyValueStorage, BrowserStorage>();
 builder.Services.AddScoped<PlanStore>();
 builder.Services.AddScoped<ShareService>();
 builder.Services.AddScoped<PwaService>();
+builder.Services.AddScoped<ThemeService>();
 
 await builder.Build().RunAsync();

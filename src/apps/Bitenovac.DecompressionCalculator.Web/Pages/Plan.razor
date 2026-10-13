@@ -21,22 +21,16 @@
 
 <header class="plan-header no-print">
     <a class="icon-button plans-button" href="plans" title="Plans" aria-label="Plans">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
-        </svg>
+        <Icon Name="IconName.Plans"/>
     </a>
     <input class="plan-name" type="text" aria-label="Plan name" value="@_plan.Name"
            @onchange="args => ChangeAsync(_plan with { Name = args.Value as string ?? string.Empty })"/>
     <button type="button" class="icon-button" title="Share" aria-label="Share" @onclick="() => _shareOpen = true">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
-        </svg>
+        <Icon Name="IconName.Share"/>
     </button>
     <button type="button" class="icon-button settings-button" title="Settings" aria-label="Settings" aria-expanded="@_settingsOpen"
             @onclick="() => _settingsOpen = true">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-        </svg>
+        <Icon Name="IconName.Settings"/>
         @if (SettingsHaveIssues)
         {
             <span class="badge" aria-label="Settings need attention"></span>
@@ -65,7 +59,7 @@
                     <li>@IssueText.Describe(issue)</li>
                 }
             </ul>
-            <button type="button" class="secondary" @onclick="() => _settingsOpen = true">Open settings</button>
+            <button type="button" class="secondary" @onclick="OpenPlanSettings">Open settings</button>
         </div>
     </section>
 }
@@ -128,35 +122,53 @@ else
         <button type="button" class="settings-done" @onclick="() => _settingsOpen = false">Done</button>
     </div>
 
-    <section class="card">
-        <div class="field-grid">
-            <div class="field">
-                <span class="field-label">Units</span>
-                <div class="button-row">
-                    <button type="button" class="@(_plan.Units == UnitSystem.Metric ? null : "secondary")"
-                            aria-pressed="@(_plan.Units == UnitSystem.Metric)"
-                            @onclick="() => ChangeAsync(PlanConverter.Convert(_plan, UnitSystem.Metric))">
-                        Metric
-                    </button>
-                    <button type="button" class="@(_plan.Units == UnitSystem.Imperial ? null : "secondary")"
-                            aria-pressed="@(_plan.Units == UnitSystem.Imperial)"
-                            @onclick="() => ChangeAsync(PlanConverter.Convert(_plan, UnitSystem.Imperial))">
-                        Imperial
-                    </button>
+    <nav class="dive-tabs settings-tabs" aria-label="Settings">
+        <button type="button" class="dive-tab @(_appSettings ? null : "selected")" aria-current="@(_appSettings ? null : "true")"
+                @onclick="() => _appSettings = false">
+            Plan
+        </button>
+        <button type="button" class="dive-tab @(_appSettings ? "selected" : null)" aria-current="@(_appSettings ? "true" : null)"
+                @onclick="() => _appSettings = true">
+            App
+        </button>
+    </nav>
+
+    @if (_appSettings)
+    {
+        <AppSettings/>
+    }
+    else
+    {
+        <section class="card">
+            <div class="field-grid">
+                <div class="field">
+                    <span class="field-label">Units</span>
+                    <div class="button-row">
+                        <button type="button" class="@(_plan.Units == UnitSystem.Metric ? null : "secondary")"
+                                aria-pressed="@(_plan.Units == UnitSystem.Metric ? "true" : "false")"
+                                @onclick="() => ChangeAsync(PlanConverter.Convert(_plan, UnitSystem.Metric))">
+                            Metric
+                        </button>
+                        <button type="button" class="@(_plan.Units == UnitSystem.Imperial ? null : "secondary")"
+                                aria-pressed="@(_plan.Units == UnitSystem.Imperial ? "true" : "false")"
+                                @onclick="() => ChangeAsync(PlanConverter.Convert(_plan, UnitSystem.Imperial))">
+                            Imperial
+                        </button>
+                    </div>
+                </div>
+                <div class="field another-plan">
+                    <span class="field-label">Another plan</span>
+                    <button type="button" class="secondary" @onclick="() => StartOverAsync(_plan.Units)"><Icon Name="IconName.Add"/>New plan</button>
                 </div>
             </div>
-            <div class="field another-plan">
-                <span class="field-label">Another plan</span>
-                <button type="button" class="secondary" @onclick="() => StartOverAsync(_plan.Units)"><Icon Name="IconName.Add"/>New plan</button>
-            </div>
-        </div>
-    </section>
+        </section>
 
-    <AlgorithmEditor Value="_plan.Algorithm" Issues="_issues.Scope(nameof(DivePlanDocument.Algorithm))"
-                     ValueChanged="algorithm => ChangeAsync(_plan with { Algorithm = algorithm })"/>
+        <AlgorithmEditor Value="_plan.Algorithm" Issues="_issues.Scope(nameof(DivePlanDocument.Algorithm))"
+                         ValueChanged="algorithm => ChangeAsync(_plan with { Algorithm = algorithm })"/>
 
-    <SettingsEditor Value="_plan.Settings" Units="_plan.Units" Issues="_issues.Scope(nameof(DivePlanDocument.Settings))"
-                    ValueChanged="settings => ChangeAsync(_plan with { Settings = settings })"/>
+        <SettingsEditor Value="_plan.Settings" Units="_plan.Units" Issues="_issues.Scope(nameof(DivePlanDocument.Settings))"
+                        ValueChanged="settings => ChangeAsync(_plan with { Settings = settings })"/>
+    }
 </aside>
 
 @code {
@@ -164,6 +176,7 @@ else
     private PlanView? _view;
     private IssueMap _issues = IssueMap.Empty;
     private bool _settingsOpen;
+    private bool _appSettings;
     private bool _shareOpen;
     private bool _missing;
     private Guid _loadedId;
@@ -215,6 +228,12 @@ else
         var removed = _selected;
         _selected = Math.Max(0, removed - 1);
         await ChangeAsync(plan with { Dives = ListEdit.RemoveAt(plan.Dives, removed) });
+    }
+
+    private void OpenPlanSettings()
+    {
+        _appSettings = false;
+        _settingsOpen = true;
     }
 
     private void CloseOnEscape(KeyboardEventArgs args)
