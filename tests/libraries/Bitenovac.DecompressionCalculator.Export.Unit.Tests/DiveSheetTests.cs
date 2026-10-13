@@ -5,9 +5,13 @@ namespace Bitenovac.DecompressionCalculator.Export.Unit.Tests;
 
 public sealed class DiveSheetTests
 {
+    private const string AppVersion = "2026.10.13.001";
     private const string CeilingStroke = "0.702 0.129 0.129 RG 1.2 w";
+    private const string CeilingZoneFill = "0.941 0.788 0.788 rg";
+    private const string ChartTimeLabel = "(min) Tj";
 
-    private static string Sheet(DivePlanDocument plan) => TestFactory.Read(DiveSheet.Create(plan, TestFactory.Now));
+    private static string Sheet(DivePlanDocument plan, int dive = 0) =>
+        TestFactory.Read(DiveSheet.Create(plan, dive, TestFactory.Now, AppVersion));
 
     [Fact]
     public void Create_ShouldThrowArgumentNullException_WhenThePlanIsNull()
@@ -16,14 +20,73 @@ public sealed class DiveSheetTests
         DivePlanDocument plan = null!;
 
         // Act
-        Action act = () => DiveSheet.Create(plan, TestFactory.Now);
+        Action act = () => DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion);
 
         // Assert
         Assert.Throws<ArgumentNullException>(act);
     }
 
     [Fact]
-    public void Create_ShouldShowTheResultsChartProfileAndGasOfTheDive_WhenThePlanIsCalculated()
+    public void Create_ShouldThrowArgumentNullException_WhenTheAppVersionIsNull()
+    {
+        // Arrange
+        var plan = TestFactory.Plan();
+
+        // Act
+        Action act = () => DiveSheet.Create(plan, 0, TestFactory.Now, null!);
+
+        // Assert
+        Assert.Throws<ArgumentNullException>(act);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(1)]
+    public void Create_ShouldThrowArgumentOutOfRangeException_WhenTheDiveIsNotInThePlan(int dive)
+    {
+        // Arrange
+        var plan = TestFactory.Plan();
+
+        // Act
+        Action act = () => DiveSheet.Create(plan, dive, TestFactory.Now, AppVersion);
+
+        // Assert
+        Assert.Throws<ArgumentOutOfRangeException>(act);
+    }
+
+    [Fact]
+    public void Create_ShouldPutTheDiveDateAndAppVersionBesideTheTitle_WhenTheyFitOneLine()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+
+        // Act
+        var pdf = Sheet(plan);
+
+        // Assert
+        var meta = TestFactory.Shown($"Dive · 11 Oct 2026 12:00 UTC · Bitenovac {AppVersion}");
+        Assert.Contains("/Title (Reef)", pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("Reef"), pdf, StringComparison.Ordinal);
+        Assert.Contains(meta, pdf, StringComparison.Ordinal);
+        Assert.DoesNotMatch($@"rg 32 [\d.]+ Td {Regex.Escape(meta)}", pdf);
+    }
+
+    [Fact]
+    public void Create_ShouldPutTheDiveDateAndAppVersionUnderTheTitle_WhenTheTitleIsTooLongToShareALine()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan() with { Name = "Wreck of the steamship on the outer reef, second visit" };
+
+        // Act
+        var pdf = Sheet(plan);
+
+        // Assert
+        var meta = TestFactory.Shown($"Dive · 11 Oct 2026 12:00 UTC · Bitenovac {AppVersion}");
+        Assert.Matches($@"rg 32 [\d.]+ Td {Regex.Escape(meta)}", pdf);
+    }
+
+    [Fact]
+    public void Create_ShouldShowTheFiguresProfileGasAndChartOnOnePage_WhenThePlanIsCalculated()
     {
         // Arrange
         var plan = TestFactory.DecompressionPlan();
@@ -33,30 +96,62 @@ public sealed class DiveSheetTests
         var pdf = Sheet(plan);
 
         // Assert
-        Assert.Contains("/Title (Reef)", pdf, StringComparison.Ordinal);
-        Assert.Contains(TestFactory.Shown("Dive"), pdf, StringComparison.Ordinal);
+        Assert.Contains("/Count 1", pdf, StringComparison.Ordinal);
         Assert.Contains(TestFactory.Shown(Formats.Minutes(result.TotalRuntime)), pdf, StringComparison.Ordinal);
-        Assert.Contains(TestFactory.Shown("NX50"), pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("TTS"), pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("Runtime (min)"), pdf, StringComparison.Ordinal);
         Assert.Contains(TestFactory.Shown("Depth (m)"), pdf, StringComparison.Ordinal);
         Assert.Contains(TestFactory.Shown("Used (L)"), pdf, StringComparison.Ordinal);
-        Assert.Contains(" h f", pdf, StringComparison.Ordinal);
-        Assert.Contains(TestFactory.Shown(DiveSheet.Disclaimer), pdf, StringComparison.Ordinal);
+        Assert.Contains(ChartTimeLabel, pdf, StringComparison.Ordinal);
         Assert.DoesNotContain(TestFactory.Shown("Apparatus"), pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(TestFactory.Shown("Missing (L)"), pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(TestFactory.Shown(DiveSheet.Disclaimer), pdf, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Create_ShouldStartEachLaterDiveWithItsSurfaceInterval_WhenThePlanIsASeries()
+    public void Create_ShouldPrintDepthAndRuntimeInBold_WhenTheDiveIsPlanned()
     {
         // Arrange
-        var plan = TestFactory.SeriesPlan();
+        var plan = TestFactory.DecompressionPlan();
+        var result = TestFactory.Calculate(plan);
 
         // Act
         var pdf = Sheet(plan);
 
         // Assert
-        Assert.Contains(TestFactory.Shown("Dive 1"), pdf, StringComparison.Ordinal);
-        Assert.Contains(TestFactory.Shown("Dive 2 - after 90 min on the surface"), pdf, StringComparison.Ordinal);
-        Assert.Contains("/Count 2", pdf, StringComparison.Ordinal);
+        var runtime = TestFactory.Shown(Formats.Clock(result.Profile[0].Runtime));
+        Assert.Matches($@"/F2 [\d.]+ Tf [\d. ]+rg [\d.]+ [\d.]+ Td {Regex.Escape(runtime)}", pdf);
+    }
+
+    [Fact]
+    public void Create_ShouldShowOnlyTheChosenDiveAfterItsSurfaceInterval_WhenThePlanIsASeries()
+    {
+        // Arrange
+        var plan = TestFactory.SeriesPlan();
+
+        // Act
+        var pdf = Sheet(plan, 1);
+
+        // Assert
+        Assert.Contains(TestFactory.Shown($"Dive 2 of 2 · 11 Oct 2026 12:00 UTC · Bitenovac {AppVersion}"), pdf, StringComparison.Ordinal);
+        Assert.Matches(Regex.Escape("(After 90 min on the surface · Open circuit · 20 m 30 min"), pdf);
+        Assert.DoesNotMatch(Regex.Escape("40 m 25 min"), pdf);
+        Assert.Contains("/Count 1", pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_ShouldShrinkTheProfileAndLeaveOutTheChart_WhenTheProfileIsTooLongForBoth()
+    {
+        // Arrange
+        var plan = TestFactory.LongPlan();
+
+        // Act
+        var pdf = Sheet(plan);
+
+        // Assert
+        Assert.Contains("/Count 1", pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(ChartTimeLabel, pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("Missing (L)"), pdf, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -90,7 +185,7 @@ public sealed class DiveSheetTests
     }
 
     [Fact]
-    public void Create_ShouldDrawTheCeilingInRed_WhenTheDiveHasDecompression()
+    public void Create_ShouldDrawTheCeilingAndFillTheZoneAboveIt_WhenTheDiveHasDecompression()
     {
         // Arrange
         var plan = TestFactory.DecompressionPlan();
@@ -100,6 +195,7 @@ public sealed class DiveSheetTests
 
         // Assert
         Assert.Contains(CeilingStroke, pdf, StringComparison.Ordinal);
+        Assert.Contains(CeilingZoneFill, pdf, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -112,11 +208,13 @@ public sealed class DiveSheetTests
         var pdf = Sheet(plan);
 
         // Assert
+        Assert.Contains(ChartTimeLabel, pdf, StringComparison.Ordinal);
         Assert.DoesNotContain(CeilingStroke, pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(CeilingZoneFill, pdf, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Create_ShouldDrawTheDiveAndSayHowMuchGasIsMissing_WhenACylinderRunsOut()
+    public void Create_ShouldShowTheMissingGasInTheGasTableAndAWarning_WhenACylinderRunsOut()
     {
         // Arrange
         var plan = TestFactory.OutOfGasPlan();
@@ -126,7 +224,8 @@ public sealed class DiveSheetTests
         var pdf = Sheet(plan);
 
         // Assert
-        Assert.Contains(TestFactory.Shown("Runtime"), pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("Missing (L)"), pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown($"{Formats.Number(cylinder.StartPressure)} to 0"), pdf, StringComparison.Ordinal);
         Assert.Contains(
             TestFactory.Shown($"Air runs out: the dive needs {Formats.Number(cylinder.Shortfall)} L more than the cylinder holds."),
             pdf, StringComparison.Ordinal);

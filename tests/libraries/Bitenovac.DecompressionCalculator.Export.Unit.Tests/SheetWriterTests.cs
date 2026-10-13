@@ -5,6 +5,8 @@ namespace Bitenovac.DecompressionCalculator.Export.Unit.Tests;
 
 public sealed class SheetWriterTests
 {
+    private const int Precision = 6;
+
     private static readonly SheetColumn[] Columns = [new("Heading A", 200), new("Heading B", 100, PdfAlign.Right)];
 
     [Fact]
@@ -48,53 +50,67 @@ public sealed class SheetWriterTests
     }
 
     [Fact]
-    public void Paragraph_ShouldContinueOnANewPage_WhenThePageIsFull()
+    public void Paragraph_ShouldMoveDownOneLineHeightForEveryWrappedLine_WhenTheTextIsLong()
     {
         // Arrange
         var sheet = new SheetWriter();
+        var text = string.Join(' ', Enumerable.Repeat("decompression", 60));
+        var lines = SheetWriter.Wrap(text, PdfFont.Helvetica, 10, SheetWriter.ContentWidth).Count;
 
         // Act
-        for (var index = 0; index < 80; index++)
-        {
-            sheet.Paragraph($"Line {index}", PdfFont.Helvetica, 10, SheetWriter.Text);
-        }
+        sheet.Paragraph(text, PdfFont.Helvetica, 10, SheetWriter.Text);
 
         // Assert
-        Assert.Equal(2, sheet.PageCount);
-        Assert.True(sheet.Y < PdfPage.Height / 2);
+        Assert.True(lines > 1);
+        Assert.Equal(SheetWriter.Margin + lines * 10 * 1.35, sheet.Y, Precision);
     }
 
     [Fact]
-    public void Table_ShouldRepeatTheHeadingOnEveryPageAndShadeTheChosenRows_WhenTheRowsDoNotFitOnePage()
+    public void Remaining_ShouldBeTheHeightDownToTheBottomMargin_WhenTheSheetHasMovedDown()
     {
         // Arrange
         var sheet = new SheetWriter();
-        var rows = Enumerable.Range(0, 80).Select(static index => new[] { $"Row {index}", "1" }).ToArray();
 
         // Act
-        sheet.Table(Columns, rows, static row => row % 2 == 0);
-        var pdf = TestFactory.Read(sheet.Build("Table", TestFactory.Now, "Footer"));
+        sheet.Advance(100);
 
         // Assert
-        Assert.Equal(2, sheet.PageCount);
-        Assert.Equal(2, Regex.Matches(pdf, Regex.Escape(TestFactory.Shown("Heading A"))).Count);
-        Assert.Contains(TestFactory.Shown("Row 79"), pdf, StringComparison.Ordinal);
-        Assert.Equal(40, Regex.Matches(pdf, @" re f").Count);
+        Assert.Equal(PdfPage.Height - 2 * SheetWriter.Margin - 100, sheet.Remaining, Precision);
     }
 
     [Fact]
-    public void Build_ShouldWriteTheFooterAndPageNumberOnEveryPage_WhenTheSheetHasSeveralPages()
+    public void Table_ShouldShadeTheChosenRowsAndPrintTheEmphasisedColumnInBold_WhenRowsAreWritten()
     {
         // Arrange
         var sheet = new SheetWriter();
-        sheet.EnsureSpace(PdfPage.Height);
+        SheetColumn[] columns = [new("Heading A", 200), new("Heading B", 100, PdfAlign.Right, Emphasis: true)];
+        var rows = Enumerable.Range(0, 6).Select(static index => new[] { $"Row {index}", $"Value {index}" }).ToArray();
 
         // Act
-        var pdf = TestFactory.Read(sheet.Build("Two pages", TestFactory.Now, "Footer note"));
+        sheet.Table(columns, rows, static row => row % 2 == 0, 14, 9);
+        var pdf = TestFactory.Read(sheet.Build("Table", TestFactory.Now));
 
         // Assert
-        Assert.Equal(2, Regex.Matches(pdf, Regex.Escape(TestFactory.Shown("Footer note"))).Count);
-        Assert.Contains(TestFactory.Shown("Page 1 of 2"), pdf, StringComparison.Ordinal);
-        Assert.Contains(TestFactory.Shown("Page 2 of 2"), pdf, StringComparison.Ordinal);
+        Assert.Equal(SheetWriter.Margin + 7 * 14, sheet.Y, Precision);
+        Assert.Equal(3, Regex.Matches(pdf, @" re f").Count);
+        Assert.Matches(@"/F1 9 Tf [\d. ]+rg [\d.]+ [\d.]+ Td " + Regex.Escape(TestFactory.Shown("Row 0")), pdf);
+        Assert.Matches(@"/F2 9 Tf [\d. ]+rg [\d.]+ [\d.]+ Td " + Regex.Escape(TestFactory.Shown("Value 0")), pdf);
+        Assert.Matches(@"/F2 8 Tf [\d. ]+rg [\d.]+ [\d.]+ Td " + Regex.Escape(TestFactory.Shown("Heading A")), pdf);
+    }
+
+    [Fact]
+    public void Build_ShouldMakeOnePageWithNoFooter_WhenTheSheetIsBuilt()
+    {
+        // Arrange
+        var sheet = new SheetWriter();
+        sheet.Table(Columns, [["A", "1"]], static _ => false, 14, 9);
+
+        // Act
+        var pdf = TestFactory.Read(sheet.Build("One page", TestFactory.Now));
+
+        // Assert
+        Assert.Contains("/Count 1", pdf, StringComparison.Ordinal);
+        Assert.Contains("/Title (One page)", pdf, StringComparison.Ordinal);
+        Assert.DoesNotMatch(Regex.Escape("(Page 1"), pdf);
     }
 }

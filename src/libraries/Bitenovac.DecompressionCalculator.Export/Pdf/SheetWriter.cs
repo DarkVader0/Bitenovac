@@ -1,17 +1,22 @@
 namespace Bitenovac.DecompressionCalculator.Export.Pdf;
 
 /// <summary>
-/// Represents a table column: its heading, width in points, and alignment.
+/// Represents a table column: its heading, width in points, alignment, and whether its cells are emphasised.
 /// </summary>
-internal sealed record SheetColumn(string Heading, double Width, PdfAlign Align = PdfAlign.Left);
+internal sealed record SheetColumn(string Heading, double Width, PdfAlign Align = PdfAlign.Left, bool Emphasis = false);
 
 /// <summary>
-/// Lays content out from the top of A4 pages downwards, starting a new page when a block does not fit.
+/// Lays content out from the top of one A4 page downwards.
 /// </summary>
+/// <remarks>
+/// The sheet is a single page: the caller sizes what it writes to <see cref="Remaining"/>, and nothing
+/// starts a second page.
+/// </remarks>
 internal sealed class SheetWriter
 {
-    public const double Margin = 40;
+    public const double Margin = 32;
     public const double ContentWidth = PdfPage.Width - 2 * Margin;
+    public const double Bottom = PdfPage.Height - Margin;
 
     public static readonly PdfColor Text = PdfColor.FromRgb(22, 24, 29);
     public static readonly PdfColor Muted = PdfColor.FromRgb(91, 96, 104);
@@ -20,22 +25,18 @@ internal sealed class SheetWriter
     public static readonly PdfColor Brand = PdfColor.FromRgb(27, 110, 194);
     public static readonly PdfColor Danger = PdfColor.FromRgb(179, 33, 33);
 
-    private const double FooterHeight = 30;
-    private const double RowHeight = 15;
-
     private readonly PdfDocument _document = new();
-    private PdfPage _page;
 
     public SheetWriter()
     {
-        _page = _document.AddPage();
+        Page = _document.AddPage();
         Y = Margin;
     }
 
     /// <summary>
-    /// Gets the current page.
+    /// Gets the page.
     /// </summary>
-    public PdfPage Page => _page;
+    public PdfPage Page { get; }
 
     /// <summary>
     /// Gets the vertical position the next block starts at.
@@ -43,21 +44,9 @@ internal sealed class SheetWriter
     public double Y { get; private set; }
 
     /// <summary>
-    /// Gets the count of pages so far.
+    /// Gets the height left between <see cref="Y"/> and the bottom margin.
     /// </summary>
-    public int PageCount => _document.Pages.Count;
-
-    /// <summary>
-    /// Starts a new page unless <paramref name="height"/> more points fit on the current one.
-    /// </summary>
-    public void EnsureSpace(double height)
-    {
-        if (Y + height > PdfPage.Height - Margin - FooterHeight)
-        {
-            _page = _document.AddPage();
-            Y = Margin;
-        }
-    }
+    public double Remaining => Bottom - Y;
 
     /// <summary>
     /// Moves down by <paramref name="height"/> points.
@@ -72,58 +61,43 @@ internal sealed class SheetWriter
         var lineHeight = size * 1.35;
         foreach (var line in Wrap(text, font, size, ContentWidth))
         {
-            EnsureSpace(lineHeight);
-            _page.Text(Margin, Y + size, line, font, size, color);
+            Page.Text(Margin, Y + size, line, font, size, color);
             Y += lineHeight;
         }
     }
 
     /// <summary>
-    /// Writes a table, repeating the heading row at the top of every page it continues on.
+    /// Writes a table with a heading row.
     /// </summary>
     /// <param name="columns">The columns, whose widths should add up to at most the content width.</param>
     /// <param name="rows">The cells of every row.</param>
     /// <param name="shaded">Whether a row is drawn on a shaded background.</param>
-    public void Table(IReadOnlyList<SheetColumn> columns, IReadOnlyList<string[]> rows, Func<int, bool> shaded)
+    /// <param name="rowHeight">The height of every row, the heading included.</param>
+    /// <param name="size">The size of the cell text; the heading is a little smaller.</param>
+    public void Table(IReadOnlyList<SheetColumn> columns, IReadOnlyList<string[]> rows, Func<int, bool> shaded,
+        double rowHeight, double size)
     {
-        EnsureSpace(2 * RowHeight);
-        Heading(columns);
+        Cells(columns, [.. columns.Select(static column => column.Heading)], rowHeight, size - 1, heading: true);
+        Page.Line(Margin, Y + rowHeight, Margin + ContentWidth, Y + rowHeight, 0.8, Rule);
+        Y += rowHeight;
 
         for (var index = 0; index < rows.Count; index++)
         {
-            if (Y + RowHeight > PdfPage.Height - Margin - FooterHeight)
-            {
-                EnsureSpace(2 * RowHeight);
-                Heading(columns);
-            }
-
             if (shaded(index))
             {
-                _page.Rectangle(Margin, Y, ContentWidth, RowHeight, Sunken);
+                Page.Rectangle(Margin, Y, ContentWidth, rowHeight, Sunken);
             }
 
-            Cells(columns, rows[index], PdfFont.Helvetica, 9, Text);
-            _page.Line(Margin, Y + RowHeight, Margin + ContentWidth, Y + RowHeight, 0.4, Rule);
-            Y += RowHeight;
+            Cells(columns, rows[index], rowHeight, size, heading: false);
+            Page.Line(Margin, Y + rowHeight, Margin + ContentWidth, Y + rowHeight, 0.4, Rule);
+            Y += rowHeight;
         }
     }
 
     /// <summary>
-    /// Writes the footer on every page and returns the document as PDF bytes.
+    /// Returns the document as PDF bytes.
     /// </summary>
-    public byte[] Build(string title, DateTime createdAt, string footer)
-    {
-        var pages = _document.Pages;
-        for (var index = 0; index < pages.Count; index++)
-        {
-            var baseline = PdfPage.Height - Margin + 10;
-            pages[index].Line(Margin, baseline - 14, Margin + ContentWidth, baseline - 14, 0.4, Rule);
-            pages[index].Text(Margin, baseline, footer, PdfFont.Helvetica, 7.5, Muted);
-            pages[index].Text(Margin + ContentWidth, baseline, $"Page {index + 1} of {pages.Count}", PdfFont.Helvetica, 7.5, Muted, PdfAlign.Right);
-        }
-
-        return _document.Build(title, createdAt);
-    }
+    public byte[] Build(string title, DateTime createdAt) => _document.Build(title, createdAt);
 
     /// <summary>
     /// Splits text into lines no wider than <paramref name="width"/>; a single word wider than the line keeps a line of its own.
@@ -150,21 +124,16 @@ internal sealed class SheetWriter
         return lines;
     }
 
-    private void Heading(IReadOnlyList<SheetColumn> columns)
+    private void Cells(IReadOnlyList<SheetColumn> columns, string[] cells, double rowHeight, double size, bool heading)
     {
-        Cells(columns, [.. columns.Select(static column => column.Heading)], PdfFont.HelveticaBold, 8, Muted);
-        _page.Line(Margin, Y + RowHeight, Margin + ContentWidth, Y + RowHeight, 0.8, Rule);
-        Y += RowHeight;
-    }
-
-    private void Cells(IReadOnlyList<SheetColumn> columns, string[] cells, PdfFont font, double size, PdfColor color)
-    {
+        var baseline = Y + rowHeight / 2 + size * 0.35;
         var left = Margin;
         for (var index = 0; index < columns.Count; index++)
         {
             var column = columns[index];
             var x = column.Align == PdfAlign.Right ? left + column.Width - 4 : left + 4;
-            _page.Text(x, Y + 10.5, cells[index], font, size, color, column.Align);
+            var font = heading || column.Emphasis ? PdfFont.HelveticaBold : PdfFont.Helvetica;
+            Page.Text(x, baseline, cells[index], font, size, heading ? Muted : Text, column.Align);
             left += column.Width;
         }
     }

@@ -29,6 +29,22 @@ internal static class TestFactory
         return plan with { Dives = [dive] };
     }
 
+    public static DivePlanDocument LongPlan()
+    {
+        var plan = Plan();
+        var dive = plan.Dives[0] with
+        {
+            Levels = [new LevelInput(100, 30)],
+            Cylinders =
+            [
+                new CylinderInput(10, 70, 30, 0, 230, CylinderPurpose.BottomGas),
+                new CylinderInput(50, 0, 20, 0, 200, CylinderPurpose.DecoGas),
+                new CylinderInput(100, 0, 20, 0, 200, CylinderPurpose.DecoGas)
+            ]
+        };
+        return plan with { Dives = [dive] };
+    }
+
     public static DivePlanDocument SeriesPlan()
     {
         var plan = DecompressionPlan();
