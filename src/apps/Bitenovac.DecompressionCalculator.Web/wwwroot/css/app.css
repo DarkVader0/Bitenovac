@@ -483,6 +483,11 @@ a.icon-button {
     stroke-linejoin: round;
 }
 
+.chart-ceiling-zone {
+    fill: var(--danger);
+    fill-opacity: 0.4;
+}
+
 .chart-ceiling {
     fill: none;
     stroke: var(--danger);
