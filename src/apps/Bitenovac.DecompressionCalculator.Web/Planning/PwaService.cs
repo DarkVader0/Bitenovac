@@ -11,7 +11,7 @@ namespace Bitenovac.DecompressionCalculator.Web.Planning;
 /// File menu; <see langword="null"/> otherwise.
 /// </param>
 /// <param name="UpdateReady">Whether a new version is downloaded and waits for a reload.</param>
-/// <remarks>Neither way to install is offered once the app is installed or the offer was dismissed.</remarks>
+/// <remarks>Neither way to install is offered once the app is installed, or for the rest of a visit once the offer was dismissed.</remarks>
 public sealed record PwaState(bool CanInstall, string? ManualInstall, bool UpdateReady)
 {
     public static PwaState None { get; } = new(false, null, false);

@@ -13,9 +13,7 @@ public static class NewInputs
     public static DiveInput NextDive(DivePlanDocument plan) =>
         plan.Dives[^1] with { SurfaceIntervalMinutes = SurfaceIntervalMinutes };
 
-    public static LevelInput Level(DiveInput dive) => dive.Levels.Count == 0
-        ? new LevelInput(0, 10)
-        : dive.Levels[^1] with { DurationMinutes = 10 };
+    public static LevelInput LevelAfter(LevelInput level) => level with { DurationMinutes = 10 };
 
     public static CylinderInput Cylinder(UnitSystem units) => units == UnitSystem.Imperial
         ? new CylinderInput(50, 0, 40, 3000, 3000, CylinderPurpose.DecoGas)

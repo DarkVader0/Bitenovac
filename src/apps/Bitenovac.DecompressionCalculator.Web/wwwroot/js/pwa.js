@@ -4,6 +4,7 @@ const updateCheckInterval = 60 * 60 * 1000;
 let installPrompt = null;
 let waitingWorker = null;
 let updating = false;
+let installDismissed = false;
 
 const notify = () => listeners.forEach(listener => listener());
 
@@ -56,8 +57,6 @@ window.addEventListener("appinstalled", () => {
     notify();
 });
 
-const dismissedKey = "bitenovac.install-dismissed-at";
-const dismissedFor = 30 * 24 * 60 * 60 * 1000;
 
 const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 
@@ -69,16 +68,8 @@ const isMacSafari = () => /Macintosh/.test(navigator.userAgent) && navigator.max
 
 const manualInstall = () => isIos() ? "ios" : isMacSafari() ? "mac" : null;
 
-const recentlyDismissed = () => {
-    try {
-        return Date.now() - Number(localStorage.getItem(dismissedKey) ?? 0) < dismissedFor;
-    } catch {
-        return false;
-    }
-};
-
 export function state() {
-    const offered = !isStandalone() && !recentlyDismissed();
+    const offered = !isStandalone() && !installDismissed;
     return {
         canInstall: offered && installPrompt !== null,
         manualInstall: offered && installPrompt === null ? manualInstall() : null,
@@ -87,10 +78,7 @@ export function state() {
 }
 
 export function dismissInstall() {
-    try {
-        localStorage.setItem(dismissedKey, String(Date.now()));
-    } catch {
-    }
+    installDismissed = true;
     notify();
 }
 
