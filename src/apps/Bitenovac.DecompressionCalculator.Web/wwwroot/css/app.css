@@ -748,6 +748,51 @@ body:has(.app-banner) {
     margin: 0;
 }
 
+.settings-panel:not(.open) {
+    display: none;
+}
+
+/* A computer with a mouse and room to spare keeps the settings open in a column on the left.
+   Tablets and phones, with touch and less width, keep the drawer behind the settings button. */
+@media (min-width: 1200px) and (hover: hover) and (pointer: fine) {
+    main.content:has(> .settings-panel) {
+        display: grid;
+        grid-template-columns: 24rem minmax(0, 64rem);
+        column-gap: 2rem;
+        justify-content: center;
+        max-width: none;
+    }
+
+    main.content:has(> .settings-panel) > * {
+        grid-column: 2;
+    }
+
+    main.content:has(> .settings-panel) > .settings-panel {
+        grid-column: 1;
+        grid-row: 1 / span 99;
+    }
+
+    .settings-panel,
+    .settings-panel:not(.open) {
+        position: sticky;
+        top: 1.5rem;
+        z-index: auto;
+        display: block;
+        align-self: start;
+        width: auto;
+        max-height: calc(100vh - 3rem);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: none;
+    }
+
+    .settings-button,
+    .settings-done,
+    .settings-backdrop {
+        display: none;
+    }
+}
+
 .alert .secondary {
     margin-top: 0.75rem;
 }
