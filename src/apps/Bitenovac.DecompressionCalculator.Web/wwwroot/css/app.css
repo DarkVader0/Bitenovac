@@ -1407,37 +1407,61 @@ tr.gas-warning td:first-child {
     content: "An error has occurred.";
 }
 
-/* Driven by --blazor-load-percentage, which the framework sets while the runtime downloads. */
-.loading-progress {
+/* The profile traces itself from the surface to the bottom and up through the stops, then the
+   ceiling appears, until the app takes over the page. */
+.loading-dive {
     position: absolute;
     display: block;
     width: 8rem;
     height: 8rem;
     inset: 20vh 0 auto 0;
     margin: 0 auto;
+    color: var(--text);
 }
 
-.loading-progress circle {
-    fill: none;
-    stroke: var(--border);
-    stroke-width: 0.6rem;
-    transform-origin: 50% 50%;
-    transform: rotate(-90deg);
+.loading-dive-profile {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: loading-dive-draw 2.6s ease-in-out infinite;
 }
 
-.loading-progress circle:last-child {
-    stroke: var(--brand-bright);
-    stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
-    transition: stroke-dasharray 0.05s ease-in-out;
+.loading-dive-ceiling {
+    opacity: 0;
+    animation: loading-dive-ceiling 2.6s ease-in-out infinite;
 }
 
-.loading-progress-text {
-    position: absolute;
-    text-align: center;
-    font-weight: bold;
-    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+@keyframes loading-dive-draw {
+    0% {
+        stroke-dashoffset: 100;
+    }
+
+    60%,
+    100% {
+        stroke-dashoffset: 0;
+    }
 }
 
-.loading-progress-text::after {
-    content: var(--blazor-load-percentage-text, "Loading");
+@keyframes loading-dive-ceiling {
+    0%,
+    45% {
+        opacity: 0;
+    }
+
+    70%,
+    92% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loading-dive-profile,
+    .loading-dive-ceiling {
+        animation: none;
+        stroke-dashoffset: 0;
+        opacity: 1;
+    }
 }
