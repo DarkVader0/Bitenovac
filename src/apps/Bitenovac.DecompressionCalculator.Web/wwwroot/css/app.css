@@ -294,6 +294,13 @@ details > .field-grid {
     width: 8rem;
 }
 
+/* Wider screens enter oxygen and helium in fields of their own; a phone enters both in one O2/He
+   field, to keep a cylinder on one line. Widths sit on the header cells, as hidden columns would
+   leave a column element behind. */
+.cylinders .phone-only {
+    display: none;
+}
+
 .cell-input {
     width: 100%;
     padding: 0.5rem 0.25rem;
@@ -309,6 +316,14 @@ details > .field-grid {
 
     .input-table td .icon-button {
         width: 100%;
+    }
+
+    .cylinders .phone-only {
+        display: table-cell;
+    }
+
+    .cylinders .wide-only {
+        display: none;
     }
 
     .cylinders .col-gas {
