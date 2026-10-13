@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Bitenovac.RemoteBuildTool.Core.Processes;
 using Bitenovac.RemoteBuildTool.MsBuild;
 using Bitenovac.RemoteBuildTool.Planning;
 using Bitenovac.RemoteBuildTool.Testing;
@@ -68,12 +69,12 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
             return ToolchainPreparation.Failed(verifyExitCode);
 
         output.WriteLine("==> Restoring");
-        var restoreExitCode = MsBuildRunner.Restore(
+        var restoreExitCode = Report("restore", output, MsBuildRunner.Restore(
             options.RepositoryRoot,
             debug.Select(project => project.FullPath),
             configuration: "Debug",
             options.SyntheticSolutionPath("restore"),
-            options.BinaryLogPath("restore"));
+            options.BinaryLogPath("restore")));
 
         if (restoreExitCode != 0)
         {
@@ -111,11 +112,11 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
             {
                 case Deployment.Publish:
                     output.WriteLine($"--- {name}: publish");
-                    exitCode = MsBuildRunner.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name), options.BinaryLogPath($"publish-{name}"));
+                    exitCode = Report($"publish-{name}", output, MsBuildRunner.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name), options.BinaryLogPath($"publish-{name}")));
                     break;
                 case Deployment.Pack:
                     output.WriteLine($"--- {name}: pack");
-                    exitCode = MsBuildRunner.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"), options.BinaryLogPath($"pack-{name}"));
+                    exitCode = Report($"pack-{name}", output, MsBuildRunner.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"), options.BinaryLogPath($"pack-{name}")));
                     break;
                 default:
                     output.WriteLine($"--- {name}: nothing to deploy");
@@ -146,12 +147,12 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         if (unrestored.Count > 0)
         {
             output.WriteLine($"==> Restoring {unrestored.Count} project(s) plan did not restore");
-            var restoreExitCode = MsBuildRunner.Restore(
+            var restoreExitCode = Report($"restore-{configuration}", output, MsBuildRunner.Restore(
                 options.RepositoryRoot,
                 unrestored.Select(entry => entry.FullPath),
                 configuration,
                 options.SyntheticSolutionPath($"restore-{configuration}"),
-                options.BinaryLogPath($"restore-{configuration}"));
+                options.BinaryLogPath($"restore-{configuration}")));
 
             if (restoreExitCode != 0)
             {
@@ -161,13 +162,13 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         }
 
         output.WriteLine($"==> Building {entries.Count} project(s) ({configuration})");
-        var exitCode = MsBuildRunner.Build(
+        var exitCode = Report($"build-{configuration}", output, MsBuildRunner.Build(
             options.RepositoryRoot,
             entries.Select(entry => entry.FullPath),
             configuration,
             options.SyntheticSolutionPath($"build-{configuration}"),
             defaultProperties,
-            options.BinaryLogPath($"build-{configuration}"));
+            options.BinaryLogPath($"build-{configuration}")));
 
         if (exitCode != 0)
             output.WriteError($"error: build failed (exit {exitCode}).");
@@ -198,6 +199,13 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void DisposeEvaluator() => _evaluator!.Dispose();
+
+    // The step names match the binary logs, so a heavy step leads straight to its .binlog.
+    private static int Report(string step, PipelineOutput output, ProcessResult result)
+    {
+        output.WriteLine($"resources: {step} {result.Usage}");
+        return result.ExitCode;
+    }
 
     private static Deployment DeploymentOf(PlanEntry entry)
     {

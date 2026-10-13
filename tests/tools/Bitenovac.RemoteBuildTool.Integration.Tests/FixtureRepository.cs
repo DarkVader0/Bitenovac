@@ -276,7 +276,7 @@ internal sealed class FixtureRepository : IDisposable
     /// </summary>
     private void RestoreLocalTools()
     {
-        var exitCode = ProcessRunner.Run("dotnet", ["tool", "restore"], Root);
+        var exitCode = ProcessRunner.Run("dotnet", ["tool", "restore"], Root).ExitCode;
         if (exitCode != 0)
             throw new InvalidOperationException($"Could not restore the fixture's local tools (exit {exitCode}).");
     }

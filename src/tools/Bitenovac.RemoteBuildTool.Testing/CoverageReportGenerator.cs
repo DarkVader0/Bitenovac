@@ -14,7 +14,7 @@ internal static class CoverageReportGenerator
 
         var reportTypes = includeHtml ? "Cobertura;TextSummary;Html" : "Cobertura;TextSummary";
 
-        var exitCode = ProcessRunner.Run(
+        var (exitCode, _, _) = ProcessRunner.Run(
             "dotnet",
             [
                 "reportgenerator",

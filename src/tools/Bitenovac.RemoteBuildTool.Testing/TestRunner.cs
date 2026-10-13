@@ -19,7 +19,7 @@ internal static class TestRunner
         Directory.CreateDirectory(resultsDirectory);
         EnsureExecutable(executablePath);
 
-        var (exitCode, output) = ProcessRunner.RunCaptured(
+        var (exitCode, output, usage) = ProcessRunner.RunCaptured(
             executablePath,
             [
                 "--coverlet",
@@ -36,7 +36,7 @@ internal static class TestRunner
             _ => TestRunOutcome.Failed,
         };
 
-        return new TestRunResult(outcome, exitCode, resultsDirectory, output);
+        return new TestRunResult(outcome, exitCode, resultsDirectory, output, usage);
     }
 
     // The artifact store keeps content, not file modes, so an apphost materialised from it comes

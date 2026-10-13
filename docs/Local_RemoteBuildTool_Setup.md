@@ -4,7 +4,7 @@ Runs the GitHub pull request pipeline on your own PC, inside WSL.
 
 What you end up with:
 
-- 2 GitHub runners in Ubuntu (WSL), each job limited to 6 CPUs and 6 GB RAM
+- 6 GitHub runners in Ubuntu (WSL), each job limited to 1 CPU and 2 GB RAM
 - the pinned RemoteBuildTool release already installed in the runner image
 - the build cache already filled from `master`
 
@@ -68,7 +68,7 @@ and copy the value after `--token`.
 
 ```bash
 cd ~/bitenovac
-sudo bash runner/setup-runner.sh --token <TOKEN> --instances 2 --cpus 6 --memory 6g
+sudo bash runner/setup-runner.sh --token <TOKEN> --instances 6 --cpus 1 --memory 2g
 ```
 
 Takes a few minutes. It must end with:
@@ -85,9 +85,9 @@ Promoted 42 entries into main.
 systemctl list-units 'actions.runner.*' --no-pager
 ```
 
-Both runners must be `active running`.
+All six runners must be `active running`.
 
-On GitHub, Settings → Actions → Runners must show `DESKTOP-...-1` and `DESKTOP-...-2` as **Idle**.
+On GitHub, Settings → Actions → Runners must show `DESKTOP-...-1` to `DESKTOP-...-6` as **Idle**.
 
 **5. Done.** Open a pull request into `master` and it runs on your PC.
 
@@ -288,11 +288,41 @@ Open a `.binlog` in the [MSBuild Structured Log Viewer](https://msbuildlog.com) 
 built, what every property evaluated to, and how long each target took. Binary logs need
 RemoteBuildTool 0.0.4 or later in the runner image; console logs work with any.
 
+### Resource usage
+
+Every stage reports what it used, in its GitHub log and in its `.log` file. RemoteBuildTool writes
+one line per MSBuild call and per test project:
+
+```
+resources: build-Debug used 63.2 s, CPU 58.1 s (0.92 cores), peak memory 1.30 GiB
+resources: test Bitenovac.DecompressionAlgorithms.Core.Unit.Tests used 8.4 s, CPU 7.9 s (0.94 cores), peak memory 412 MiB
+```
+
+The container adds one line for the whole stage when it ends:
+
+```
+resources: container used 95.10 s, CPU 88.20 s (0.92 cores of 1.00), throttled 41.30 s, peak memory 1.62 GiB of 2.00 GiB (81 %), 0 out-of-memory kill(s)
+```
+
+- **peak memory** counts file cache, as the `--memory` limit does, so a peak near 100 % is not a
+  failure by itself. An **out-of-memory kill** above 0 is: raise `--memory`.
+- **throttled** is time the stage wanted more CPU than `--cpus` allows. A large share means it
+  would run faster with more.
+- The RemoteBuildTool lines need RemoteBuildTool 1.1.0 or later in the runner image. The container
+  line comes from `runner/in-container.sh` and works with any.
+
+Beside each `.log` is a `.resources.csv` with the container's memory and CPU every 5 seconds:
+
+```bash
+sudo cat /var/lib/docker/volumes/bitenovac-logs/_data/PR_18/16473829-1/build-Debug.resources.csv
+sudo grep -h "resources:" /var/lib/docker/volumes/bitenovac-logs/_data/PR_18/16473829-1/*.log
+```
+
 ---
 
 ## Remove everything
 
-**1.** On GitHub, Settings → Actions → Runners: remove both runners.
+**1.** On GitHub, Settings → Actions → Runners: remove every runner.
 
 **2.** Ubuntu:
 

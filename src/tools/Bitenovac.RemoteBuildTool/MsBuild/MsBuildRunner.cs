@@ -19,13 +19,13 @@ namespace Bitenovac.RemoteBuildTool.MsBuild;
 /// </remarks>
 internal static class MsBuildRunner
 {
-    public static int Restore(string repositoryRoot, IEnumerable<string> projectFullPaths, string configuration, string solutionPath, string? binaryLogPath)
+    public static ProcessResult Restore(string repositoryRoot, IEnumerable<string> projectFullPaths, string configuration, string solutionPath, string? binaryLogPath)
     {
         SyntheticSolution.Write(solutionPath, projectFullPaths);
         return RunMsBuild(repositoryRoot, solutionPath, "Restore", configuration, graph: false, new Dictionary<string, string>(), binaryLogPath);
     }
 
-    public static int Build(
+    public static ProcessResult Build(
         string repositoryRoot,
         IEnumerable<string> projectFullPaths,
         string configuration,
@@ -40,18 +40,18 @@ internal static class MsBuildRunner
     /// <summary>
     /// Packs a project already built in Release into <paramref name="outputDirectory"/>.
     /// </summary>
-    /// <returns>The process exit code.</returns>
-    public static int Pack(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, string? binaryLogPath) =>
+    /// <returns>The exit code of MSBuild and what it used.</returns>
+    public static ProcessResult Pack(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, string? binaryLogPath) =>
         RunDotNet(repositoryRoot, "pack", projectFullPath, defaultProperties, outputDirectory, binaryLogPath);
 
     /// <summary>
     /// Publishes a project already built in Release into <paramref name="outputDirectory"/>.
     /// </summary>
-    /// <returns>The process exit code.</returns>
-    public static int Publish(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, string? binaryLogPath) =>
+    /// <returns>The exit code of MSBuild and what it used.</returns>
+    public static ProcessResult Publish(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, string? binaryLogPath) =>
         RunDotNet(repositoryRoot, "publish", projectFullPath, defaultProperties, outputDirectory, binaryLogPath);
 
-    private static int RunDotNet(
+    private static ProcessResult RunDotNet(
         string repositoryRoot,
         string command,
         string projectFullPath,
@@ -72,7 +72,7 @@ internal static class MsBuildRunner
         return ProcessRunner.Run("dotnet", arguments, repositoryRoot, defaultProperties);
     }
 
-    private static int RunMsBuild(
+    private static ProcessResult RunMsBuild(
         string repositoryRoot,
         string solutionPath,
         string target,
