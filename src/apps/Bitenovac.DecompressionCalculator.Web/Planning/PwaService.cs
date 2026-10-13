@@ -8,7 +8,7 @@ namespace Bitenovac.DecompressionCalculator.Web.Planning;
 /// <param name="CanInstall">Whether the browser can install the app from a prompt.</param>
 /// <param name="ManualInstall">
 /// Where the app can only be installed by hand: <c>ios</c> from the share sheet, <c>mac</c> from Safari's
-/// File menu; <see langword="null"/> otherwise.
+/// File menu, <c>android-firefox</c> from Firefox's menu; <see langword="null"/> otherwise.
 /// </param>
 /// <param name="UpdateReady">Whether a new version is downloaded and waits for a reload.</param>
 /// <remarks>Neither way to install is offered once the app is installed, or for the rest of a visit once the offer was dismissed.</remarks>

@@ -22,9 +22,12 @@ else if (Pwa.State.ManualInstall is { } platform)
 {
     <div class="app-banner no-print" role="status">
         <span>
-            @(platform == "mac"
-                ? "Install Bitenovac to plan dives offline: in Safari, choose File, then Add to Dock."
-                : "Install Bitenovac to plan dives offline: tap Share, then Add to Home Screen.")
+            @(platform switch
+            {
+                "mac" => "Install Bitenovac to plan dives offline: in Safari, choose File, then Add to Dock.",
+                "android-firefox" => "Install Bitenovac to plan dives offline: open the ⋮ menu, then Add to Home screen.",
+                _ => "Install Bitenovac to plan dives offline: tap Share, then Add to Home Screen."
+            })
         </span>
         <div class="app-banner-actions">
             <button type="button" class="app-banner-dismiss" @onclick="DismissAsync">Got it</button>

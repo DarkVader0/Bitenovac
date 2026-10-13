@@ -66,7 +66,9 @@ const isIos = () => /iPad|iPhone|iPod/.test(navigator.userAgent)
 const isMacSafari = () => /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints === 0
     && /Version\/[\d.]+.*Safari/.test(navigator.userAgent) && !/Chrome|Chromium|Edg|Firefox/.test(navigator.userAgent);
 
-const manualInstall = () => isIos() ? "ios" : isMacSafari() ? "mac" : null;
+const isAndroidFirefox = () => /Android/.test(navigator.userAgent) && /Firefox\//.test(navigator.userAgent);
+
+const manualInstall = () => isIos() ? "ios" : isMacSafari() ? "mac" : isAndroidFirefox() ? "android-firefox" : null;
 
 export function state() {
     const offered = !isStandalone() && !installDismissed;
