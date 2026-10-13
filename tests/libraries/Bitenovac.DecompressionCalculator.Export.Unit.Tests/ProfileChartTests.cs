@@ -153,7 +153,7 @@ public sealed class ProfileChartTests
     }
 
     [Fact]
-    public void Create_ShouldLabelTimeInEqualStepsFromZeroToTheRuntimeRoundedUp_WhenTheDiveWasPlanned()
+    public void Create_ShouldEndTheTimeAxisOnTheRuntimeRoundedUpToAMinute_WhenTheDiveWasPlanned()
     {
         // Arrange
         var result = TestFactory.Calculate(TestFactory.DecompressionPlan());
@@ -163,10 +163,24 @@ public sealed class ProfileChartTests
         var chart = ProfileChart.Create(result, UnitSystem.Metric);
 
         // Assert
+        Assert.Equal(Math.Ceiling(runtime), chart.MaximumMinutes, Precision);
+        Assert.True(chart.MaximumMinutes - runtime < 1);
+    }
+
+    [Fact]
+    public void Create_ShouldLabelTimeInEqualStepsFromZeroUpToTheRightEdge_WhenTheDiveWasPlanned()
+    {
+        // Arrange
+        var result = TestFactory.Calculate(TestFactory.DecompressionPlan());
+
+        // Act
+        var chart = ProfileChart.Create(result, UnitSystem.Metric);
+
+        // Assert
         var step = chart.TimeTicks[1];
         Assert.Equal(0, chart.TimeTicks[0], Precision);
         Assert.Equal(chart.TimeTicks.Select((_, index) => index * step), chart.TimeTicks);
-        Assert.True(chart.MaximumMinutes >= runtime && chart.MaximumMinutes - step < runtime);
+        Assert.True(chart.TimeTicks[^1] <= chart.MaximumMinutes && chart.TimeTicks[^1] + step > chart.MaximumMinutes);
         Assert.True(chart.TimeTicks.Count - 1 <= 6);
     }
 
