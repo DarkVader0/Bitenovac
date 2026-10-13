@@ -312,11 +312,17 @@ details > .field-grid {
     }
 
     .cylinders .col-gas {
-        width: 3.6rem;
+        width: 4.1rem;
     }
 
     .cylinders .col-role {
-        width: 6.75rem;
+        width: 7rem;
+    }
+
+    .cylinders input.cell-input {
+        padding-right: 0.15rem;
+        padding-left: 0.15rem;
+        font-size: 1rem;
     }
 
     select.cell-input {
