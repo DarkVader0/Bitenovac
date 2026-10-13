@@ -253,10 +253,6 @@ details > .field-grid {
     table-layout: fixed;
 }
 
-.input-table.cylinders-imperial {
-    min-width: 23rem;
-}
-
 .input-table th,
 .input-table td {
     padding: 0.15rem;
@@ -318,44 +314,30 @@ details > .field-grid {
         font-size: 0.9375rem;
     }
 
-    /* Imperial adds a rated pressure, and six columns do not fit: the five numbers share the
-       first line and the role, with its remove button, takes the second. */
-    .input-table.cylinders-imperial,
-    .cylinders-imperial thead,
-    .cylinders-imperial tbody {
-        display: block;
-        min-width: 0;
+    .cylinders-imperial .col-percent {
+        width: 2.2rem;
     }
 
-    .cylinders-imperial colgroup {
-        display: none;
+    .cylinders-imperial .col-remove {
+        width: 2.2rem;
     }
 
-    .cylinders-imperial thead tr,
-    .cylinders-imperial tbody tr:not(.row-issues) {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+    .cylinders-imperial .col-size {
+        width: 3rem;
     }
 
-    .cylinders-imperial tbody tr:not(.row-issues) {
-        margin-bottom: 0.5rem;
+    .cylinders-imperial select.cell-input {
+        padding-left: 0.15rem;
+        font-size: 0.875rem;
     }
 
-    .cylinders-imperial thead th:nth-child(n + 6) {
-        display: none;
+    .cylinders-imperial input.cell-input {
+        padding-right: 0.15rem;
+        padding-left: 0.15rem;
     }
 
-    .cylinders-imperial tbody td:nth-child(6) {
-        grid-column: 1 / 5;
-    }
-
-    .cylinders-imperial tbody td:nth-child(6):last-child {
-        grid-column: 1 / -1;
-    }
-
-    .cylinders-imperial tr.row-issues {
-        display: block;
-        margin: -0.5rem 0 0.5rem;
+    .cylinders-imperial .col-pressure {
+        width: 3.35rem;
     }
 }
 

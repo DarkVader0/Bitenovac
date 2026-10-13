@@ -95,20 +95,15 @@
         <p class="validation-message">@cylindersIssue</p>
     }
     @{
-        var imperial = Units == UnitSystem.Imperial;
         var removableCylinders = Value.Cylinders.Count > 1;
-        var columns = (imperial ? 6 : 5) + (removableCylinders ? 1 : 0);
+        var columns = removableCylinders ? 6 : 5;
     }
     <div class="table-scroll">
-        <table class="input-table @(imperial ? "cylinders-imperial" : "cylinders")">
+        <table class="input-table cylinders @(Units == UnitSystem.Imperial ? "cylinders-imperial" : null)">
             <colgroup>
                 <col class="col-percent"/>
                 <col class="col-percent"/>
                 <col class="col-size"/>
-                @if (imperial)
-                {
-                    <col class="col-pressure"/>
-                }
                 <col class="col-pressure"/>
                 <col class="col-role"/>
                 @if (removableCylinders)
@@ -121,10 +116,6 @@
                 <th>O2 <span class="unit">%</span></th>
                 <th>He <span class="unit">%</span></th>
                 <th>Size <span class="unit">@Labels.CylinderSize</span></th>
-                @if (imperial)
-                {
-                    <th>Rated <span class="unit">@Labels.Pressure</span></th>
-                }
                 <th>Pressure <span class="unit">@Labels.Pressure</span></th>
                 <th>Use</th>
                 @if (removableCylinders)
@@ -152,18 +143,10 @@
                                     ValueChanged="value => ChangeCylinderAsync(at, cylinder with { HeliumPercent = value })"/>
                     </td>
                     <td>
-                        <NumberCell Label="@($"{name} size in {Labels.CylinderSize}")" Value="cylinder.Size"
+                        <NumberCell Label="@($"{name} size in {Labels.CylinderSize}")" Value="CylinderSizes.WaterVolume(cylinder, Units)"
                                     Invalid="issues[nameof(CylinderInput.Size)] is not null"
-                                    ValueChanged="value => ChangeCylinderAsync(at, cylinder with { Size = value })"/>
+                                    ValueChanged="value => ChangeCylinderAsync(at, CylinderSizes.WithWaterVolume(cylinder, value, Units))"/>
                     </td>
-                    @if (imperial)
-                    {
-                        <td>
-                            <NumberCell Label="@($"{name} rated pressure in {Labels.Pressure}")" Value="cylinder.RatedPressure"
-                                        Invalid="issues[nameof(CylinderInput.RatedPressure)] is not null"
-                                        ValueChanged="value => ChangeCylinderAsync(at, cylinder with { RatedPressure = value })"/>
-                        </td>
-                    }
                     <td>
                         <NumberCell Label="@($"{name} fill pressure in {Labels.Pressure}")" Value="cylinder.StartPressure"
                                     Invalid="issues[nameof(CylinderInput.StartPressure)] is not null"
