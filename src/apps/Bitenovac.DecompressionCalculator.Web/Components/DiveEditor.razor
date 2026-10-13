@@ -20,9 +20,11 @@
     @if (Number > 1)
     {
         <div class="field-grid surface-interval">
-            <NumberField Label="Surface interval before this dive" Unit="min" Value="Value.SurfaceIntervalMinutes"
+            <NumberField @key="(Value.SurfaceIntervalMinutes, 0)" Label="Surface interval" Unit="h" Step="1" Value="IntervalHours"
+                         ValueChanged="hours => ChangeAsync(Value with { SurfaceIntervalMinutes = hours * 60 + IntervalMinutes })"/>
+            <NumberField @key="(Value.SurfaceIntervalMinutes, 1)" Label="@(" ")" Unit="min" Step="1" Value="IntervalMinutes"
                          Issue="@Issues[nameof(DiveInput.SurfaceIntervalMinutes)]"
-                         ValueChanged="value => ChangeAsync(Value with { SurfaceIntervalMinutes = value })"/>
+                         ValueChanged="minutes => ChangeAsync(Value with { SurfaceIntervalMinutes = IntervalHours * 60 + minutes })"/>
         </div>
     }
 
@@ -220,6 +222,10 @@
             _confirmRemove = false;
         }
     }
+
+    private double IntervalHours => Math.Floor(Value.SurfaceIntervalMinutes / 60);
+
+    private double IntervalMinutes => Value.SurfaceIntervalMinutes - IntervalHours * 60;
 
     private Task ChangeAsync(DiveInput dive) => ValueChanged.InvokeAsync(CylinderRoles.Apply(dive));
 

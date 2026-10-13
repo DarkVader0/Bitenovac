@@ -456,15 +456,6 @@ a.icon-button {
     height: auto;
 }
 
-.chart-water {
-    fill: #eef5fc;
-}
-
-.chart-grid {
-    stroke: var(--border);
-    stroke-width: 0.6;
-}
-
 .chart-label,
 .chart-caption {
     fill: var(--text-muted);
@@ -496,9 +487,12 @@ a.icon-button {
 }
 
 .chart-stop {
-    stroke: #c98a00;
-    stroke-width: 4;
+    stroke-width: 2;
     stroke-linecap: round;
+}
+
+.chart-stop-deco {
+    stroke: var(--danger);
 }
 
 .chart-switch {
@@ -515,6 +509,58 @@ a.icon-button {
     fill: var(--success);
     font-size: 10px;
     font-weight: 600;
+}
+
+.profile-chart svg {
+    touch-action: pan-y;
+    cursor: crosshair;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.chart-cursor line {
+    stroke: var(--border);
+    stroke-width: 0.6;
+}
+
+.chart-cursor-depth {
+    fill: var(--brand-bright);
+    stroke: var(--surface);
+    stroke-width: 1.5;
+}
+
+.chart-cursor-ceiling {
+    fill: var(--danger);
+    stroke: var(--surface);
+    stroke-width: 1.5;
+}
+
+.chart-readout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    min-height: 2.6rem;
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.chart-readout-label {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.chart-readout-ceiling {
+    color: var(--danger);
+}
+
+.chart-readout-phase {
+    color: var(--text-muted);
+}
+
+.chart-readout-hint {
+    color: var(--text-muted);
+    font-size: 0.85rem;
 }
 
 /* ------------------------------------------------------------------------ share -- */
@@ -633,6 +679,7 @@ a.icon-button {
 
 .surface-interval {
     margin: 0 0 1rem;
+    grid-template-columns: repeat(2, minmax(0, 9rem));
 }
 
 .series-row {
