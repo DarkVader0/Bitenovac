@@ -1,0 +1,35 @@
+@inject ThemeService Theme
+
+<section class="card">
+    <div class="field">
+        <span class="field-label">Theme</span>
+        <div class="button-row">
+            @foreach (var (theme, label) in Choices)
+            {
+                <button type="button" class="@(theme == _theme ? null : "secondary")" aria-pressed="@(theme == _theme ? "true" : "false")"
+                        @onclick="() => ChooseAsync(theme)">
+                    @label
+                </button>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    private static readonly (AppTheme Theme, string Label)[] Choices =
+    [
+        (AppTheme.Light, "Light"),
+        (AppTheme.Dark, "Dark"),
+        (AppTheme.System, "Match system")
+    ];
+
+    private AppTheme _theme;
+
+    protected override async Task OnInitializedAsync() => _theme = await Theme.GetAsync();
+
+    private async Task ChooseAsync(AppTheme theme)
+    {
+        _theme = theme;
+        await Theme.SetAsync(theme);
+    }
+}

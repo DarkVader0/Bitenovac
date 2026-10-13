@@ -29,10 +29,10 @@
     --radius: 6px;
 }
 
-/* Follows the system: dark surfaces, lighter text, and red, orange and blue lifted to stay
-   readable on them. The navy brand bar is dark in both. Paper always prints light. */
-@media screen and (prefers-color-scheme: dark) {
-    :root {
+/* The dark theme, when the page is marked data-theme="dark": dark surfaces, lighter text, and red,
+   orange and blue lifted to stay readable on them. Paper always prints light. */
+@media screen {
+    :root[data-theme="dark"] {
         color-scheme: dark;
 
         --brand-bright: #4a90d9;
@@ -401,7 +401,7 @@ button:has(> .icon) {
     }
 
     select.cell-input {
-        padding-right: 0;
+        padding-right: 1.2rem;
         font-size: 0.9375rem;
     }
 }
@@ -411,16 +411,12 @@ button:has(> .icon) {
     -moz-appearance: textfield;
 }
 
-/* The browser's own dropdown arrow differs on every system; a thin chevron in the text colour
-   marks a full field instead, and a table cell shows none, like its neighbours. */
+/* The browser's own dropdown arrow differs on every system; a small chevron in the text colour
+   marks every dropdown instead, closer to the edge in a narrow table cell. */
 select {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    cursor: pointer;
-}
-
-select:not(.cell-input) {
     padding-right: 2.25rem;
     background-image:
         linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
@@ -428,6 +424,12 @@ select:not(.cell-input) {
     background-position: calc(100% - 1.15rem) 50%, calc(100% - 0.8rem) 50%;
     background-size: 0.35rem 0.35rem;
     background-repeat: no-repeat;
+    cursor: pointer;
+}
+
+select.cell-input {
+    padding-right: 1.35rem;
+    background-position: calc(100% - 0.85rem) 50%, calc(100% - 0.5rem) 50%;
 }
 
 .cell-input::-webkit-inner-spin-button,
