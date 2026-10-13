@@ -5,10 +5,10 @@
             <thead>
             <tr>
                 <th></th>
-                <th class="number">Interval</th>
+                <th class="number"><abbr title="Surface interval">SI</abbr></th>
                 <th class="number">Depth</th>
                 <th class="number">Run</th>
-                <th class="number">Stops</th>
+                <th class="number">TTS</th>
                 <th class="number">CNS</th>
                 <th class="number">OTU</th>
             </tr>
@@ -24,7 +24,7 @@
                     {
                         <td class="number">@Display.Number(result.MaximumDepth) @Labels.Depth</td>
                         <td class="number">@Display.Clock(result.TotalRuntime)</td>
-                        <td class="number">@Display.Clock(result.StopTime)</td>
+                        <td class="number">@Display.Clock(ResultFigures.TimeToSurface(result))</td>
                         <td class="number">@Display.Number(result.CnsPercent) %</td>
                         <td class="number">@Display.Number(result.OxygenToleranceUnits)</td>
                     }
@@ -43,7 +43,7 @@
                 </tr>
             }
             </tbody>
-            <caption>Interval, runtime and stop time in minutes. CNS and OTU include the earlier dives.</caption>
+            <caption>SI is the surface interval before the dive. SI, runtime and TTS in minutes. CNS and OTU include the earlier dives.</caption>
         </table>
     </div>
 </section>

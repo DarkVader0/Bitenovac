@@ -274,23 +274,11 @@ details > .field-grid {
 }
 
 .input-table .col-remove {
-    width: 2.4rem;
+    width: calc(var(--touch-target) + 0.3rem);
 }
 
-.input-table td .icon-button {
-    width: 100%;
-}
-
-.input-table .col-percent {
-    width: 2.35rem;
-}
-
-.input-table .col-size {
-    width: 2.6rem;
-}
-
-.input-table .col-pressure {
-    width: 2.9rem;
+.input-table .col-role {
+    width: 8rem;
 }
 
 .cell-input {
@@ -299,9 +287,36 @@ details > .field-grid {
     font-size: 1rem;
 }
 
-select.cell-input {
-    padding-right: 0;
-    font-size: 0.9375rem;
+/* On a phone the numbers keep just the width their values need, so the role keeps its full name. */
+@media (max-width: 640px) {
+    .input-table .col-remove {
+        width: 2.4rem;
+    }
+
+    .input-table td .icon-button {
+        width: 100%;
+    }
+
+    .input-table .col-role {
+        width: auto;
+    }
+
+    .input-table .col-percent {
+        width: 2.35rem;
+    }
+
+    .input-table .col-size {
+        width: 2.6rem;
+    }
+
+    .input-table .col-pressure {
+        width: 2.9rem;
+    }
+
+    select.cell-input {
+        padding-right: 0;
+        font-size: 0.9375rem;
+    }
 }
 
 .cell-input[type="number"] {

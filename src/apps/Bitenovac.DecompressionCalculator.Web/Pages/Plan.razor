@@ -69,11 +69,6 @@
 }
 else
 {
-    @if (_plan.Dives.Count > 1)
-    {
-        <SeriesSummary Plan="_plan" View="_view" Selected="_selected" SelectedChanged="index => _selected = index"/>
-    }
-
     var title = _plan.Dives.Count > 1 ? $"Results · Dive {_selected + 1}" : "Results";
     @if (_view.Results[_selected] is { } result)
     {
@@ -106,6 +101,11 @@ else
                 </div>
             }
         </section>
+    }
+
+    @if (_plan.Dives.Count > 1)
+    {
+        <SeriesSummary Plan="_plan" View="_view" Selected="_selected" SelectedChanged="index => _selected = index"/>
     }
 }
 

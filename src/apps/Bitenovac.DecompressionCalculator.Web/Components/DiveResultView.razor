@@ -57,7 +57,7 @@
 
         <dl class="figures">
             <div><dt>Runtime</dt><dd>@Display.Minutes(Result.TotalRuntime)</dd></div>
-            <div><dt>Stop time</dt><dd>@Display.Minutes(Result.StopTime)</dd></div>
+            <div><dt>TTS</dt><dd>@Display.Minutes(ResultFigures.TimeToSurface(Result))</dd></div>
             <div><dt>Maximum depth</dt><dd>@Display.Number(Result.MaximumDepth) @Labels.Depth</dd></div>
             <div><dt>CNS</dt><dd>@Display.Number(Result.CnsPercent) %</dd></div>
             <div><dt>OTU</dt><dd>@Display.Number(Result.OxygenToleranceUnits)</dd></div>
@@ -118,4 +118,5 @@
 
     private UnitLabels Labels => UnitLabels.For(Units);
 
-    private bool ShowsApparatus => Result.Profile.Any(static phase => phase.Circuit != BreathingLoop.OpenCircuit.ToString());}
+    private bool ShowsApparatus => Result.Profile.Any(static phase => phase.Circuit != BreathingLoop.OpenCircuit.ToString());
+}
