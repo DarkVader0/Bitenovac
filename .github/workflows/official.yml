@@ -22,7 +22,7 @@ jobs:
   release:
     name: Release
     runs-on: [self-hosted, linux, x64, bitenovac]
-    timeout-minutes: 1
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@v7
 
