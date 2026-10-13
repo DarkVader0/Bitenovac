@@ -1,0 +1,39 @@
+@* The key recreates the input after a name such as "air" is read, so it shows 21/0 even when the gas did not change. *@
+<input @key="_version" type="text" autocapitalize="characters" autocomplete="off" spellcheck="false"
+       class="cell-input @(Invalid || _unreadable ? "invalid" : null)"
+       value="@(_unreadable ? _text : GasText.Format(OxygenPercent, HeliumPercent))" aria-label="@Label"
+       aria-invalid="@(Invalid || _unreadable ? "true" : null)" @onchange="OnChangeAsync"/>
+
+@code {
+    private bool _unreadable;
+    private string _text = "";
+    private int _version;
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public double OxygenPercent { get; set; }
+
+    [Parameter]
+    public double HeliumPercent { get; set; }
+
+    [Parameter]
+    public EventCallback<(double Oxygen, double Helium)> ValueChanged { get; set; }
+
+    [Parameter]
+    public bool Invalid { get; set; }
+
+    private async Task OnChangeAsync(ChangeEventArgs args)
+    {
+        _text = args.Value as string ?? "";
+        var gas = GasText.Parse(_text);
+        _unreadable = gas is null;
+        if (gas is { } mix && GasText.Format(mix.Oxygen, mix.Helium) != _text)
+        {
+            _version++;
+        }
+
+        await ValueChanged.InvokeAsync(gas ?? (double.NaN, double.NaN));
+    }
+}

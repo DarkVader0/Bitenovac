@@ -100,13 +100,12 @@
     }
     @{
         var removableCylinders = Value.Cylinders.Count > 1;
-        var columns = removableCylinders ? 6 : 5;
+        var columns = removableCylinders ? 5 : 4;
     }
     <div class="table-scroll">
         <table class="input-table cylinders">
             <colgroup>
-                <col/>
-                <col/>
+                <col class="col-gas"/>
                 <col/>
                 <col/>
                 <col class="col-role"/>
@@ -117,8 +116,7 @@
             </colgroup>
             <thead>
             <tr>
-                <th>O2 <span class="unit">%</span></th>
-                <th>He <span class="unit">%</span></th>
+                <th>Gas <span class="unit">O2/He</span></th>
                 <th>Size <span class="unit">@Labels.CylinderSize</span></th>
                 <th>Pressure <span class="unit">@Labels.Pressure</span></th>
                 <th>Use</th>
@@ -137,14 +135,9 @@
                 var name = $"Cylinder {at + 1}";
                 <tr>
                     <td>
-                        <NumberCell Label="@($"{name} oxygen in %")" Value="cylinder.OxygenPercent"
-                                    Invalid="issues[nameof(CylinderInput.OxygenPercent)] is not null"
-                                    ValueChanged="value => ChangeCylinderAsync(at, cylinder with { OxygenPercent = value })"/>
-                    </td>
-                    <td>
-                        <NumberCell Label="@($"{name} helium in %")" Value="cylinder.HeliumPercent"
-                                    Invalid="issues[nameof(CylinderInput.HeliumPercent)] is not null"
-                                    ValueChanged="value => ChangeCylinderAsync(at, cylinder with { HeliumPercent = value })"/>
+                        <GasCell Label="@($"{name} gas, oxygen and helium in %")" OxygenPercent="cylinder.OxygenPercent" HeliumPercent="cylinder.HeliumPercent"
+                                 Invalid="issues[nameof(CylinderInput.OxygenPercent)] is not null || issues[nameof(CylinderInput.HeliumPercent)] is not null"
+                                 ValueChanged="gas => ChangeCylinderAsync(at, cylinder with { OxygenPercent = gas.Oxygen, HeliumPercent = gas.Helium })"/>
                     </td>
                     <td>
                         <NumberCell Label="@($"{name} size in {Labels.CylinderSize}")" Value="CylinderSizes.Shown(cylinder, Units)"

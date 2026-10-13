@@ -300,8 +300,8 @@ details > .field-grid {
     font-size: 1rem;
 }
 
-/* On a phone a cylinder takes two lines: its four numbers across the full width, then its role
-   and remove button. */
+/* On a phone a cylinder still fits one line: the gas and role keep the width their text needs and
+   size and pressure share the rest. */
 @media (max-width: 640px) {
     .input-table .col-remove {
         width: 2.4rem;
@@ -311,38 +311,17 @@ details > .field-grid {
         width: 100%;
     }
 
-    .input-table.cylinders,
-    .cylinders thead,
-    .cylinders tbody {
-        display: block;
+    .cylinders .col-gas {
+        width: 3.6rem;
     }
 
-    .cylinders colgroup,
-    .cylinders thead th:nth-child(n + 5) {
-        display: none;
+    .cylinders .col-role {
+        width: 6.75rem;
     }
 
-    .cylinders thead tr,
-    .cylinders tbody tr:not(.row-issues) {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .cylinders tbody tr:not(.row-issues) {
-        margin-bottom: 0.75rem;
-    }
-
-    .cylinders tbody td:nth-child(5) {
-        grid-column: 1 / 4;
-    }
-
-    .cylinders tbody td:nth-child(5):last-child {
-        grid-column: 1 / -1;
-    }
-
-    .cylinders tr.row-issues {
-        display: block;
-        margin: -0.75rem 0 0.75rem;
+    select.cell-input {
+        padding-right: 0;
+        font-size: 0.9375rem;
     }
 }
 
