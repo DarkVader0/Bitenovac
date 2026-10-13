@@ -75,9 +75,19 @@ public static class PlanSummary
 
         var stops = result.Profile
             .Where(static phase => phase.Kind == SegmentKind.Stop)
-            .Select(phase => $"{Formats.Number(phase.EndDepth)} {labels.Depth} {Formats.Clock(phase.Duration)} min")
+            .Select(phase => Stop(phase, labels))
             .ToArray();
-        text.AppendLine(stops.Length == 0 ? "No stops" : $"Stops: {string.Join(", ", stops)}");
+        var safetyStop = result.Profile.FirstOrDefault(static phase => phase.Kind == SegmentKind.SafetyStop);
+
+        text.Append(stops.Length > 0
+            ? $"Stops: {string.Join(", ", stops)}"
+            : safetyStop is null ? "No stops" : "No decompression stops");
+        if (safetyStop is not null)
+        {
+            text.Append(CultureInfo.InvariantCulture, $" · safety stop {Stop(safetyStop, labels)}");
+        }
+
+        text.AppendLine();
 
         text.AppendLine(CultureInfo.InvariantCulture,
             $"Runtime {Formats.Minutes(result.TotalRuntime)} · max {Formats.Number(result.MaximumDepth)} {labels.Depth} · " +
@@ -97,4 +107,7 @@ public static class PlanSummary
             text.AppendLine("Warning: an ascent between levels passes the decompression ceiling.");
         }
     }
+
+    private static string Stop(ProfileRow stop, UnitLabels labels) =>
+        $"{Formats.Number(stop.EndDepth)} {labels.Depth} {Formats.Clock(stop.Duration)} min";
 }

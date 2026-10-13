@@ -424,7 +424,7 @@ public sealed class BuhlmannZhl16cAlgorithmTests
         var safetyStops = 0;
         for (var i = 0; i < ascent.Count; i++)
         {
-            if (ascent[i].Kind == SegmentKind.Stop)
+            if (ascent[i].Kind == SegmentKind.SafetyStop)
             {
                 Assert.Equal(6.0, ascent[i].Depth.InMeter, Precision);
                 Assert.Equal(TimeSpan.FromMinutes(3), ascent[i].Duration);
@@ -1338,6 +1338,74 @@ public sealed class BuhlmannZhl16cAlgorithmTests
         algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(40), TimeSpan.FromMinutes(30), GasMixture.Air, SegmentKind.Bottom));
         algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(ascentMeter), TimeSpan.FromMinutes(2), GasMixture.Air, SegmentKind.Ascent));
         return state;
+    }
+
+    [Fact]
+    public void TimeToSurface_ShouldEqualTheDurationOfTheFinalAscent_WhenAskedFromTheSameState()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.7);
+        var request = TestFactory.CreateRequest(40, 25);
+        var state = algorithm.BeginDive(request);
+        algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(40), TimeSpan.FromMinutes(25), GasMixture.Air,
+            SegmentKind.Bottom));
+
+        // Act
+        var timeToSurface = algorithm.TimeToSurface(state, request);
+
+        // Assert
+        var ascent = algorithm.CalculateFinalAscent(state, request);
+        var expected = ascent.Aggregate(TimeSpan.Zero, static (total, segment) => total + segment.Duration);
+        Assert.NotNull(timeToSurface);
+        Assert.Contains(ascent, static segment => segment.Kind == SegmentKind.Stop);
+        Assert.Equal(expected.TotalMinutes, timeToSurface.Value.TotalMinutes, Precision);
+    }
+
+    [Fact]
+    public void TimeToSurface_ShouldLeaveTheStateWhereItWas_WhenTheDiveGoesOn()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.7);
+        var request = TestFactory.CreateRequest(40, 25);
+        var state = algorithm.BeginDive(request);
+        algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(40), TimeSpan.FromMinutes(25), GasMixture.Air,
+            SegmentKind.Bottom));
+        var ceilingBefore = algorithm.CurrentCeiling(state);
+
+        // Act
+        algorithm.TimeToSurface(state, request);
+
+        // Assert
+        Assert.Equal(ceilingBefore.InMeter, algorithm.CurrentCeiling(state).InMeter, Precision);
+        Assert.True(ceilingBefore.InMeter > 0);
+    }
+
+    [Fact]
+    public void TimeToSurface_ShouldThrowArgumentNullException_WhenRequestIsNull()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(1.0, 1.0);
+        var state = algorithm.BeginDive(TestFactory.CreateRequest(10, 10));
+
+        // Act
+        Action act = () => algorithm.TimeToSurface(state, null!);
+
+        // Assert
+        Assert.Throws<ArgumentNullException>(act);
+    }
+
+    [Fact]
+    public void TimeToSurface_ShouldThrowArgumentException_WhenStateWasNotProducedByThisModel()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(1.0, 1.0);
+        var request = TestFactory.CreateRequest(10, 10);
+
+        // Act
+        Action act = () => algorithm.TimeToSurface(new FakeDecompressionState(), request);
+
+        // Assert
+        Assert.Throws<ArgumentException>(act);
     }
 
     private sealed class FakeDecompressionState : IDecompressionState;

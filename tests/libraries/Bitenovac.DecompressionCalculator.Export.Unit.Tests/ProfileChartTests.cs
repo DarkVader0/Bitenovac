@@ -109,6 +109,23 @@ public sealed class ProfileChartTests
     }
 
     [Fact]
+    public void Create_ShouldMarkTheSafetyStop_WhenTheDiveMakesOne()
+    {
+        // Arrange
+        var result = TestFactory.Calculate(TestFactory.SafetyStopPlan());
+
+        // Act
+        var chart = ProfileChart.Create(result, UnitSystem.Metric);
+
+        // Assert
+        var stop = Assert.Single(chart.Stops);
+        Assert.True(stop.IsSafetyStop);
+        Assert.False(stop.IsGasSwitch);
+        Assert.Equal(6, stop.Depth, Precision);
+        Assert.Equal(3, stop.EndMinutes - stop.StartMinutes, Precision);
+    }
+
+    [Fact]
     public void Create_ShouldLabelTheDepthEveryFiveMetersDownToThirty_WhenTheDiveReachesThirtyMeters()
     {
         // Arrange

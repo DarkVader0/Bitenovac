@@ -9,6 +9,8 @@ public sealed class DiveSheetTests
     private const string AppVersion = "2026.10.13.001";
     private const string CeilingStroke = "0.702 0.129 0.129 RG 1.2 w";
     private const string CeilingZoneFill = "0.941 0.788 0.788 rg";
+    private const string DecompressionStopStroke = "0.702 0.129 0.129 RG 1.6 w";
+    private const string SafetyStopStroke = "0.91 0.537 0.047 RG 1.6 w";
     private const string ChartTimeLabel = "(min) Tj";
 
     private static string Sheet(DivePlanDocument plan, int dive = 0) =>
@@ -198,6 +200,35 @@ public sealed class DiveSheetTests
         // Assert
         Assert.Contains(CeilingStroke, pdf, StringComparison.Ordinal);
         Assert.Contains(CeilingZoneFill, pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_ShouldDrawDecompressionStopsInRed_WhenTheDiveHasThem()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+
+        // Act
+        var pdf = Sheet(plan);
+
+        // Assert
+        Assert.Contains(DecompressionStopStroke, pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(SafetyStopStroke, pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_ShouldDrawTheSafetyStopInOrange_WhenTheDiveMakesOne()
+    {
+        // Arrange
+        var plan = TestFactory.SafetyStopPlan();
+
+        // Act
+        var pdf = Sheet(plan);
+
+        // Assert
+        Assert.Contains(SafetyStopStroke, pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("Safety stop"), pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(DecompressionStopStroke, pdf, StringComparison.Ordinal);
     }
 
     [Fact]

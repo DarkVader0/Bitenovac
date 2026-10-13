@@ -63,6 +63,20 @@ public sealed class PlanSummaryTests
     }
 
     [Fact]
+    public void Text_ShouldNameTheSafetyStopApartFromDecompressionStops_WhenTheDiveNeedsNone()
+    {
+        // Arrange
+        var plan = TestFactory.SafetyStopPlan();
+
+        // Act
+        var text = PlanSummary.Text(plan, TestFactory.Now);
+
+        // Assert
+        Assert.Contains($"{Environment.NewLine}No decompression stops · safety stop 6 m 3 min{Environment.NewLine}", text,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Text_ShouldSayHowMuchGasIsMissing_WhenACylinderRunsOut()
     {
         // Arrange

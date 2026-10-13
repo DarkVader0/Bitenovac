@@ -67,6 +67,7 @@ public sealed class NamesTests
     [InlineData(SegmentKind.Ascent, "Ascent")]
     [InlineData(SegmentKind.Stop, "Stop")]
     [InlineData(SegmentKind.GasSwitch, "Switch")]
+    [InlineData(SegmentKind.SafetyStop, "Safety stop")]
     [InlineData((SegmentKind)99, "99")]
     public void Of_ShouldNameThePhase_WhenGivenASegmentKind(SegmentKind kind, string expected)
     {

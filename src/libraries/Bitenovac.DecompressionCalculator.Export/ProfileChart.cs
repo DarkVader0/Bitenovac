@@ -11,14 +11,16 @@ namespace Bitenovac.DecompressionCalculator.Export;
 public readonly record struct ChartPoint(double Minutes, double Depth);
 
 /// <summary>
-/// Represents a decompression stop or a gas switch drawn on a profile chart.
+/// Represents a decompression stop, a safety stop or a gas switch drawn on a profile chart.
 /// </summary>
 /// <param name="StartMinutes">The runtime the stop starts at, in minutes.</param>
 /// <param name="EndMinutes">The runtime the stop ends at, in minutes.</param>
 /// <param name="Depth">The depth of the stop, in meters or feet.</param>
 /// <param name="Gas">The gas breathed, such as <c>NX50</c>.</param>
 /// <param name="IsGasSwitch">Whether the stop is the switch onto <paramref name="Gas"/>.</param>
-public sealed record ChartStop(double StartMinutes, double EndMinutes, double Depth, string Gas, bool IsGasSwitch);
+/// <param name="IsSafetyStop">Whether the stop is a safety stop, which the dive does not require.</param>
+public sealed record ChartStop(double StartMinutes, double EndMinutes, double Depth, string Gas, bool IsGasSwitch,
+    bool IsSafetyStop = false);
 
 /// <summary>
 /// Represents the rectangle a chart's data is drawn in, in the drawing's own coordinates.
@@ -118,9 +120,10 @@ public sealed class ProfileChart
             var endMinutes = phase.Runtime.TotalMinutes;
             points.Add(new ChartPoint(endMinutes, phase.EndDepth));
 
-            if (phase.Kind is SegmentKind.Stop or SegmentKind.GasSwitch)
+            if (phase.Kind is SegmentKind.Stop or SegmentKind.SafetyStop or SegmentKind.GasSwitch)
             {
-                stops.Add(new ChartStop(startMinutes, endMinutes, phase.EndDepth, phase.Gas, phase.Kind == SegmentKind.GasSwitch));
+                stops.Add(new ChartStop(startMinutes, endMinutes, phase.EndDepth, phase.Gas, phase.Kind == SegmentKind.GasSwitch,
+                    phase.Kind == SegmentKind.SafetyStop));
             }
 
             startMinutes = endMinutes;

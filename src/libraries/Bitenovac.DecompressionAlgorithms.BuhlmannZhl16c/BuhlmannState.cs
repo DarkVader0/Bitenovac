@@ -79,4 +79,17 @@ internal sealed class BuhlmannState : IDecompressionState
     /// The surface pressure of the current dive's environment, in millibars.
     /// </summary>
     public double SurfacePressureMillibar;
+
+    public void CopyTo(BuhlmannState target)
+    {
+        target.CurrentDepthMeter = CurrentDepthMeter;
+        target.CurrentGas = CurrentGas;
+        target.CurrentLoop = CurrentLoop;
+        target.DepthTimeIntegralMeterMinutes = DepthTimeIntegralMeterMinutes;
+        target.Helium = Helium;
+        target.MillibarPerMeter = MillibarPerMeter;
+        target.Nitrogen = Nitrogen;
+        target.RuntimeMinutes = RuntimeMinutes;
+        target.SurfacePressureMillibar = SurfacePressureMillibar;
+    }
 }

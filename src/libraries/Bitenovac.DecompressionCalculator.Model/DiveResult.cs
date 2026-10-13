@@ -73,6 +73,30 @@ public sealed record ViolationRow(double FromDepth, double ToDepth, double Ceili
 public sealed record CeilingPoint(TimeSpan Runtime, double Depth);
 
 /// <summary>
+/// Represents a calculated dive at one moment, as a dive computer would show it, in the plan's units.
+/// </summary>
+/// <param name="Runtime">The time since leaving the surface.</param>
+/// <param name="Depth">The depth, in meters or feet.</param>
+/// <param name="Ceiling">The decompression ceiling, in meters or feet; zero when there is none.</param>
+/// <param name="Gas">The gas breathed, such as <c>Air</c> or <c>NX50</c>.</param>
+/// <param name="OxygenPressure">The inspired partial pressure of oxygen, in bar.</param>
+/// <param name="CnsPercent">The central nervous system oxygen toxicity so far, including earlier dives of the series.</param>
+/// <param name="OxygenToleranceUnits">The oxygen tolerance units so far, including earlier dives of the series.</param>
+/// <param name="TimeToSurface">
+/// How long an ascent begun now would take, stops included; <see langword="null"/> when the model
+/// cannot tell without disturbing the dive.
+/// </param>
+public sealed record DiveMoment(
+    TimeSpan Runtime,
+    double Depth,
+    double Ceiling,
+    string Gas,
+    double OxygenPressure,
+    double CnsPercent,
+    double OxygenToleranceUnits,
+    TimeSpan? TimeToSurface);
+
+/// <summary>
 /// Represents the outcome of one dive of a calculated plan, ready to show in the plan's units.
 /// </summary>
 /// <remarks>
@@ -94,7 +118,7 @@ public sealed class DiveResult
         ProfileRow[] profile,
         CylinderRow[] cylinders,
         ViolationRow[] violations,
-        CeilingPoint[] ceiling)
+        DiveMoment[] timeline)
     {
         Index = index;
         FailureMessage = failureMessage;
@@ -108,7 +132,8 @@ public sealed class DiveResult
         Profile = profile;
         Cylinders = cylinders;
         Violations = violations;
-        Ceiling = ceiling;
+        Timeline = timeline;
+        Ceiling = [.. timeline.Select(static moment => new CeilingPoint(moment.Runtime, moment.Ceiling))];
     }
 
     /// <summary>
@@ -186,15 +211,24 @@ public sealed class DiveResult
     /// </remarks>
     public IReadOnlyList<CeilingPoint> Ceiling { get; }
 
+    /// <summary>
+    /// Gets the dive at every moment the ceiling is traced, from leaving the surface to surfacing.
+    /// </summary>
+    /// <remarks>
+    /// The time to surface at a moment on the levels is the ascent the model would plan from there;
+    /// on the final ascent it is the rest of the plan.
+    /// </remarks>
+    public IReadOnlyList<DiveMoment> Timeline { get; }
+
     internal static DiveResult Failed(int index, string message) =>
         new(index, message, false, TimeSpan.Zero, TimeSpan.Zero, 0, 0, 0, false, [], [], [], []);
 
-    internal static DiveResult From(int index, DecoPlan plan, IReadOnlyList<CeilingPoint> ceiling, UnitSystem units)
+    internal static DiveResult From(int index, DecoPlan plan, IReadOnlyList<DiveMoment> timeline, UnitSystem units)
     {
         var segments = plan.ExpandedSegments;
 
         var stopTime = segments
-            .Where(static segment => segment.Kind is SegmentKind.Stop or SegmentKind.GasSwitch)
+            .Where(static segment => segment.Kind is SegmentKind.Stop or SegmentKind.SafetyStop or SegmentKind.GasSwitch)
             .Aggregate(TimeSpan.Zero, static (total, segment) => total + segment.Duration);
 
         var maximumDepth = segments.Max(static segment => segment.Depth);
@@ -223,7 +257,7 @@ public sealed class DiveResult
             BuildProfile(segments, units),
             cylinders,
             violations,
-            [.. ceiling]);
+            [.. timeline]);
     }
 
     /// <remarks>

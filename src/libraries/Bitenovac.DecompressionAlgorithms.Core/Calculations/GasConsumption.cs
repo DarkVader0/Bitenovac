@@ -116,7 +116,7 @@ public static class GasConsumption
                 "A segment's supply gas does not match any supplied cylinder.");
         }
 
-        var restingAtAStop = segment.Kind == SegmentKind.Stop;
+        var restingAtAStop = segment.Kind is SegmentKind.Stop or SegmentKind.SafetyStop;
         var sacLitersPerMinute = restingAtAStop
             ? settings.DecoSacLitersPerMinute
             : settings.BottomSacLitersPerMinute;
