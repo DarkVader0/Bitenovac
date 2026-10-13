@@ -82,7 +82,7 @@ public sealed class DiveResultTests
         var plan = CreatePlan();
 
         // Act
-        var result = DiveResult.From(0, plan, UnitSystem.Metric);
+        var result = DiveResult.From(0, plan, [], UnitSystem.Metric);
 
         // Assert
         Assert.Equal(0, result.Index);
@@ -104,7 +104,7 @@ public sealed class DiveResultTests
         var plan = CreatePlan();
 
         // Act
-        var result = DiveResult.From(0, plan, UnitSystem.Metric);
+        var result = DiveResult.From(0, plan, [], UnitSystem.Metric);
 
         // Assert
         Assert.Equal(
@@ -131,7 +131,7 @@ public sealed class DiveResultTests
         var plan = CreatePlan();
 
         // Act
-        var result = DiveResult.From(0, plan, UnitSystem.Metric);
+        var result = DiveResult.From(0, plan, [], UnitSystem.Metric);
 
         // Assert
         Assert.Equal(
@@ -149,7 +149,7 @@ public sealed class DiveResultTests
         var plan = CreatePlan();
 
         // Act
-        var result = DiveResult.From(0, plan, UnitSystem.Imperial);
+        var result = DiveResult.From(0, plan, [], UnitSystem.Imperial);
 
         // Assert
         Assert.Equal(30 * FeetPerMeter, result.MaximumDepth, Precision);

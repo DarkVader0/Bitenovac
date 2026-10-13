@@ -44,6 +44,12 @@ internal static class TestFactory
         };
     }
 
+    public static DivePlanDocument NoStopPlan()
+    {
+        var plan = Plan();
+        return plan with { Dives = [plan.Dives[0] with { Levels = [new LevelInput(6, 10)] }] };
+    }
+
     public static DivePlanDocument OutOfGasPlan()
     {
         var plan = Plan();

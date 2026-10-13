@@ -5,6 +5,8 @@ namespace Bitenovac.DecompressionCalculator.Export.Unit.Tests;
 
 public sealed class DiveSheetTests
 {
+    private const string CeilingStroke = "0.702 0.129 0.129 RG 1.2 w";
+
     private static string Sheet(DivePlanDocument plan) => TestFactory.Read(DiveSheet.Create(plan, TestFactory.Now));
 
     [Fact]
@@ -85,6 +87,32 @@ public sealed class DiveSheetTests
         // Assert
         Assert.Contains(TestFactory.Shown(result.FailureMessage!), pdf, StringComparison.Ordinal);
         Assert.DoesNotContain(TestFactory.Shown("Runtime"), pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_ShouldDrawTheCeilingInRed_WhenTheDiveHasDecompression()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+
+        // Act
+        var pdf = Sheet(plan);
+
+        // Assert
+        Assert.Contains(CeilingStroke, pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_ShouldDrawNoCeiling_WhenTheDiveNeedsNoStops()
+    {
+        // Arrange
+        var plan = TestFactory.NoStopPlan();
+
+        // Act
+        var pdf = Sheet(plan);
+
+        // Assert
+        Assert.DoesNotContain(CeilingStroke, pdf, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -211,6 +211,68 @@ public sealed class BuhlmannZhl16cAlgorithmTests
     }
 
     [Fact]
+    public void AscentCeiling_ShouldUseTheLowGradientFactor_WhenAtTheFirstStop()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.8);
+        var state = LoadedTo(algorithm, 15);
+
+        // Act
+        var ceiling = algorithm.AscentCeiling(state, Depth.FromMeter(15));
+
+        // Assert
+        Assert.True(ceiling.InMeter > 0.0);
+        Assert.Equal(algorithm.CurrentCeiling(state).InMeter, ceiling.InMeter, Precision);
+    }
+
+    [Fact]
+    public void AscentCeiling_ShouldUseTheGradientFactorHalfwayAlongTheSlope_WhenHalfwayToTheSurface()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.8);
+        var state = LoadedTo(algorithm, 7.5);
+        var halfway = new BuhlmannZhl16cAlgorithm(0.55, 0.55);
+        var expected = halfway.CurrentCeiling(LoadedTo(halfway, 7.5));
+
+        // Act
+        var ceiling = algorithm.AscentCeiling(state, Depth.FromMeter(15));
+
+        // Assert
+        Assert.True(expected.InMeter > 0.0);
+        Assert.Equal(expected.InMeter, ceiling.InMeter, Precision);
+    }
+
+    [Fact]
+    public void AscentCeiling_ShouldUseTheHighGradientFactor_WhenTheAscentHasNoStop()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.8);
+        var state = LoadedTo(algorithm, 15);
+        var high = new BuhlmannZhl16cAlgorithm(0.8, 0.8);
+        var expected = high.CurrentCeiling(LoadedTo(high, 15));
+
+        // Act
+        var ceiling = algorithm.AscentCeiling(state, Depth.Zero);
+
+        // Assert
+        Assert.True(expected.InMeter > 0.0);
+        Assert.Equal(expected.InMeter, ceiling.InMeter, Precision);
+    }
+
+    [Fact]
+    public void AscentCeiling_ShouldThrowArgumentNullException_WhenStateIsNull()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.8);
+
+        // Act
+        Action act = () => algorithm.AscentCeiling(null!, Depth.FromMeter(15));
+
+        // Assert
+        Assert.Throws<ArgumentNullException>(act);
+    }
+
+    [Fact]
     public void CurrentCeiling_ShouldMatchMValueFormula_AfterLoadedBottomSegment()
     {
         // Arrange
@@ -1268,6 +1330,14 @@ public sealed class BuhlmannZhl16cAlgorithmTests
         var nitroxSwitch = Assert.Single(ascent,
             segment => segment.Kind == SegmentKind.GasSwitch && segment.Gas.FractionO2.Equals(0.5));
         Assert.Equal(ExpectedSwitchDepthMeter, nitroxSwitch.Depth.InMeter, Precision);
+    }
+
+    private static IDecompressionState LoadedTo(BuhlmannZhl16cAlgorithm algorithm, double ascentMeter)
+    {
+        var state = algorithm.BeginDive(TestFactory.CreateRequest(40, 30));
+        algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(40), TimeSpan.FromMinutes(30), GasMixture.Air, SegmentKind.Bottom));
+        algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(ascentMeter), TimeSpan.FromMinutes(2), GasMixture.Air, SegmentKind.Ascent));
+        return state;
     }
 
     private sealed class FakeDecompressionState : IDecompressionState;
