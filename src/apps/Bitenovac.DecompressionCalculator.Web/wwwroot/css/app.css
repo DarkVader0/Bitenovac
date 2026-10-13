@@ -1407,8 +1407,8 @@ tr.gas-warning td:first-child {
     content: "An error has occurred.";
 }
 
-/* The profile traces itself from the surface to the bottom and up through the stops, then the
-   ceiling appears, until the app takes over the page. */
+/* Held back for a moment, so a fast start never shows a dive cut off mid-stroke; on a slower one it
+   fades in, then the profile traces itself and the ceiling appears, until the app takes over. */
 .loading-dive {
     position: absolute;
     display: block;
@@ -1417,17 +1417,25 @@ tr.gas-warning td:first-child {
     inset: 20vh 0 auto 0;
     margin: 0 auto;
     color: var(--text);
+    opacity: 0;
+    animation: loading-dive-appear 0.3s ease-out 0.5s forwards;
 }
 
 .loading-dive-profile {
     stroke-dasharray: 100;
     stroke-dashoffset: 100;
-    animation: loading-dive-draw 2.6s ease-in-out infinite;
+    animation: loading-dive-draw 2.6s ease-in-out 0.5s infinite;
 }
 
 .loading-dive-ceiling {
     opacity: 0;
-    animation: loading-dive-ceiling 2.6s ease-in-out infinite;
+    animation: loading-dive-ceiling 2.6s ease-in-out 0.5s infinite;
+}
+
+@keyframes loading-dive-appear {
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes loading-dive-draw {
