@@ -11,8 +11,9 @@
 #   NUGET_API_KEY   Required. In CI this is the short-lived key NuGet/login exchanges for the
 #                   workflow's OIDC token (see .github/workflows/deploy-libraries.yml).
 #
-# The libraries share one version, set in Directory.Build.props. An already published version is
-# rejected by nuget.org rather than skipped, so a forgotten bump fails loudly.
+# The libraries share one version, set in Directory.Build.props. A package nuget.org already has at
+# that version is skipped, so a deploy that stopped part way can be run again for the rest; one in
+# which every package is already published fails, so a forgotten bump still fails loudly.
 
 set -euo pipefail
 
@@ -75,10 +76,21 @@ exec docker run \
                 || fail "$(basename "${package}") carries the drop date, not the library version. Deploy from a newer drop."
         done
 
+        # nuget.org can accept an upload and still time out before saying so; the client then retries
+        # and is told the version already exists. --skip-duplicate turns that into a skip, and the
+        # skip shows in the output as "already exists".
+        pushed=0
         for package in "${found[@]}"; do
             printf "==> Pushing %s from drop %s\n" "$(basename "${package}")" "${DROP}"
-            dotnet nuget push "${package}" \
+            output="$(dotnet nuget push "${package}" \
                 --source https://api.nuget.org/v3/index.json \
-                --api-key "${NUGET_API_KEY}"
+                --api-key "${NUGET_API_KEY}" \
+                --skip-duplicate 2>&1)" || { printf "%s\n" "${output}"; fail "Pushing $(basename "${package}") failed."; }
+            printf "%s\n" "${output}"
+            grep -qi "already exists" <<< "${output}" || pushed=$((pushed + 1))
         done
+
+        [[ ${pushed} -gt 0 ]] \
+            || fail "nuget.org already has every package of drop ${DROP}. Bump <VersionPrefix> in Directory.Build.props."
+        printf "==> Pushed %s of %s package(s); the rest were already on nuget.org.\n" "${pushed}" "${#found[@]}"
     '
