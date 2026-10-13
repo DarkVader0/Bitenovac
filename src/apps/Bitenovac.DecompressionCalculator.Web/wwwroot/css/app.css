@@ -1407,8 +1407,21 @@ tr.gas-warning td:first-child {
     content: "An error has occurred.";
 }
 
-/* Held back for a moment, so a fast start never shows a dive cut off mid-stroke; on a slower one it
-   fades in, then the profile traces itself and the ceiling appears, until the app takes over. */
+/* Covers the app as it starts, and fades away once the dive on it is whole. */
+.loading-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background-color: var(--surface);
+    transition: opacity 0.3s ease-out;
+}
+
+.loading-screen.loading-done {
+    opacity: 0;
+}
+
+/* Held back for a moment, so a fast start never shows a dive at all; on a slower one it fades in,
+   then the profile traces itself and the ceiling appears. */
 .loading-dive {
     position: absolute;
     display: block;
