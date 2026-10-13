@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Bitenovac.DecompressionCalculator.Export.Pdf;
 using Bitenovac.DecompressionCalculator.Model;
 
 namespace Bitenovac.DecompressionCalculator.Export.Unit.Tests;
@@ -86,7 +87,7 @@ public sealed class DiveSheetTests
     }
 
     [Fact]
-    public void Create_ShouldShowTheFiguresProfileGasAndChartOnOnePage_WhenThePlanIsCalculated()
+    public void Create_ShouldShowTheFiguresProfileGasChartAndWarningOnOnePage_WhenThePlanIsCalculated()
     {
         // Arrange
         var plan = TestFactory.DecompressionPlan();
@@ -105,7 +106,8 @@ public sealed class DiveSheetTests
         Assert.Contains(ChartTimeLabel, pdf, StringComparison.Ordinal);
         Assert.DoesNotContain(TestFactory.Shown("Apparatus"), pdf, StringComparison.Ordinal);
         Assert.DoesNotContain(TestFactory.Shown("Missing (L)"), pdf, StringComparison.Ordinal);
-        Assert.DoesNotContain(TestFactory.Shown(DiveSheet.Disclaimer), pdf, StringComparison.Ordinal);
+        Assert.All(SheetWriter.Wrap(DiveSheet.Disclaimer, PdfFont.HelveticaBold, 7.5, SheetWriter.ContentWidth),
+            line => Assert.Contains(TestFactory.Shown(line), pdf, StringComparison.Ordinal));
     }
 
     [Fact]

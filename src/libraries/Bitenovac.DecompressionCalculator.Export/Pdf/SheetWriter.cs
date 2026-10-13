@@ -26,6 +26,7 @@ internal sealed class SheetWriter
     public static readonly PdfColor Danger = PdfColor.FromRgb(179, 33, 33);
 
     private readonly PdfDocument _document = new();
+    private double _end = Bottom;
 
     public SheetWriter()
     {
@@ -44,9 +45,30 @@ internal sealed class SheetWriter
     public double Y { get; private set; }
 
     /// <summary>
-    /// Gets the height left between <see cref="Y"/> and the bottom margin.
+    /// Gets the height left between <see cref="Y"/> and the bottom margin, or the footnote when there is one.
     /// </summary>
-    public double Remaining => Bottom - Y;
+    public double Remaining => _end - Y;
+
+    /// <summary>
+    /// Writes text wrapped to the content width at the foot of the page, above the bottom margin, under a rule.
+    /// </summary>
+    /// <remarks>
+    /// The footnote takes its height off <see cref="Remaining"/>, so what is written after it stops above it.
+    /// </remarks>
+    public void Footnote(string text, PdfFont font, double size, PdfColor color)
+    {
+        var lineHeight = size * 1.35;
+        var lines = Wrap(text, font, size, ContentWidth);
+        var top = _end - lines.Count * lineHeight;
+
+        Page.Line(Margin, top - 4, Margin + ContentWidth, top - 4, 0.6, Rule);
+        for (var index = 0; index < lines.Count; index++)
+        {
+            Page.Text(Margin, top + index * lineHeight + size, lines[index], font, size, color);
+        }
+
+        _end = top - 8;
+    }
 
     /// <summary>
     /// Moves down by <paramref name="height"/> points.

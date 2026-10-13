@@ -10,9 +10,12 @@ namespace Bitenovac.DecompressionCalculator.Export;
 public static class DiveSheet
 {
     /// <summary>
-    /// The note that ends the text summary.
+    /// The warning at the foot of the dive sheet, which also ends the text summary.
     /// </summary>
-    public const string Disclaimer = "Bitenovac - for planning only. Follow your dive computer and your training.";
+    public const string Disclaimer =
+        "Warning: Bitenovac is decompression planning software that has had only limited testing. " +
+        "Do not dive a plan based on these results alone: check it against other planning tools, " +
+        "follow your dive computer, and dive within your training and certification.";
 
     private const double Gap = 10;
     private const double FigureHeight = 30;
@@ -60,6 +63,7 @@ public static class DiveSheet
         var calculation = PlanCalculator.Calculate(plan);
         var labels = UnitLabels.For(plan.Units);
         var sheet = new SheetWriter();
+        sheet.Footnote(Disclaimer, PdfFont.HelveticaBold, 7.5, SheetWriter.Text);
         var title = string.IsNullOrWhiteSpace(plan.Name) ? "Dive plan" : plan.Name;
 
         var which = plan.Dives.Count == 1 ? "Dive" : $"Dive {dive + 1} of {plan.Dives.Count}";

@@ -79,6 +79,26 @@ public sealed class SheetWriterTests
     }
 
     [Fact]
+    public void Footnote_ShouldEndAtTheBottomMarginAndTakeItsHeightOffWhatRemains_WhenItIsWritten()
+    {
+        // Arrange
+        var sheet = new SheetWriter();
+        var text = string.Join(' ', Enumerable.Repeat("warning", 40));
+        var lines = SheetWriter.Wrap(text, PdfFont.Helvetica, 8, SheetWriter.ContentWidth);
+        var before = sheet.Remaining;
+
+        // Act
+        sheet.Footnote(text, PdfFont.Helvetica, 8, SheetWriter.Text);
+        var pdf = TestFactory.Read(sheet.Build("Footnote", TestFactory.Now));
+
+        // Assert
+        Assert.True(lines.Count > 1);
+        Assert.Equal(before - lines.Count * 8 * 1.35 - 8, sheet.Remaining, Precision);
+        Assert.Equal(SheetWriter.Margin, sheet.Y, Precision);
+        Assert.All(lines, line => Assert.Contains(TestFactory.Shown(line), pdf, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Table_ShouldShadeTheChosenRowsAndPrintTheEmphasisedColumnInBold_WhenRowsAreWritten()
     {
         // Arrange
