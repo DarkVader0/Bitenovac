@@ -62,23 +62,29 @@
         <text class="chart-caption" x="@F(Area.Left + 4)" y="@F(Area.Top - 5)">@Labels.Depth</text>
         <text class="chart-caption" x="@F(Area.Left + Area.Width)" y="@F(Height - 2)" text-anchor="end">min</text>
     </svg>
-    <figcaption class="chart-readout" aria-live="polite">
-        @if (_readout is { } shown)
-        {
-            <span><span class="chart-readout-label">Runtime</span> @Display.Clock(shown.Runtime)</span>
-            <span><span class="chart-readout-label">Depth</span> @Display.Number(shown.Depth, 1) @Labels.Depth</span>
-            <span class="chart-readout-ceiling">
-                <span class="chart-readout-label">Ceiling</span>
-                @(shown.Ceiling is { } ceiling ? $"{Display.Number(ceiling, 1)} {Labels.Depth}" : "none")
-            </span>
-            <span><span class="chart-readout-label">Gas</span> @shown.Gas</span>
-            <span class="chart-readout-phase">@Display.Name(shown.Kind)</span>
-        }
-        else
-        {
-            <span class="chart-readout-hint">Touch or point at the profile to read it at any moment.</span>
-        }
-    </figcaption>
+    @if (_readout is { } shown)
+    {
+        var percent = _chart.X(shown.Runtime.TotalMinutes, Area) / Width * 100;
+        var side = percent > 55 ? $"right: calc({F(100 - percent)}% + 0.5rem)" : $"left: calc({F(percent)}% + 0.5rem)";
+        <dl class="chart-readout" style="@side" aria-live="polite">
+            <div><dt>Runtime</dt><dd>@Display.Clock(shown.Runtime)</dd></div>
+            <div><dt>Depth</dt><dd>@Display.Number(shown.Depth, 1) @Labels.Depth</dd></div>
+            <div class="chart-readout-ceiling">
+                <dt>Ceiling</dt>
+                <dd>@(shown.Ceiling is { } ceiling ? $"{Display.Number(ceiling, 1)} {Labels.Depth}" : "none")</dd>
+            </div>
+            <div><dt>TTS</dt><dd>@(shown.TimeToSurface is { } tts ? Display.Minutes(tts) : "–")</dd></div>
+            <div><dt>Gas</dt><dd>@shown.Gas</dd></div>
+            <div><dt>ppO₂</dt><dd>@Display.Number(shown.OxygenPressure, 2)</dd></div>
+            <div><dt>CNS</dt><dd>@Display.Number(shown.CnsPercent) %</dd></div>
+            <div><dt>OTU</dt><dd>@Display.Number(shown.OxygenToleranceUnits)</dd></div>
+            <div class="chart-readout-phase"><dt class="visually-hidden">Phase</dt><dd>@Display.Name(shown.Kind)</dd></div>
+        </dl>
+    }
+    else
+    {
+        <p class="chart-readout-hint">Touch or point at the profile</p>
+    }
 </figure>
 
 @code {
@@ -162,7 +168,12 @@
         _listener?.Dispose();
     }
 
-    private static string StopClass(ChartStop stop) => stop.IsGasSwitch ? "chart-switch" : "chart-stop chart-stop-deco";
+    private static string StopClass(ChartStop stop) => stop switch
+    {
+        { IsGasSwitch: true } => "chart-switch",
+        { IsSafetyStop: true } => "chart-stop chart-stop-safety",
+        _ => "chart-stop chart-stop-deco"
+    };
 
     private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 }

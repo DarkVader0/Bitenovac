@@ -12,7 +12,7 @@
             }
             else
             {
-                <button type="button" class="secondary" @onclick="() => _confirmRemove = true">Remove dive</button>
+                <button type="button" class="secondary" @onclick="() => _confirmRemove = true"><Icon Name="IconName.Remove"/>Remove dive</button>
             }
         }
     </div>
@@ -82,12 +82,12 @@
                 {
                     <td>
                         <button type="button" class="icon-button" title="Remove level" aria-label="Remove level @(at + 1)"
-                                @onclick="() => ChangeAsync(Value with { Levels = ListEdit.RemoveAt(Value.Levels, at) })">✕</button>
+                                @onclick="() => ChangeAsync(Value with { Levels = ListEdit.RemoveAt(Value.Levels, at) })"><Icon Name="IconName.Remove"/></button>
                     </td>
                 }
                 <td>
-                    <button type="button" class="icon-button add-button" title="Add a level after this one" aria-label="Add a level after level @(at + 1)"
-                            @onclick="() => ChangeAsync(Value with { Levels = ListEdit.Insert(Value.Levels, at + 1, NewInputs.LevelAfter(level)) })">+</button>
+                    <button type="button" class="icon-button" title="Add a level after this one" aria-label="Add a level after level @(at + 1)"
+                            @onclick="() => ChangeAsync(Value with { Levels = ListEdit.Insert(Value.Levels, at + 1, NewInputs.LevelAfter(level)) })"><Icon Name="IconName.Add"/></button>
                 </td>
             </tr>
             <RowIssues Columns="levelColumns" Messages="[issues[nameof(LevelInput.Depth)], issues[nameof(LevelInput.DurationMinutes)]]"/>
@@ -170,7 +170,7 @@
                     {
                         <td>
                             <button type="button" class="icon-button" title="Remove cylinder" aria-label="Remove @name"
-                                    @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.RemoveAt(Value.Cylinders, at) })">✕</button>
+                                    @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.RemoveAt(Value.Cylinders, at) })"><Icon Name="IconName.Remove"/></button>
                         </td>
                     }
                 </tr>
@@ -183,7 +183,7 @@
         </table>
     </div>
     <button type="button" class="secondary" @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.Add(Value.Cylinders, NewInputs.Cylinder(Units)) })">
-        Add cylinder
+        <Icon Name="IconName.Add"/>Add cylinder
     </button>
 </section>
 

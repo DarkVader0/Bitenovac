@@ -11,22 +11,39 @@ namespace Bitenovac.DecompressionCalculator.Web.Planning;
 /// <param name="Ceiling">The decompression ceiling at that moment, or <see langword="null"/> when there is none.</param>
 /// <param name="Gas">The gas breathed at that moment.</param>
 /// <param name="Kind">The phase of the dive at that moment.</param>
-public sealed record ChartReadout(TimeSpan Runtime, double Depth, double? Ceiling, string Gas, SegmentKind Kind)
+/// <param name="OxygenPressure">The inspired partial pressure of oxygen, in bar.</param>
+/// <param name="CnsPercent">The central nervous system oxygen toxicity so far.</param>
+/// <param name="OxygenToleranceUnits">The oxygen tolerance units so far.</param>
+/// <param name="TimeToSurface">How long an ascent begun now would take, or <see langword="null"/> when unknown.</param>
+public sealed record ChartReadout(
+    TimeSpan Runtime,
+    double Depth,
+    double? Ceiling,
+    string Gas,
+    SegmentKind Kind,
+    double OxygenPressure,
+    double CnsPercent,
+    double OxygenToleranceUnits,
+    TimeSpan? TimeToSurface)
 {
     /// <summary>
-    /// Reads the dive at a moment, between the phase ends and ceiling samples the result holds.
+    /// Reads the dive at a moment, between the phase ends and the timeline samples the result holds.
     /// </summary>
     /// <param name="result">A dive that was planned.</param>
     /// <param name="minutes">The moment in minutes, kept within the dive.</param>
     /// <returns>The dive at that moment.</returns>
-    /// <exception cref="ArgumentException"><paramref name="result"/> has no profile.</exception>
+    /// <exception cref="ArgumentException"><paramref name="result"/> has no profile or no timeline.</exception>
+    /// <remarks>
+    /// Every phase ends on a timeline sample, so the two samples around a moment always share its
+    /// gas and a straight line between them holds.
+    /// </remarks>
     public static ChartReadout At(DiveResult result, double minutes)
     {
         ArgumentNullException.ThrowIfNull(result);
 
-        if (result.Profile.Count == 0)
+        if (result.Profile.Count == 0 || result.Timeline.Count == 0)
         {
-            throw new ArgumentException("A dive that could not be planned has no profile to read.", nameof(result));
+            throw new ArgumentException("A dive that could not be planned has nothing to read.", nameof(result));
         }
 
         var runtime = TimeSpan.FromMinutes(Math.Clamp(minutes, 0, result.Profile[^1].Runtime.TotalMinutes));
@@ -36,26 +53,40 @@ public sealed record ChartReadout(TimeSpan Runtime, double Depth, double? Ceilin
             ? phase.StartDepth + (phase.EndDepth - phase.StartDepth) * ((runtime - start) / phase.Duration)
             : phase.EndDepth;
 
-        var ceiling = CeilingAt(result.Ceiling, runtime);
-        return new ChartReadout(runtime, depth, ceiling > 0.05 ? ceiling : null, phase.Gas, phase.Kind);
+        var (before, after, fraction) = Around(result.Timeline, runtime);
+        var ceiling = Between(before.Ceiling, after.Ceiling, fraction);
+        TimeSpan? timeToSurface = before.TimeToSurface is { } from && after.TimeToSurface is { } to
+            ? from + (to - from) * fraction
+            : null;
+
+        return new ChartReadout(
+            runtime,
+            depth,
+            ceiling > 0.05 ? ceiling : null,
+            phase.Gas,
+            phase.Kind,
+            Between(before.OxygenPressure, after.OxygenPressure, fraction),
+            Between(before.CnsPercent, after.CnsPercent, fraction),
+            Between(before.OxygenToleranceUnits, after.OxygenToleranceUnits, fraction),
+            timeToSurface);
     }
 
-    private static double CeilingAt(IReadOnlyList<CeilingPoint> points, TimeSpan runtime)
+    private static (DiveMoment Before, DiveMoment After, double Fraction) Around(IReadOnlyList<DiveMoment> timeline, TimeSpan runtime)
     {
-        for (var index = 1; index < points.Count; index++)
+        for (var index = 1; index < timeline.Count; index++)
         {
-            var (before, after) = (points[index - 1], points[index]);
+            var (before, after) = (timeline[index - 1], timeline[index]);
             if (after.Runtime < runtime)
             {
                 continue;
             }
 
             var span = after.Runtime - before.Runtime;
-            return span > TimeSpan.Zero
-                ? before.Depth + (after.Depth - before.Depth) * ((runtime - before.Runtime) / span)
-                : after.Depth;
+            return (before, after, span > TimeSpan.Zero ? (runtime - before.Runtime) / span : 1);
         }
 
-        return 0;
+        return (timeline[^1], timeline[^1], 0);
     }
+
+    private static double Between(double from, double to, double fraction) => from + (to - from) * fraction;
 }
