@@ -66,7 +66,7 @@ public static class DiveSheet
         sheet.Footnote(Disclaimer, PdfFont.HelveticaBold, 7.5, SheetWriter.Text);
         var title = string.IsNullOrWhiteSpace(plan.Name) ? "Dive plan" : plan.Name;
 
-        var which = plan.Dives.Count == 1 ? "Dive" : $"Dive {dive + 1} of {plan.Dives.Count}";
+        var which = Which(plan, dive);
         WriteTitle(sheet, title, $"{which} · {Summary.Date(exportedAt)} UTC · Bitenovac {appVersion}");
         sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan)}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
 
@@ -291,6 +291,21 @@ public static class DiveSheet
         page.Text(area.Left + 3, area.Top - 3, labels.Depth, PdfFont.Helvetica, 7, SheetWriter.Muted);
         page.Text(area.Left + area.Width, area.Top + area.Height + 20, "min", PdfFont.Helvetica, 7, SheetWriter.Muted, PdfAlign.Right);
         sheet.Advance(height);
+    }
+
+    /// <remarks>
+    /// A dive of a series also gives its place in it, so a named dive still says which one it is.
+    /// </remarks>
+    private static string Which(DivePlanDocument plan, int dive)
+    {
+        var name = plan.Dives[dive].Name?.Trim();
+        var place = $"{dive + 1} of {plan.Dives.Count}";
+        if (string.IsNullOrEmpty(name))
+        {
+            return plan.Dives.Count == 1 ? "Dive" : $"Dive {place}";
+        }
+
+        return plan.Dives.Count == 1 ? name : $"{name} ({place})";
     }
 
     private static PdfColor StopColor(ChartStop stop) => stop switch

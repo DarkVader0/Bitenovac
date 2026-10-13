@@ -118,7 +118,8 @@ public sealed class DiveInputTests
         TestFactory.Dive(surfaceIntervalMinutes: 30),
         TestFactory.Dive() with { Circuit = new ClosedCircuitInput(1.3, 1.3) },
         TestFactory.Dive(depth: 40),
-        TestFactory.Dive(cylinders: [TestFactory.Cylinder(oxygenPercent: 32)])
+        TestFactory.Dive(cylinders: [TestFactory.Cylinder(oxygenPercent: 32)]),
+        TestFactory.Dive() with { Name = "Reef" }
     ];
 
     [Theory]
@@ -133,6 +134,35 @@ public sealed class DiveInputTests
 
         // Assert
         Assert.False(equal);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void DisplayName_ShouldBeDiveAndItsNumber_WhenTheDiveHasNoName(string? name)
+    {
+        // Arrange
+        var dive = TestFactory.Dive() with { Name = name };
+
+        // Act
+        var shown = dive.DisplayName(2);
+
+        // Assert
+        Assert.Equal("Dive 2", shown);
+    }
+
+    [Fact]
+    public void DisplayName_ShouldBeTheTrimmedName_WhenTheDiveHasOne()
+    {
+        // Arrange
+        var dive = TestFactory.Dive() with { Name = "  Wreck  " };
+
+        // Act
+        var shown = dive.DisplayName(2);
+
+        // Assert
+        Assert.Equal("Wreck", shown);
     }
 
     [Fact]

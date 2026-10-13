@@ -105,6 +105,23 @@ public sealed class PlanSummaryTests
     }
 
     [Fact]
+    public void Text_ShouldNameTheDiveByItsOwnName_WhenTheDiveIsNamed()
+    {
+        // Arrange
+        var series = TestFactory.SeriesPlan();
+        var plan = series with { Dives = [series.Dives[0], series.Dives[1] with { Name = "Wreck" }] };
+        var single = TestFactory.Plan() with { Dives = [TestFactory.Plan().Dives[0] with { Name = "Reef" }] };
+
+        // Act
+        var seriesText = PlanSummary.Text(plan, TestFactory.Now);
+        var singleText = PlanSummary.Text(single, TestFactory.Now);
+
+        // Assert
+        Assert.Contains($"{Environment.NewLine}Wreck (after 90 min on the surface): Open circuit", seriesText, StringComparison.Ordinal);
+        Assert.Contains($"{Environment.NewLine}Reef: Open circuit", singleText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Text_ShouldSayTheDiveCannotBePlanned_WhenThePlannerFails()
     {
         // Arrange

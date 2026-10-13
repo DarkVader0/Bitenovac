@@ -59,7 +59,7 @@ public static class PlanSummary
         var dive = plan.Dives[index];
 
         text.AppendLine();
-        text.Append(plan.Dives.Count == 1 ? "Dive" : $"Dive {index + 1}");
+        text.Append(plan.Dives.Count == 1 && string.IsNullOrWhiteSpace(dive.Name) ? "Dive" : dive.DisplayName(index + 1));
         if (index > 0)
         {
             text.Append(CultureInfo.InvariantCulture, $" (after {Formats.Number(dive.SurfaceIntervalMinutes)} min on the surface)");

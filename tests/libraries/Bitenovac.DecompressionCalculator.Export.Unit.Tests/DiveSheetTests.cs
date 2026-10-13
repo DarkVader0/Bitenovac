@@ -128,6 +128,34 @@ public sealed class DiveSheetTests
     }
 
     [Fact]
+    public void Create_ShouldTitleTheDiveByItsNameAndPlace_WhenADiveOfASeriesIsNamed()
+    {
+        // Arrange
+        var series = TestFactory.SeriesPlan();
+        var plan = series with { Dives = [series.Dives[0], series.Dives[1] with { Name = " Wreck " }] };
+
+        // Act
+        var pdf = Sheet(plan, 1);
+
+        // Assert
+        Assert.Contains(TestFactory.Shown($"Wreck (2 of 2) · 11 Oct 2026 12:00 UTC · Bitenovac {AppVersion}"), pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_ShouldTitleTheDiveByItsName_WhenTheOnlyDiveIsNamed()
+    {
+        // Arrange
+        var single = TestFactory.DecompressionPlan();
+        var plan = single with { Dives = [single.Dives[0] with { Name = "Wreck" }] };
+
+        // Act
+        var pdf = Sheet(plan);
+
+        // Assert
+        Assert.Contains(TestFactory.Shown($"Wreck · 11 Oct 2026 12:00 UTC · Bitenovac {AppVersion}"), pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Create_ShouldShowOnlyTheChosenDiveAfterItsSurfaceInterval_WhenThePlanIsASeries()
     {
         // Arrange
