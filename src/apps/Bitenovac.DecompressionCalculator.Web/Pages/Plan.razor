@@ -46,7 +46,7 @@
 
 <h1 class="print-only">@(string.IsNullOrWhiteSpace(_plan.Name) ? FileNames.Fallback : _plan.Name)</h1>
 
-<DiveTabs Count="_plan.Dives.Count" Selected="_selected" SelectedChanged="index => _selected = index"
+<DiveTabs Names="DiveNames" Selected="_selected" SelectedChanged="index => _selected = index"
           DivesWithIssues="DivesWithIssues" OnAdd="() => AddDiveAsync(_plan)"/>
 
 <DiveEditor Value="_plan.Dives[_selected]" Number="_selected + 1" CanRemove="_plan.Dives.Count > 1" Units="_plan.Units"
@@ -71,7 +71,7 @@
 }
 else
 {
-    var title = _plan.Dives.Count > 1 ? $"Results · Dive {_selected + 1}" : "Results";
+    var title = _plan.Dives.Count > 1 || !string.IsNullOrWhiteSpace(_plan.Dives[_selected].Name) ? $"Results · {DiveNames[_selected]}" : "Results";
     @if (_view.Results[_selected] is { } result)
     {
         <DiveResultView Result="result" Units="_plan.Units" Title="@title"/>
@@ -83,7 +83,7 @@ else
             @if (_view.IssuesOf(_selected) is { Count: > 0 } issues)
             {
                 <div class="alert alert-danger">
-                    <p>@(_plan.Dives.Count > 1 ? $"Dive {_selected + 1} is invalid:" : "The dive is invalid:")</p>
+                    <p>@(_plan.Dives.Count > 1 ? $"{DiveNames[_selected]} is invalid:" : "The dive is invalid:")</p>
                     <ul>
                         @foreach (var issue in issues)
                         {
@@ -96,10 +96,10 @@ else
             {
                 <div class="alert alert-warning">
                     <p>
-                        This dive can't be planned until dive @(blocking + 1) is fixed: every dive is planned on
+                        This dive can't be planned until @DiveNames[blocking] is fixed: every dive is planned on
                         the nitrogen and helium left from the dives before it.
                     </p>
-                    <button type="button" class="secondary" @onclick="() => _selected = blocking">Go to dive @(blocking + 1)</button>
+                    <button type="button" class="secondary" @onclick="() => _selected = blocking">Go to @DiveNames[blocking]</button>
                 </div>
             }
         </section>
@@ -171,6 +171,8 @@ else
 
     [Parameter]
     public Guid Id { get; set; }
+
+    private IReadOnlyList<string> DiveNames => [.. _plan!.Dives.Select(static (dive, index) => dive.DisplayName(index + 1))];
 
     private IReadOnlySet<int> DivesWithIssues => _issues.IndexesWithIssues(nameof(DivePlanDocument.Dives));
 

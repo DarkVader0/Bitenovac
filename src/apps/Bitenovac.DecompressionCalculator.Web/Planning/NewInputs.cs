@@ -11,7 +11,7 @@ public static class NewInputs
     public const double SurfaceIntervalMinutes = 60;
 
     public static DiveInput NextDive(DivePlanDocument plan) =>
-        plan.Dives[^1] with { SurfaceIntervalMinutes = SurfaceIntervalMinutes };
+        plan.Dives[^1] with { SurfaceIntervalMinutes = SurfaceIntervalMinutes, Name = null };
 
     public static LevelInput LevelAfter(LevelInput level) => level with { DurationMinutes = 10 };
 

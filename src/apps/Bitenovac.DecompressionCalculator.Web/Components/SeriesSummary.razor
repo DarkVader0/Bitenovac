@@ -18,7 +18,7 @@
             {
                 var at = index;
                 <tr class="series-row @(at == Selected ? "row-stop" : null)" @onclick="() => SelectedChanged.InvokeAsync(at)">
-                    <td>Dive @(at + 1)</td>
+                    <td>@Plan.Dives[at].DisplayName(at + 1)</td>
                     <td class="number">@(at == 0 ? "–" : Display.HoursAndMinutes(TimeSpan.FromMinutes(Plan.Dives[at].SurfaceIntervalMinutes)))</td>
                     @if (View.Results[at] is { Succeeded: true } result)
                     {

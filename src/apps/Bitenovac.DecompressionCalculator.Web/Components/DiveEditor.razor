@@ -1,6 +1,9 @@
 <section class="card no-print">
     <div class="card-header">
-        <h2>Dive @Number</h2>
+        <h2 class="dive-name-heading">
+            <input class="dive-name" type="text" aria-label="Dive name" placeholder="Dive @Number" maxlength="40"
+                   value="@Value.Name" @onchange="args => ChangeAsync(Value with { Name = NameOf(args.Value) })"/>
+        </h2>
         @if (CanRemove)
         {
             @if (_confirmRemove)
@@ -226,6 +229,10 @@
     private double IntervalHours => Math.Floor(Value.SurfaceIntervalMinutes / 60);
 
     private double IntervalMinutes => Value.SurfaceIntervalMinutes - IntervalHours * 60;
+
+    // A cleared name goes back to the default, "Dive 2", rather than an empty title.
+    private static string? NameOf(object? value) =>
+        value is string name && !string.IsNullOrWhiteSpace(name) ? name.Trim() : null;
 
     private Task ChangeAsync(DiveInput dive) => ValueChanged.InvokeAsync(CylinderRoles.Apply(dive));
 

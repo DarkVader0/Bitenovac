@@ -725,6 +725,36 @@ a.icon-button {
     border-style: dashed;
 }
 
+.dive-name-heading {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+/* Reads as the card's title; the dashed line shows it can be renamed. */
+.dive-name {
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0.25rem 0.5rem;
+    margin-left: -0.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    background-color: transparent;
+    border-color: transparent;
+    border-bottom: 1px dashed var(--border);
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.dive-name::placeholder {
+    color: var(--text);
+    opacity: 1;
+}
+
+.dive-name:hover,
+.dive-name:focus {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
 .card-header {
     display: flex;
     flex-wrap: wrap;
