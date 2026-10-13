@@ -23,8 +23,30 @@ export function download(bytes, name, type) {
     setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
-export function print() {
-    window.print();
+const isMobile = () => /Android|iPhone|iPad|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+export function printPdf(bytes) {
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    const release = () => setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+    if (isMobile()) {
+        window.open(url, "_blank");
+        release();
+        return "opened";
+    }
+
+    const frame = document.createElement("iframe");
+    frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+    frame.addEventListener("load", () => {
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+        setTimeout(() => frame.remove(), 60000);
+        release();
+    });
+    frame.src = url;
+    document.body.appendChild(frame);
+    return "printing";
 }
 
 async function share(data) {

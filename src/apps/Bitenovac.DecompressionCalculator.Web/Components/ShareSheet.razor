@@ -72,8 +72,8 @@
 
     private async Task PrintAsync()
     {
+        await Share.PrintPdfAsync(Sheet());
         await OnClose.InvokeAsync();
-        await Share.PrintAsync();
     }
 
     private Task CloseOnEscape(KeyboardEventArgs args) => args.Key == "Escape" ? OnClose.InvokeAsync() : Task.CompletedTask;

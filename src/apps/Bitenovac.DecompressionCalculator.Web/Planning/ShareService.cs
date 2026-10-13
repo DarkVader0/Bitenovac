@@ -13,7 +13,7 @@ public enum ShareOutcome
 }
 
 /// <summary>
-/// Shares and downloads the plan's PDF, and prints the plan, through the browser, using the app's own share script.
+/// Shares, downloads, and prints the plan's PDF through the browser, using the app's own share script.
 /// </summary>
 public sealed class ShareService(IJSRuntime js) : IAsyncDisposable
 {
@@ -29,7 +29,12 @@ public sealed class ShareService(IJSRuntime js) : IAsyncDisposable
     public async ValueTask DownloadAsync(byte[] bytes, string fileName, string type) =>
         await (await ModuleAsync()).InvokeVoidAsync("download", bytes, fileName, type);
 
-    public async ValueTask PrintAsync() => await (await ModuleAsync()).InvokeVoidAsync("print");
+    /// <summary>
+    /// Prints a PDF; where the browser cannot print one from the page, as on phones and tablets, it opens the PDF to print from instead.
+    /// </summary>
+    /// <returns><see langword="true"/> when the print dialog opened, <see langword="false"/> when the PDF was opened instead.</returns>
+    public async ValueTask<bool> PrintPdfAsync(byte[] bytes) =>
+        await (await ModuleAsync()).InvokeAsync<string>("printPdf", bytes) == "printing";
 
     public async ValueTask DisposeAsync()
     {
