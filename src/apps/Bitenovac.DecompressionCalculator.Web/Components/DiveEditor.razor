@@ -36,8 +36,9 @@
     }
     @{
         var removableLevels = Value.Levels.Count > 1;
+        var levelColumns = removableLevels ? 4 : 3;
     }
-    <table class="input-table">
+    <table class="input-table levels">
         <colgroup>
             <col/>
             <col/>
@@ -45,6 +46,7 @@
             {
                 <col class="col-remove"/>
             }
+            <col class="col-remove"/>
         </colgroup>
         <thead>
         <tr>
@@ -54,6 +56,7 @@
             {
                 <th><span class="visually-hidden">Remove</span></th>
             }
+            <th><span class="visually-hidden">Add</span></th>
         </tr>
         </thead>
         <tbody>
@@ -80,14 +83,15 @@
                                 @onclick="() => ChangeAsync(Value with { Levels = ListEdit.RemoveAt(Value.Levels, at) })">✕</button>
                     </td>
                 }
+                <td>
+                    <button type="button" class="icon-button add-button" title="Add a level after this one" aria-label="Add a level after level @(at + 1)"
+                            @onclick="() => ChangeAsync(Value with { Levels = ListEdit.Insert(Value.Levels, at + 1, NewInputs.LevelAfter(level)) })">+</button>
+                </td>
             </tr>
-            <RowIssues Columns="@(removableLevels ? 3 : 2)" Messages="[issues[nameof(LevelInput.Depth)], issues[nameof(LevelInput.DurationMinutes)]]"/>
+            <RowIssues Columns="levelColumns" Messages="[issues[nameof(LevelInput.Depth)], issues[nameof(LevelInput.DurationMinutes)]]"/>
         }
         </tbody>
     </table>
-    <button type="button" class="secondary" @onclick="() => ChangeAsync(Value with { Levels = ListEdit.Add(Value.Levels, NewInputs.Level(Value)) })">
-        Add level
-    </button>
 
     <h3>Cylinders</h3>
     @if (Issues[nameof(DiveInput.Cylinders)] is { } cylindersIssue)

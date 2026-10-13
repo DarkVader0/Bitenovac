@@ -253,6 +253,23 @@ details > .field-grid {
     table-layout: fixed;
 }
 
+/* A level is two short numbers, so its row keeps to their width with its buttons beside them. */
+.input-table.levels {
+    width: auto;
+    table-layout: auto;
+}
+
+.levels .cell-input {
+    width: 7rem;
+}
+
+.icon-button.add-button {
+    color: var(--brand-bright);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
 .input-table th,
 .input-table td {
     padding: 0.15rem;
