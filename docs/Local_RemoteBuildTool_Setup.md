@@ -220,8 +220,9 @@ bash deploy/web.sh /tmp/site [2026.10.11.001]
 
 ## Fill the cache again
 
-Every hour the **Cache refresh** workflow fills the cache by itself: it builds, tests and
-promotes what changed. Run this only when pull requests are slower than they should be (Ubuntu):
+After every push to `master`, and every 4 hours, the **Cache refresh** workflow fills the cache by
+itself: it builds, tests and promotes what changed. Run this only when pull requests are slower than
+they should be (Ubuntu):
 
 ```bash
 cd ~/bitenovac
@@ -236,8 +237,9 @@ It must end with `Promoted 42 entries into main.`
 
 ## Official builds
 
-Every day at 01:00 UTC the **Official** workflow builds every project in Release from scratch, with
-no tests and no cache, and drops what can be deployed into the `bitenovac-official` volume:
+Every 12 hours, at 00:00 and 12:00 UTC, the **Official** workflow builds every project in Release
+from scratch, with no tests and no cache, and drops what can be deployed into the
+`bitenovac-official` volume:
 
 ```
 2026.10.07.001/
