@@ -173,6 +173,30 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
     }
 
     /// <summary>
+    /// Returns the ceiling at the gradient factor that applies at the current depth of the final ascent.
+    /// </summary>
+    /// <param name="state">The state at which the ceiling is required.</param>
+    /// <param name="firstStop">The deepest stop of the final ascent, where the low gradient factor applies.</param>
+    /// <returns>
+    /// The shallowest depth whose ambient pressure every compartment tolerates at that gradient
+    /// factor, or the surface when no obligation exists.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="state"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="state"/> was not produced by this model.</exception>
+    /// <remarks>
+    /// The gradient factor runs from the low factor at <paramref name="firstStop"/> to the high factor
+    /// at the surface, as when the ascent is planned. Without a stop the high factor applies.
+    /// </remarks>
+    public Depth AscentCeiling(IDecompressionState state, Depth firstStop)
+    {
+        var buhlmannState = RequireOwnState(state);
+        var gradientFactor = firstStop.InMeter > DepthToleranceMeter
+            ? GradientFactorAt(buhlmannState.CurrentDepthMeter, firstStop.InMeter)
+            : _gradientFactorHigh;
+        return Depth.FromMeter(Math.Max(0.0, CeilingMeter(buhlmannState, gradientFactor)));
+    }
+
+    /// <summary>
     /// Computes the final ascent from the current depth to the surface.
     /// </summary>
     /// <param name="state">The state from which the ascent begins. It is advanced to the surface.</param>

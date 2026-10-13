@@ -43,11 +43,12 @@ public sealed class ProfileChart
 
     private const int MaximumTicks = 6;
 
-    private ProfileChart(IReadOnlyList<ChartPoint> points, IReadOnlyList<ChartStop> stops,
+    private ProfileChart(IReadOnlyList<ChartPoint> points, IReadOnlyList<ChartStop> stops, IReadOnlyList<ChartPoint> ceiling,
         IReadOnlyList<double> timeTicks, IReadOnlyList<double> depthTicks)
     {
         Points = points;
         Stops = stops;
+        Ceiling = ceiling;
         TimeTicks = timeTicks;
         DepthTicks = depthTicks;
     }
@@ -61,6 +62,15 @@ public sealed class ProfileChart
     /// Gets the stops and gas switches, in the order they are made.
     /// </summary>
     public IReadOnlyList<ChartStop> Stops { get; }
+
+    /// <summary>
+    /// Gets the decompression ceiling through the dive, at least once a minute; empty for a dive without one.
+    /// </summary>
+    /// <remarks>
+    /// The profile stays at or below the ceiling; where it rises above, an ascent between levels
+    /// passes it.
+    /// </remarks>
+    public IReadOnlyList<ChartPoint> Ceiling { get; }
 
     /// <summary>
     /// Gets the runtimes, in minutes, at which the time axis is labelled, from zero to <see cref="MaximumMinutes"/>.
@@ -119,7 +129,11 @@ public sealed class ProfileChart
         var deepest = points.Max(static point => point.Depth);
         var depthSteps = units == UnitSystem.Imperial ? FootSteps : MeterSteps;
 
-        return new ProfileChart(points, stops, Ticks(startMinutes, MinuteSteps), Ticks(deepest, depthSteps));
+        ChartPoint[] ceiling = result.Ceiling.Any(static point => point.Depth > 0)
+            ? [.. result.Ceiling.Select(static point => new ChartPoint(point.Runtime.TotalMinutes, point.Depth))]
+            : [];
+
+        return new ProfileChart(points, stops, ceiling, Ticks(startMinutes, MinuteSteps), Ticks(deepest, depthSteps));
     }
 
     /// <summary>

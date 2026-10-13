@@ -253,8 +253,21 @@ details > .field-grid {
     table-layout: fixed;
 }
 
-.input-table.cylinders-imperial {
-    min-width: 23rem;
+/* A level is two short numbers, so its row keeps to their width with its buttons beside them. */
+.input-table.levels {
+    width: auto;
+    table-layout: auto;
+}
+
+.levels .cell-input {
+    width: 7rem;
+}
+
+.icon-button.add-button {
+    color: var(--brand-bright);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1;
 }
 
 .input-table th,
@@ -278,13 +291,59 @@ details > .field-grid {
 }
 
 .input-table .col-role {
-    width: 5.25rem;
+    width: 8rem;
+}
+
+/* Wider screens enter oxygen and helium in fields of their own; a phone enters both in one O2/He
+   field, to keep a cylinder on one line. Widths sit on the header cells, as hidden columns would
+   leave a column element behind. */
+.cylinders .phone-only {
+    display: none;
 }
 
 .cell-input {
     width: 100%;
     padding: 0.5rem 0.25rem;
     font-size: 1rem;
+}
+
+/* On a phone a cylinder still fits one line: the gas and role keep the width their text needs and
+   size and pressure share the rest. */
+@media (max-width: 640px) {
+    .input-table .col-remove {
+        width: 2.4rem;
+    }
+
+    .input-table td .icon-button {
+        width: 100%;
+    }
+
+    .cylinders .phone-only {
+        display: table-cell;
+    }
+
+    .cylinders .wide-only {
+        display: none;
+    }
+
+    .cylinders .col-gas {
+        width: 4.1rem;
+    }
+
+    .cylinders .col-role {
+        width: 7rem;
+    }
+
+    .cylinders input.cell-input {
+        padding-right: 0.15rem;
+        padding-left: 0.15rem;
+        font-size: 1rem;
+    }
+
+    select.cell-input {
+        padding-right: 0;
+        font-size: 0.9375rem;
+    }
 }
 
 .cell-input[type="number"] {
@@ -711,6 +770,51 @@ body:has(.app-banner) {
     margin: 0;
 }
 
+.settings-panel:not(.open) {
+    display: none;
+}
+
+/* A computer with a mouse and room to spare keeps the settings open in a column on the left.
+   Tablets and phones, with touch and less width, keep the drawer behind the settings button. */
+@media (min-width: 1200px) and (hover: hover) and (pointer: fine) {
+    main.content:has(> .settings-panel) {
+        display: grid;
+        grid-template-columns: 24rem minmax(0, 64rem);
+        column-gap: 2rem;
+        justify-content: center;
+        max-width: none;
+    }
+
+    main.content:has(> .settings-panel) > * {
+        grid-column: 2;
+    }
+
+    main.content:has(> .settings-panel) > .settings-panel {
+        grid-column: 1;
+        grid-row: 1 / span 99;
+    }
+
+    .settings-panel,
+    .settings-panel:not(.open) {
+        position: sticky;
+        top: 1.5rem;
+        z-index: auto;
+        display: block;
+        align-self: start;
+        width: auto;
+        max-height: calc(100vh - 3rem);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: none;
+    }
+
+    .settings-button,
+    .settings-done,
+    .settings-backdrop {
+        display: none;
+    }
+}
+
 .alert .secondary {
     margin-top: 0.75rem;
 }
@@ -722,6 +826,10 @@ body:has(.app-banner) {
     grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
     gap: 0.75rem;
     margin: 0 0 1rem;
+}
+
+.table-scroll + .figures {
+    margin-top: 1.25rem;
 }
 
 .figures div {
@@ -803,9 +911,31 @@ caption {
     background-color: var(--surface-sunken);
 }
 
-td.phase {
-    width: 2rem;
+/* Fixed layout gives depth, time, runtime and gas equal shares of the width, so on a phone they
+   spread across the screen instead of bunching against their right edges. */
+table.profile {
+    table-layout: fixed;
+}
+
+.profile .col-phase {
+    width: 1.6rem;
+}
+
+.profile .col-apparatus {
+    width: 28%;
+}
+
+.profile .number {
+    text-align: center;
+}
+
+.profile th:first-child,
+.profile td.phase {
     padding-right: 0;
+    padding-left: 0.1rem;
+}
+
+td.phase {
     line-height: 0;
 }
 
@@ -847,8 +977,22 @@ td.phase {
     font-weight: 600;
 }
 
-.gas-card h4 {
+.gas-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0 0.75rem;
     margin: 0 0 0.5rem;
+}
+
+.gas-pressure {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.gas-card h4 {
+    margin: 0;
     font-size: 1.1rem;
 }
 
@@ -904,12 +1048,41 @@ td.phase {
 
     .profile td,
     .profile th {
-        padding: 0.45rem 0.3rem;
-        font-size: 0.875rem;
+        padding: 0.5rem 0.25rem;
+        font-size: 0.9375rem;
     }
 
     .figures {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .gas-list {
+        gap: 0.5rem;
+    }
+
+    .gas-card {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .gas-card h4 {
+        font-size: 1rem;
+    }
+
+    .gas-card dl {
+        display: grid;
+        grid-auto-columns: 1fr;
+        grid-auto-flow: column;
+        gap: 0.5rem;
+    }
+
+    .gas-card dl div {
+        flex-direction: column;
+        gap: 0;
+        padding: 0;
+    }
+
+    .gas-card dt {
+        font-size: 0.8125rem;
     }
 }
 

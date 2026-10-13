@@ -86,7 +86,8 @@ public static class PlanCalculator
         try
         {
             var decoPlan = new DivePlanner(AlgorithmCatalog.Create(plan.Algorithm)).CreatePlan(request);
-            return DiveResult.From(index, decoPlan, plan.Units);
+            var ceiling = CeilingTrace.Calculate(AlgorithmCatalog.Create(plan.Algorithm), request, decoPlan.ExpandedSegments, plan.Units);
+            return DiveResult.From(index, decoPlan, ceiling, plan.Units);
         }
         catch (InvalidOperationException exception)
         {

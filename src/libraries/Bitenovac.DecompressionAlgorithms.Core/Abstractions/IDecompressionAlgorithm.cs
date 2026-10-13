@@ -60,6 +60,20 @@ public interface IDecompressionAlgorithm
     Depth CurrentCeiling(IDecompressionState state);
 
     /// <summary>
+    /// Returns the decompression ceiling that governs the final ascent at the current depth.
+    /// </summary>
+    /// <param name="state">The state at which the ceiling is required.</param>
+    /// <param name="firstStop">The deepest stop of the final ascent.</param>
+    /// <returns>The shallowest permissible depth; the surface when no obligation exists.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="state"/> is <see langword="null"/>.</exception>
+    /// <remarks>
+    /// A model whose conservatism changes over the ascent, such as gradient factors that relax from
+    /// the first stop to the surface, returns the ceiling it applies at the current depth. The
+    /// default is <see cref="CurrentCeiling"/>.
+    /// </remarks>
+    Depth AscentCeiling(IDecompressionState state, Depth firstStop) => CurrentCeiling(state);
+
+    /// <summary>
     /// Computes the final ascent to the surface from the current state.
     /// </summary>
     /// <param name="state">The state from which the ascent begins.</param>
