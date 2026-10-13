@@ -66,6 +66,13 @@ public sealed record CylinderRow(
 public sealed record ViolationRow(double FromDepth, double ToDepth, double Ceiling);
 
 /// <summary>
+/// Represents the decompression ceiling at one moment of a calculated dive, in the plan's units.
+/// </summary>
+/// <param name="Runtime">The time since leaving the surface.</param>
+/// <param name="Depth">The shallowest depth the diver may ascend to, in meters or feet; zero when there is no ceiling.</param>
+public sealed record CeilingPoint(TimeSpan Runtime, double Depth);
+
+/// <summary>
 /// Represents the outcome of one dive of a calculated plan, ready to show in the plan's units.
 /// </summary>
 /// <remarks>
@@ -86,7 +93,8 @@ public sealed class DiveResult
         bool reserveSatisfied,
         ProfileRow[] profile,
         CylinderRow[] cylinders,
-        ViolationRow[] violations)
+        ViolationRow[] violations,
+        CeilingPoint[] ceiling)
     {
         Index = index;
         FailureMessage = failureMessage;
@@ -100,6 +108,7 @@ public sealed class DiveResult
         Profile = profile;
         Cylinders = cylinders;
         Violations = violations;
+        Ceiling = ceiling;
     }
 
     /// <summary>
@@ -167,10 +176,20 @@ public sealed class DiveResult
     /// </summary>
     public IReadOnlyList<ViolationRow> Violations { get; }
 
-    internal static DiveResult Failed(int index, string message) =>
-        new(index, message, false, TimeSpan.Zero, TimeSpan.Zero, 0, 0, 0, false, [], [], []);
+    /// <summary>
+    /// Gets the decompression ceiling through the dive, from leaving the surface to surfacing.
+    /// </summary>
+    /// <remarks>
+    /// The ceiling is traced at least once a minute and at the end of every phase. It is the
+    /// model's own continuous ceiling, not rounded to a stop depth; a planned dive stays at or below
+    /// it except where an ascent between levels is reported in <see cref="Violations"/>.
+    /// </remarks>
+    public IReadOnlyList<CeilingPoint> Ceiling { get; }
 
-    internal static DiveResult From(int index, DecoPlan plan, UnitSystem units)
+    internal static DiveResult Failed(int index, string message) =>
+        new(index, message, false, TimeSpan.Zero, TimeSpan.Zero, 0, 0, 0, false, [], [], [], []);
+
+    internal static DiveResult From(int index, DecoPlan plan, IReadOnlyList<CeilingPoint> ceiling, UnitSystem units)
     {
         var segments = plan.ExpandedSegments;
 
@@ -203,7 +222,8 @@ public sealed class DiveResult
             plan.ReserveGas.AllSatisfied,
             BuildProfile(segments, units),
             cylinders,
-            violations);
+            violations,
+            [.. ceiling]);
     }
 
     /// <remarks>

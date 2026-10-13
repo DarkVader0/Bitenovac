@@ -37,6 +37,35 @@ public sealed class ProfileChartTests
     }
 
     [Fact]
+    public void Create_ShouldPlotTheCeilingAtEachTracedRuntime_WhenTheDiveHasDecompression()
+    {
+        // Arrange
+        var result = TestFactory.Calculate(TestFactory.DecompressionPlan());
+
+        // Act
+        var chart = ProfileChart.Create(result, UnitSystem.Metric);
+
+        // Assert
+        Assert.Equal(
+            result.Ceiling.Select(static point => new ChartPoint(point.Runtime.TotalMinutes, point.Depth)),
+            chart.Ceiling);
+        Assert.Contains(chart.Ceiling, static point => point.Depth > 0);
+    }
+
+    [Fact]
+    public void Create_ShouldPlotNoCeiling_WhenTheDiveNeedsNoStops()
+    {
+        // Arrange
+        var result = TestFactory.Calculate(TestFactory.NoStopPlan());
+
+        // Act
+        var chart = ProfileChart.Create(result, UnitSystem.Metric);
+
+        // Assert
+        Assert.Empty(chart.Ceiling);
+    }
+
+    [Fact]
     public void Create_ShouldStartAtTheSurfaceAndEndEachPhaseAtItsRuntimeAndDepth_WhenTheDiveWasPlanned()
     {
         // Arrange

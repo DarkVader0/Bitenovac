@@ -201,6 +201,11 @@ public static class DiveSheet
         page.Polygon(points, DiveFill);
         page.Polyline(points, 1.6, SheetWriter.Brand);
 
+        if (chart.Ceiling.Count > 0)
+        {
+            page.Polyline([.. chart.Ceiling.Select(point => (chart.X(point.Minutes, area), chart.Y(point.Depth, area)))], 1.2, SheetWriter.Danger);
+        }
+
         foreach (var stop in chart.Stops)
         {
             var y = chart.Y(stop.Depth, area);

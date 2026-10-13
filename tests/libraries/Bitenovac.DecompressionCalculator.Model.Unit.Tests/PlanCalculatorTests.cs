@@ -182,4 +182,94 @@ public sealed class PlanCalculatorTests
         Assert.True(dive.Succeeded, dive.FailureMessage);
         Assert.All(dive.Profile, static phase => Assert.Equal("PSCR 1:10", phase.Circuit));
     }
+
+    [Fact]
+    public void Calculate_ShouldTraceTheCeilingFromLeavingTheSurfaceToSurfacing_WhenTheDiveIsPlanned()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(DecompressionDive);
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        Assert.Equal(new CeilingPoint(TimeSpan.Zero, 0), dive.Ceiling[0]);
+        Assert.Equal(dive.TotalRuntime, dive.Ceiling[^1].Runtime);
+        Assert.All(dive.Ceiling.Zip(dive.Ceiling.Skip(1)),
+            static pair => Assert.InRange(pair.Second.Runtime - pair.First.Runtime, TimeSpan.Zero, TimeSpan.FromMinutes(1)));
+    }
+
+    [Fact]
+    public void Calculate_ShouldKeepTheProfileAtOrBelowTheCeiling_WhenTheDiveHasStops()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(DecompressionDive);
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        Assert.True(dive.IsValid);
+        Assert.Contains(dive.Ceiling, static point => point.Depth > 0);
+        Assert.All(dive.Ceiling, point => Assert.True(DepthAt(dive, point.Runtime) >= point.Depth - 1e-6,
+            $"At {point.Runtime} the ceiling is {point.Depth} m, the diver at {DepthAt(dive, point.Runtime)} m."));
+    }
+
+    [Fact]
+    public void Calculate_ShouldTraceNoCeiling_WhenTheDiveNeedsNoStops()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(TestFactory.Dive(depth: 6, minutes: 10));
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        Assert.Equal(TimeSpan.Zero, dive.StopTime);
+        Assert.All(dive.Ceiling, static point => Assert.Equal(0, point.Depth, Precision));
+    }
+
+    [Fact]
+    public void Calculate_ShouldTraceTheCeilingBelowTheNextLevel_WhenAnAscentBetweenLevelsPassesIt()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(TestFactory.Dive(depth: 40, minutes: 30,
+            cylinders: [TestFactory.Cylinder(size: 24, startPressure: 230)]) with
+        {
+            Levels = [new LevelInput(40, 30), new LevelInput(3, 5)]
+        });
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        var violation = Assert.Single(dive.Violations);
+        var endOfLevel = dive.Profile.First(static phase => phase.Kind == SegmentKind.Bottom).Runtime;
+        var ceiling = dive.Ceiling.Single(point => (point.Runtime - endOfLevel).Duration() < TimeSpan.FromSeconds(1)).Depth;
+        Assert.Equal(violation.Ceiling, ceiling, Precision);
+        Assert.True(ceiling > violation.ToDepth);
+    }
+
+    [Fact]
+    public void Calculate_ShouldTraceNoCeiling_WhenTheDiveCannotBePlanned()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(TestFactory.Dive(cylinders:
+            [TestFactory.Cylinder(oxygenPercent: 100, size: 3, purpose: CylinderPurpose.DecoGas)]));
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        Assert.False(dive.Succeeded);
+        Assert.Empty(dive.Ceiling);
+    }
+
+    private static double DepthAt(DiveResult dive, TimeSpan runtime)
+    {
+        var phase = dive.Profile.First(phase => phase.Runtime >= runtime);
+        var start = phase.Runtime - phase.Duration;
+        var fraction = phase.Duration > TimeSpan.Zero ? (runtime - start) / phase.Duration : 1.0;
+        return phase.StartDepth + (phase.EndDepth - phase.StartDepth) * fraction;
+    }
 }
