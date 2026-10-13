@@ -1,4 +1,3 @@
-using System.Globalization;
 using Bitenovac.DecompressionAlgorithms.Core.Planning;
 using Bitenovac.DecompressionCalculator.Export.Pdf;
 using Bitenovac.DecompressionCalculator.Model;
@@ -6,48 +5,78 @@ using Bitenovac.DecompressionCalculator.Model;
 namespace Bitenovac.DecompressionCalculator.Export;
 
 /// <summary>
-/// Provides a method for exporting a plan as a printable A4 PDF dive sheet.
+/// Provides a method for exporting one dive of a plan as a printable one-page A4 PDF dive sheet.
 /// </summary>
 public static class DiveSheet
 {
     /// <summary>
-    /// The note printed at the foot of every page.
+    /// The warning at the foot of the dive sheet, which also ends the text summary.
     /// </summary>
-    public const string Disclaimer = "Bitenovac - for planning only. Follow your dive computer and your training.";
+    public const string Disclaimer =
+        "Warning: Bitenovac is decompression planning software that has had only limited testing. " +
+        "Do not dive a plan based on these results alone: check it against other planning tools, " +
+        "follow your dive computer, and dive within your training and certification.";
 
-    private const double ChartHeight = 190;
-    private const double DiveOpeningHeight = 110 + ChartHeight;
+    private const double Gap = 10;
+    private const double FigureHeight = 30;
+    private const double GasRowHeight = 14;
+    private const double LargestRow = 16;
+    private const double SmallestRowBesideChart = 11;
+    private const double SmallestRow = 7;
+    private const double SmallestChart = 120;
+    private const double LargestChart = 230;
+
     private static readonly PdfColor StopColor = PdfColor.FromRgb(201, 138, 0);
     private static readonly PdfColor SwitchColor = PdfColor.FromRgb(28, 128, 67);
     private static readonly PdfColor Water = PdfColor.FromRgb(238, 245, 252);
     private static readonly PdfColor DiveFill = PdfColor.FromRgb(214, 230, 245);
+    private static readonly PdfColor CeilingZone = PdfColor.FromRgb(240, 201, 201);
 
     /// <summary>
-    /// Returns the plan as the bytes of a PDF file.
+    /// Returns one dive of the plan as the bytes of a one-page PDF file.
     /// </summary>
     /// <param name="plan">The plan, which is calculated for the sheet.</param>
+    /// <param name="dive">The zero-based index of the dive to export.</param>
     /// <param name="exportedAt">When the sheet is made, in UTC; printed on the sheet and stored as its creation time.</param>
+    /// <param name="appVersion">The version of the app that made the sheet, printed beside its title.</param>
     /// <returns>The PDF file.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="plan"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="plan"/> or <paramref name="appVersion"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="dive"/> is not a dive of the plan.</exception>
     /// <remarks>
+    /// <para>
+    /// The profile and the gas come first, at a size that keeps them on the page; the chart fills the
+    /// space left below them, and is left out when there is too little.
+    /// </para>
+    /// <para>
     /// A plan with issues is exported with the issues listed instead of its results.
+    /// </para>
     /// </remarks>
-    public static byte[] Create(DivePlanDocument plan, DateTime exportedAt)
+    public static byte[] Create(DivePlanDocument plan, int dive, DateTime exportedAt, string appVersion)
     {
         ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(appVersion);
+        ArgumentOutOfRangeException.ThrowIfNegative(dive);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(dive, plan.Dives.Count);
 
         var calculation = PlanCalculator.Calculate(plan);
         var labels = UnitLabels.For(plan.Units);
         var sheet = new SheetWriter();
+        sheet.Footnote(Disclaimer, PdfFont.HelveticaBold, 7.5, SheetWriter.Text);
         var title = string.IsNullOrWhiteSpace(plan.Name) ? "Dive plan" : plan.Name;
 
-        sheet.Paragraph(title, PdfFont.HelveticaBold, 18, SheetWriter.Text);
-        sheet.Paragraph(Summary.Header(plan, exportedAt), PdfFont.Helvetica, 9, SheetWriter.Muted);
-        sheet.Paragraph(Summary.Settings(plan), PdfFont.Helvetica, 9, SheetWriter.Muted);
+        var which = plan.Dives.Count == 1 ? "Dive" : $"Dive {dive + 1} of {plan.Dives.Count}";
+        WriteTitle(sheet, title, $"{which} · {Summary.Date(exportedAt)} UTC · Bitenovac {appVersion}");
+        sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan)}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
+
+        var input = plan.Dives[dive];
+        var interval = dive > 0 ? $"After {Formats.Number(input.SurfaceIntervalMinutes)} min on the surface · " : string.Empty;
+        sheet.Paragraph(interval + Summary.Inputs(input, plan.Units), PdfFont.Helvetica, 8.5, SheetWriter.Text);
 
         if (!calculation.IsCalculated)
         {
-            sheet.Advance(10);
+            sheet.Advance(Gap);
             sheet.Paragraph("This plan cannot be calculated:", PdfFont.HelveticaBold, 11, SheetWriter.Danger);
             foreach (var issue in calculation.Issues)
             {
@@ -56,102 +85,86 @@ public static class DiveSheet
         }
         else
         {
-            for (var index = 0; index < plan.Dives.Count; index++)
-            {
-                WriteDive(sheet, plan, index, calculation.Dives[index], labels);
-            }
+            WriteDive(sheet, plan, calculation.Dives[dive], labels);
         }
 
-        return sheet.Build(title, exportedAt, Disclaimer);
+        return sheet.Build(title, exportedAt);
     }
 
-    private static void WriteDive(SheetWriter sheet, DivePlanDocument plan, int index, DiveResult result, UnitLabels labels)
+    /// <remarks>The title and the line beside it share a line when both fit, and stack otherwise.</remarks>
+    private static void WriteTitle(SheetWriter sheet, string title, string meta)
     {
-        var dive = plan.Dives[index];
+        const double titleSize = 14;
+        const double metaSize = 8;
+        var fits = PdfFontMetrics.Measure(title, PdfFont.HelveticaBold, titleSize)
+            + PdfFontMetrics.Measure(meta, PdfFont.Helvetica, metaSize) + 16 <= SheetWriter.ContentWidth;
 
-        sheet.Advance(12);
-        sheet.EnsureSpace(DiveOpeningHeight);
-        var heading = plan.Dives.Count == 1 ? "Dive" : $"Dive {index + 1}";
-        if (index > 0)
+        if (fits)
         {
-            heading += $" - after {Formats.Number(dive.SurfaceIntervalMinutes)} min on the surface";
+            sheet.Page.Text(SheetWriter.Margin, sheet.Y + titleSize, title, PdfFont.HelveticaBold, titleSize, SheetWriter.Text);
+            sheet.Page.Text(SheetWriter.Margin + SheetWriter.ContentWidth, sheet.Y + titleSize, meta, PdfFont.Helvetica, metaSize,
+                SheetWriter.Muted, PdfAlign.Right);
+            sheet.Advance(titleSize * 1.5);
         }
+        else
+        {
+            sheet.Paragraph(title, PdfFont.HelveticaBold, titleSize, SheetWriter.Text);
+            sheet.Paragraph(meta, PdfFont.Helvetica, metaSize, SheetWriter.Muted);
+        }
+    }
 
-        sheet.Paragraph(heading, PdfFont.HelveticaBold, 13, SheetWriter.Text);
-        sheet.Paragraph(Summary.Inputs(dive, plan.Units), PdfFont.Helvetica, 9.5, SheetWriter.Text);
-
+    private static void WriteDive(SheetWriter sheet, DivePlanDocument plan, DiveResult result, UnitLabels labels)
+    {
+        sheet.Advance(Gap / 2);
         if (result.FailureMessage is { } failure)
         {
             sheet.Paragraph(failure, PdfFont.HelveticaBold, 10, SheetWriter.Danger);
             return;
         }
 
-        sheet.Advance(6);
-        WriteFigures(sheet, result, labels);
+        WriteFigures(sheet, result);
         WriteWarnings(sheet, result, labels);
 
-        sheet.EnsureSpace(ChartHeight);
-        WriteChart(sheet, ProfileChart.Create(result, plan.Units), labels);
+        var profileRows = result.Profile.Count + 1;
+        var gasHeight = (result.Cylinders.Count + 1) * GasRowHeight;
+        var besideChart = (sheet.Remaining - gasHeight - 2 * Gap - SmallestChart) / profileRows;
+        var withChart = besideChart >= SmallestRowBesideChart;
+        var rowHeight = withChart
+            ? Math.Min(besideChart, LargestRow)
+            : Math.Clamp((sheet.Remaining - gasHeight - Gap) / profileRows, SmallestRow, LargestRow);
 
-        var showsApparatus = result.Profile.Any(static phase => phase.Circuit != BreathingLoop.OpenCircuit.ToString());
-        SheetColumn[] profileColumns =
-        [
-            new("", 70), new($"Depth ({labels.Depth})", 90, PdfAlign.Right), new("Time (min)", 70, PdfAlign.Right),
-            new("Run (min)", 70, PdfAlign.Right), new("Gas", 80), new(showsApparatus ? "Apparatus" : "", 135)
-        ];
-        var profileRows = result.Profile
-            .Select(phase => new[]
-            {
-                Names.Of(phase.Kind), Depths(phase), Formats.Clock(phase.Duration), Formats.Clock(phase.Runtime), phase.Gas,
-                showsApparatus ? phase.Circuit : string.Empty
-            })
-            .ToArray();
-        sheet.Table(profileColumns, profileRows,
-            row => result.Profile[row].Kind is SegmentKind.Stop or SegmentKind.GasSwitch);
+        WriteProfile(sheet, result, labels, rowHeight);
+        sheet.Advance(Gap);
+        WriteGas(sheet, result, labels);
 
-        sheet.Advance(10);
-        SheetColumn[] gasColumns =
-        [
-            new("Gas", 65), new("Used as", 85), new($"Used ({labels.GasVolume})", 85, PdfAlign.Right),
-            new($"Pressure ({labels.Pressure})", 110, PdfAlign.Right), new($"Reserve ({labels.GasVolume})", 85, PdfAlign.Right),
-            new($"Left ({labels.GasVolume})", 85, PdfAlign.Right)
-        ];
-        var gasRows = result.Cylinders
-            .Select(static cylinder => new[]
-            {
-                cylinder.Gas, Names.Of(cylinder.Purpose), Formats.Number(cylinder.GasUsed),
-                $"{Formats.Number(cylinder.StartPressure)} - {Formats.Number(cylinder.EndPressure)}",
-                Formats.Number(cylinder.RequiredReserve), Formats.Number(cylinder.ProjectedRemaining)
-            })
-            .ToArray();
-        sheet.Table(gasColumns, gasRows, _ => false);
+        if (withChart)
+        {
+            sheet.Advance(Gap);
+            WriteChart(sheet, ProfileChart.Create(result, plan.Units), labels, Math.Min(sheet.Remaining, LargestChart));
+        }
     }
 
-    private static void WriteFigures(SheetWriter sheet, DiveResult result, UnitLabels labels)
+    private static void WriteFigures(SheetWriter sheet, DiveResult result)
     {
         (string Label, string Value)[] figures =
         [
             ("Runtime", Formats.Minutes(result.TotalRuntime)),
-            ("Stop time", Formats.Minutes(result.StopTime)),
-            ("Maximum depth", $"{Formats.Number(result.MaximumDepth)} {labels.Depth}"),
+            ("TTS", Formats.Minutes(TimeToSurface(result))),
             ("CNS", $"{Formats.Number(result.CnsPercent)} %"),
             ("OTU", Formats.Number(result.OxygenToleranceUnits))
         ];
 
         const double gap = 6;
-        const double height = 36;
         var width = (SheetWriter.ContentWidth - gap * (figures.Length - 1)) / figures.Length;
-        sheet.EnsureSpace(height + 8);
-
         for (var index = 0; index < figures.Length; index++)
         {
             var left = SheetWriter.Margin + index * (width + gap);
-            sheet.Page.Rectangle(left, sheet.Y, width, height, SheetWriter.Sunken);
-            sheet.Page.Text(left + 7, sheet.Y + 13, figures[index].Label, PdfFont.Helvetica, 7.5, SheetWriter.Muted);
-            sheet.Page.Text(left + 7, sheet.Y + 29, figures[index].Value, PdfFont.HelveticaBold, 12, SheetWriter.Text);
+            sheet.Page.Rectangle(left, sheet.Y, width, FigureHeight, SheetWriter.Sunken);
+            sheet.Page.Text(left + 6, sheet.Y + 10, figures[index].Label, PdfFont.Helvetica, 7, SheetWriter.Muted);
+            sheet.Page.Text(left + 6, sheet.Y + 24, figures[index].Value, PdfFont.HelveticaBold, 11, SheetWriter.Text);
         }
 
-        sheet.Advance(height + 8);
+        sheet.Advance(FigureHeight + Gap / 2);
     }
 
     private static void WriteWarnings(SheetWriter sheet, DiveResult result, UnitLabels labels)
@@ -161,49 +174,107 @@ public static class DiveSheet
             sheet.Paragraph(
                 $"Ascent from {Formats.Number(violation.FromDepth)} to {Formats.Number(violation.ToDepth)} {labels.Depth} " +
                 $"passes the decompression ceiling at {Formats.Number(violation.Ceiling, 1)} {labels.Depth}.",
-                PdfFont.HelveticaBold, 9.5, SheetWriter.Danger);
+                PdfFont.HelveticaBold, 8.5, SheetWriter.Danger);
         }
 
         foreach (var cylinder in result.Cylinders.Where(static cylinder => cylinder.Shortfall > 0))
         {
             sheet.Paragraph(
                 $"{cylinder.Gas} runs out: the dive needs {Formats.Number(cylinder.Shortfall)} {labels.GasVolume} more than the cylinder holds.",
-                PdfFont.HelveticaBold, 9.5, SheetWriter.Danger);
+                PdfFont.HelveticaBold, 8.5, SheetWriter.Danger);
         }
 
         if (!result.ReserveSatisfied)
         {
-            sheet.Paragraph("A cylinder does not hold the reserve gas the plan requires.", PdfFont.HelveticaBold, 9.5, SheetWriter.Danger);
+            sheet.Paragraph("A cylinder does not hold the reserve gas the plan requires.", PdfFont.HelveticaBold, 8.5, SheetWriter.Danger);
         }
     }
 
-    private static void WriteChart(SheetWriter sheet, ProfileChart chart, UnitLabels labels)
+    /// <remarks>Depth and runtime are what a diver reads off the sheet underwater, so they are bold.</remarks>
+    private static void WriteProfile(SheetWriter sheet, DiveResult result, UnitLabels labels, double rowHeight)
+    {
+        var showsApparatus = result.Profile.Any(static phase => phase.Circuit != BreathingLoop.OpenCircuit.ToString());
+        SheetColumn[] columns =
+        [
+            new("", 80), new($"Depth ({labels.Depth})", 80, PdfAlign.Right, Emphasis: true), new("Time (min)", 80, PdfAlign.Right),
+            new("Runtime (min)", 90, PdfAlign.Right, Emphasis: true), new("Gas", 90), new(showsApparatus ? "Apparatus" : "", 111)
+        ];
+        var rows = result.Profile
+            .Select(phase => new[]
+            {
+                Names.Of(phase.Kind), Formats.Number(phase.EndDepth), Formats.Clock(phase.Duration), Formats.Clock(phase.Runtime),
+                phase.Gas, showsApparatus ? phase.Circuit : string.Empty
+            })
+            .ToArray();
+
+        sheet.Table(columns, rows, row => result.Profile[row].Kind is SegmentKind.Stop or SegmentKind.GasSwitch,
+            rowHeight, Math.Clamp(rowHeight * 0.62, 6.5, 10));
+    }
+
+    private static void WriteGas(SheetWriter sheet, DiveResult result, UnitLabels labels)
+    {
+        var missing = result.Cylinders.Any(static cylinder => cylinder.Shortfall > 0);
+        SheetColumn[] columns = missing
+            ?
+            [
+                new("Gas", 60), new("Used as", 85), new($"Pressure ({labels.Pressure})", 90, PdfAlign.Right),
+                new($"Used ({labels.GasVolume})", 72, PdfAlign.Right), new($"Reserve ({labels.GasVolume})", 72, PdfAlign.Right),
+                new($"Left ({labels.GasVolume})", 72, PdfAlign.Right), new($"Missing ({labels.GasVolume})", 80, PdfAlign.Right)
+            ]
+            :
+            [
+                new("Gas", 70), new("Used as", 95), new($"Pressure ({labels.Pressure})", 100, PdfAlign.Right),
+                new($"Used ({labels.GasVolume})", 85, PdfAlign.Right), new($"Reserve ({labels.GasVolume})", 85, PdfAlign.Right),
+                new($"Left ({labels.GasVolume})", 85, PdfAlign.Right)
+            ];
+        var rows = result.Cylinders
+            .Select(cylinder => new[]
+                {
+                    cylinder.Gas, Names.Of(cylinder.Purpose),
+                    $"{Formats.Number(cylinder.StartPressure)} to {Formats.Number(cylinder.EndPressure)}",
+                    Formats.Number(cylinder.GasUsed), Formats.Number(cylinder.RequiredReserve), Formats.Number(cylinder.ProjectedRemaining)
+                }
+                .Concat(missing ? [Formats.Number(cylinder.Shortfall)] : [])
+                .ToArray())
+            .ToArray();
+
+        sheet.Table(columns, rows, _ => false, GasRowHeight, 8.5);
+    }
+
+    private static void WriteChart(SheetWriter sheet, ProfileChart chart, UnitLabels labels, double height)
     {
         var page = sheet.Page;
-        var area = new ChartArea(SheetWriter.Margin + 30, sheet.Y + 14, SheetWriter.ContentWidth - 34, ChartHeight - 40);
+        var area = new ChartArea(SheetWriter.Margin + 30, sheet.Y + 12, SheetWriter.ContentWidth - 34, height - 36);
 
         page.Rectangle(area.Left, area.Top, area.Width, area.Height, Water);
         foreach (var depth in chart.DepthTicks)
         {
             var y = chart.Y(depth, area);
             page.Line(area.Left, y, area.Left + area.Width, y, 0.4, SheetWriter.Rule);
-            page.Text(area.Left - 5, y + 3, Formats.Number(depth), PdfFont.Helvetica, 7.5, SheetWriter.Muted, PdfAlign.Right);
+            page.Text(area.Left - 5, y + 3, Formats.Number(depth), PdfFont.Helvetica, 7, SheetWriter.Muted, PdfAlign.Right);
         }
 
         foreach (var minutes in chart.TimeTicks)
         {
             var x = chart.X(minutes, area);
             page.Line(x, area.Top, x, area.Top + area.Height, 0.4, SheetWriter.Rule);
-            page.Text(x, area.Top + area.Height + 11, Formats.Number(minutes), PdfFont.Helvetica, 7.5, SheetWriter.Muted, PdfAlign.Center);
+            page.Text(x, area.Top + area.Height + 10, Formats.Number(minutes), PdfFont.Helvetica, 7, SheetWriter.Muted, PdfAlign.Center);
         }
 
         var points = chart.Points.Select(point => (chart.X(point.Minutes, area), chart.Y(point.Depth, area))).ToArray();
         page.Polygon(points, DiveFill);
+
+        var ceiling = chart.Ceiling.Select(point => (chart.X(point.Minutes, area), chart.Y(point.Depth, area))).ToArray();
+        if (ceiling.Length > 0)
+        {
+            page.Polygon([.. ceiling, (ceiling[^1].Item1, area.Top), (ceiling[0].Item1, area.Top)], CeilingZone);
+        }
+
         page.Polyline(points, 1.6, SheetWriter.Brand);
 
-        if (chart.Ceiling.Count > 0)
+        if (ceiling.Length > 0)
         {
-            page.Polyline([.. chart.Ceiling.Select(point => (chart.X(point.Minutes, area), chart.Y(point.Depth, area)))], 1.2, SheetWriter.Danger);
+            page.Polyline(ceiling, 1.2, SheetWriter.Danger);
         }
 
         foreach (var stop in chart.Stops)
@@ -213,16 +284,19 @@ public static class DiveSheet
                 stop.IsGasSwitch ? SwitchColor : StopColor);
             if (stop.IsGasSwitch)
             {
-                page.Text(chart.X(stop.StartMinutes, area) + 3, y - 5, stop.Gas, PdfFont.HelveticaBold, 7.5, SwitchColor);
+                page.Text(chart.X(stop.StartMinutes, area) + 3, y - 5, stop.Gas, PdfFont.HelveticaBold, 7, SwitchColor);
             }
         }
 
-        page.Text(area.Left + 3, area.Top - 4, labels.Depth, PdfFont.Helvetica, 7.5, SheetWriter.Muted);
-        page.Text(area.Left + area.Width, area.Top + area.Height + 22, "min", PdfFont.Helvetica, 7.5, SheetWriter.Muted, PdfAlign.Right);
-        sheet.Advance(ChartHeight);
+        page.Text(area.Left + 3, area.Top - 3, labels.Depth, PdfFont.Helvetica, 7, SheetWriter.Muted);
+        page.Text(area.Left + area.Width, area.Top + area.Height + 20, "min", PdfFont.Helvetica, 7, SheetWriter.Muted, PdfAlign.Right);
+        sheet.Advance(height);
     }
 
-    private static string Depths(ProfileRow phase) => phase.StartDepth.Equals(phase.EndDepth)
-        ? Formats.Number(phase.EndDepth)
-        : string.Create(CultureInfo.InvariantCulture, $"{Formats.Number(phase.StartDepth)} - {Formats.Number(phase.EndDepth)}");
+    /// <remarks>
+    /// The ascent starts after the last level; a level of zero minutes has no phase of its own, so after the
+    /// last level or descent.
+    /// </remarks>
+    private static TimeSpan TimeToSurface(DiveResult result) => result.TotalRuntime
+        - result.Profile.Last(static phase => phase.Kind is SegmentKind.Bottom or SegmentKind.Descent).Runtime;
 }

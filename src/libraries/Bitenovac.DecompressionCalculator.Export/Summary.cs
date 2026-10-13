@@ -11,16 +11,18 @@ internal static class Summary
 {
     public static string Header(DivePlanDocument plan, DateTime exportedAt)
     {
-        var algorithm = plan.Algorithm switch
-        {
-            BuhlmannZhl16cSettings buhlmann =>
-                $"Bühlmann ZHL-16C GF {Formats.Number(buhlmann.GradientFactorLow)}/{Formats.Number(buhlmann.GradientFactorHigh)}",
-            _ => "Unknown algorithm"
-        };
         var units = plan.Units == UnitSystem.Imperial ? "Imperial" : "Metric";
-        var date = exportedAt.ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
-        return $"{algorithm} · {units} · exported {date} UTC";
+        return $"{Algorithm(plan)} · {units} · exported {Date(exportedAt)} UTC";
     }
+
+    public static string Algorithm(DivePlanDocument plan) => plan.Algorithm switch
+    {
+        BuhlmannZhl16cSettings buhlmann =>
+            $"Bühlmann ZHL-16C GF {Formats.Number(buhlmann.GradientFactorLow)}/{Formats.Number(buhlmann.GradientFactorHigh)}",
+        _ => "Unknown algorithm"
+    };
+
+    public static string Date(DateTime exportedAt) => exportedAt.ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
 
     public static string Settings(DivePlanDocument plan)
     {

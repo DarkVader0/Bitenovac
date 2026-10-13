@@ -21,8 +21,6 @@ internal sealed class PdfDocument
 
     private readonly List<PdfPage> _pages = [];
 
-    public IReadOnlyList<PdfPage> Pages => _pages;
-
     public PdfPage AddPage()
     {
         var page = new PdfPage();
