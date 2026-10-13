@@ -102,15 +102,15 @@
     <div class="table-scroll">
         <table class="input-table @(imperial ? "cylinders-imperial" : "cylinders")">
             <colgroup>
-                <col/>
-                <col/>
-                <col/>
+                <col class="col-percent"/>
+                <col class="col-percent"/>
+                <col class="col-size"/>
                 @if (imperial)
                 {
-                    <col/>
+                    <col class="col-pressure"/>
                 }
+                <col class="col-pressure"/>
                 <col/>
-                <col class="col-role"/>
                 @if (removableCylinders)
                 {
                     <col class="col-remove"/>
@@ -125,7 +125,7 @@
                 {
                     <th>Rated <span class="unit">@Labels.Pressure</span></th>
                 }
-                <th>Fill <span class="unit">@Labels.Pressure</span></th>
+                <th>Pressure <span class="unit">@Labels.Pressure</span></th>
                 <th>Use</th>
                 @if (removableCylinders)
                 {
@@ -172,12 +172,12 @@
                     <td>
                         @if (CylinderRoles.Resolve(Value.Circuit, cylinder) == CylinderPurpose.Oxygen)
                         {
-                            <span class="cell-static">O2</span>
+                            <span class="cell-static">Oxygen</span>
                         }
                         else
                         {
                             <SelectCell TValue="CylinderPurpose" Label="@($"{name} used as")" Options="CylinderRoles.Selectable(Value.Circuit)"
-                                        Text="purpose => Display.ShortName(purpose, Value.Circuit)" Value="cylinder.Purpose"
+                                        Text="purpose => Display.Name(purpose, Value.Circuit)" Value="cylinder.Purpose"
                                         Invalid="issues[nameof(CylinderInput.Purpose)] is not null"
                                         ValueChanged="value => ChangeCylinderAsync(at, cylinder with { Purpose = value })"/>
                         }

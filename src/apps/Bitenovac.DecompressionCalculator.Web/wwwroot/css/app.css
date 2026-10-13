@@ -274,17 +274,34 @@ details > .field-grid {
 }
 
 .input-table .col-remove {
-    width: calc(var(--touch-target) + 0.3rem);
+    width: 2.4rem;
 }
 
-.input-table .col-role {
-    width: 5.25rem;
+.input-table td .icon-button {
+    width: 100%;
+}
+
+.input-table .col-percent {
+    width: 2.35rem;
+}
+
+.input-table .col-size {
+    width: 2.6rem;
+}
+
+.input-table .col-pressure {
+    width: 2.9rem;
 }
 
 .cell-input {
     width: 100%;
     padding: 0.5rem 0.25rem;
     font-size: 1rem;
+}
+
+select.cell-input {
+    padding-right: 0;
+    font-size: 0.9375rem;
 }
 
 .cell-input[type="number"] {
@@ -717,6 +734,10 @@ body:has(.app-banner) {
     margin: 0 0 1rem;
 }
 
+.table-scroll + .figures {
+    margin-top: 1.25rem;
+}
+
 .figures div {
     padding: 0.5rem 0.75rem;
     background-color: var(--surface-sunken);
@@ -796,8 +817,25 @@ caption {
     background-color: var(--surface-sunken);
 }
 
+/* Fixed layout gives depth, time, runtime and gas equal shares of the width, so on a phone they
+   spread across the screen instead of bunching against their right edges. */
+table.profile {
+    table-layout: fixed;
+}
+
+.profile .col-phase {
+    width: 2.5rem;
+}
+
+.profile .col-apparatus {
+    width: 28%;
+}
+
+.profile .number {
+    text-align: center;
+}
+
 td.phase {
-    width: 2rem;
     padding-right: 0;
     line-height: 0;
 }
@@ -897,8 +935,8 @@ td.phase {
 
     .profile td,
     .profile th {
-        padding: 0.45rem 0.3rem;
-        font-size: 0.875rem;
+        padding: 0.5rem 0.25rem;
+        font-size: 0.9375rem;
     }
 
     .figures {

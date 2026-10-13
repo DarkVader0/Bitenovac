@@ -7,40 +7,22 @@
     }
     else
     {
-        <dl class="figures">
-            <div><dt>Runtime</dt><dd>@Display.Minutes(Result.TotalRuntime)</dd></div>
-            <div><dt>Stop time</dt><dd>@Display.Minutes(Result.StopTime)</dd></div>
-            <div><dt>Maximum depth</dt><dd>@Display.Number(Result.MaximumDepth) @Labels.Depth</dd></div>
-            <div><dt>CNS</dt><dd>@Display.Number(Result.CnsPercent) %</dd></div>
-            <div><dt>OTU</dt><dd>@Display.Number(Result.OxygenToleranceUnits)</dd></div>
-        </dl>
-
-        @if (!Result.IsValid)
-        {
-            <div class="alert alert-danger">
-                <p>An ascent between levels passes the decompression ceiling. Add a stop or shorten the level.</p>
-                <ul>
-                    @foreach (var violation in Result.Violations)
-                    {
-                        <li>
-                            @Display.Number(violation.FromDepth) → @Display.Number(violation.ToDepth) @Labels.Depth,
-                            ceiling @Display.Number(violation.Ceiling, 1) @Labels.Depth
-                        </li>
-                    }
-                </ul>
-            </div>
-        }
-
-        @if (!Result.ReserveSatisfied)
-        {
-            <p class="alert alert-warning">A cylinder does not hold the reserve gas the plan requires.</p>
-        }
-
         <h3>Profile</h3>
         <ProfileChartView Result="Result" Units="Units"/>
         <div class="table-scroll">
             <table class="profile">
                 <caption>Depth at the end of each phase in @Labels.Depth, time and runtime in minutes</caption>
+                <colgroup>
+                    <col class="col-phase"/>
+                    <col/>
+                    <col/>
+                    <col/>
+                    <col/>
+                    @if (ShowsApparatus)
+                    {
+                        <col class="col-apparatus"/>
+                    }
+                </colgroup>
                 <thead>
                 <tr>
                     <th><span class="visually-hidden">Phase</span></th>
@@ -72,6 +54,35 @@
                 </tbody>
             </table>
         </div>
+
+        <dl class="figures">
+            <div><dt>Runtime</dt><dd>@Display.Minutes(Result.TotalRuntime)</dd></div>
+            <div><dt>Stop time</dt><dd>@Display.Minutes(Result.StopTime)</dd></div>
+            <div><dt>Maximum depth</dt><dd>@Display.Number(Result.MaximumDepth) @Labels.Depth</dd></div>
+            <div><dt>CNS</dt><dd>@Display.Number(Result.CnsPercent) %</dd></div>
+            <div><dt>OTU</dt><dd>@Display.Number(Result.OxygenToleranceUnits)</dd></div>
+        </dl>
+
+        @if (!Result.IsValid)
+        {
+            <div class="alert alert-danger">
+                <p>An ascent between levels passes the decompression ceiling. Add a stop or shorten the level.</p>
+                <ul>
+                    @foreach (var violation in Result.Violations)
+                    {
+                        <li>
+                            @Display.Number(violation.FromDepth) → @Display.Number(violation.ToDepth) @Labels.Depth,
+                            ceiling @Display.Number(violation.Ceiling, 1) @Labels.Depth
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+
+        @if (!Result.ReserveSatisfied)
+        {
+            <p class="alert alert-warning">A cylinder does not hold the reserve gas the plan requires.</p>
+        }
 
         <h3>Gas</h3>
         <div class="gas-list">
