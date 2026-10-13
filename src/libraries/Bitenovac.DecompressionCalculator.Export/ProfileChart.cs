@@ -46,12 +46,11 @@ public sealed class ProfileChart
     private const int MaximumTicks = 6;
 
     private ProfileChart(IReadOnlyList<ChartPoint> points, IReadOnlyList<ChartStop> stops, IReadOnlyList<ChartPoint> ceiling,
-        double maximumMinutes, IReadOnlyList<double> timeTicks, IReadOnlyList<double> depthTicks)
+        IReadOnlyList<double> timeTicks, IReadOnlyList<double> depthTicks)
     {
         Points = points;
         Stops = stops;
         Ceiling = ceiling;
-        MaximumMinutes = maximumMinutes;
         TimeTicks = timeTicks;
         DepthTicks = depthTicks;
     }
@@ -76,7 +75,7 @@ public sealed class ProfileChart
     public IReadOnlyList<ChartPoint> Ceiling { get; }
 
     /// <summary>
-    /// Gets the runtimes, in minutes, at which the time axis is labelled: from zero in equal steps, up to <see cref="MaximumMinutes"/>.
+    /// Gets the runtimes, in minutes, at which the time axis is labelled, from zero to <see cref="MaximumMinutes"/>.
     /// </summary>
     public IReadOnlyList<double> TimeTicks { get; }
 
@@ -86,9 +85,9 @@ public sealed class ProfileChart
     public IReadOnlyList<double> DepthTicks { get; }
 
     /// <summary>
-    /// Gets the runtime at the right edge of the chart, in minutes: the runtime rounded up to a whole minute.
+    /// Gets the runtime at the right edge of the chart, in minutes: the runtime rounded up to a tick.
     /// </summary>
-    public double MaximumMinutes { get; }
+    public double MaximumMinutes => TimeTicks[^1];
 
     /// <summary>
     /// Gets the depth at the bottom edge of the chart: the maximum depth rounded up to a tick.
@@ -137,8 +136,7 @@ public sealed class ProfileChart
             ? [.. result.Ceiling.Select(static point => new ChartPoint(point.Runtime.TotalMinutes, point.Depth))]
             : [];
 
-        var maximumMinutes = Math.Max(1, Math.Ceiling(startMinutes - 1e-9));
-        return new ProfileChart(points, stops, ceiling, maximumMinutes, TicksWithin(maximumMinutes, MinuteSteps), Ticks(deepest, depthSteps));
+        return new ProfileChart(points, stops, ceiling, Ticks(startMinutes, MinuteSteps), Ticks(deepest, depthSteps));
     }
 
     /// <summary>
@@ -163,22 +161,8 @@ public sealed class ProfileChart
     /// </remarks>
     private static double[] Ticks(double maximum, double[] steps)
     {
-        var step = Step(maximum, steps);
+        var step = steps.FirstOrDefault(step => maximum / step <= MaximumTicks, steps[^1]);
         var count = Math.Max(1, (int)Math.Ceiling(maximum / step - 1e-9));
         return [.. Enumerable.Range(0, count + 1).Select(index => index * step)];
     }
-
-    /// <remarks>
-    /// Unlike <see cref="Ticks"/>, the axis ends at <paramref name="maximum"/> itself, so the last
-    /// label may fall short of the edge.
-    /// </remarks>
-    private static double[] TicksWithin(double maximum, double[] steps)
-    {
-        var step = Step(maximum, steps);
-        var count = (int)Math.Floor(maximum / step + 1e-9);
-        return [.. Enumerable.Range(0, count + 1).Select(index => index * step)];
-    }
-
-    private static double Step(double maximum, double[] steps) =>
-        steps.FirstOrDefault(step => maximum / step <= MaximumTicks, steps[^1]);
 }
