@@ -283,7 +283,8 @@ details > .field-grid {
     font-size: 1rem;
 }
 
-/* On a phone the numbers keep just the width their values need, so the role keeps its full name. */
+/* On a phone a cylinder takes two lines: its four numbers across the full width, then its role
+   and remove button. */
 @media (max-width: 640px) {
     .input-table .col-remove {
         width: 2.4rem;
@@ -293,51 +294,38 @@ details > .field-grid {
         width: 100%;
     }
 
-    .input-table .col-role {
-        width: auto;
+    .input-table.cylinders,
+    .cylinders thead,
+    .cylinders tbody {
+        display: block;
     }
 
-    .input-table .col-percent {
-        width: 2.35rem;
+    .cylinders colgroup,
+    .cylinders thead th:nth-child(n + 5) {
+        display: none;
     }
 
-    .input-table .col-size {
-        width: 2.6rem;
+    .cylinders thead tr,
+    .cylinders tbody tr:not(.row-issues) {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
-    .input-table .col-pressure {
-        width: 2.9rem;
+    .cylinders tbody tr:not(.row-issues) {
+        margin-bottom: 0.75rem;
     }
 
-    select.cell-input {
-        padding-right: 0;
-        font-size: 0.9375rem;
+    .cylinders tbody td:nth-child(5) {
+        grid-column: 1 / 4;
     }
 
-    .cylinders-imperial .col-percent {
-        width: 2.2rem;
+    .cylinders tbody td:nth-child(5):last-child {
+        grid-column: 1 / -1;
     }
 
-    .cylinders-imperial .col-remove {
-        width: 2.2rem;
-    }
-
-    .cylinders-imperial .col-size {
-        width: 3rem;
-    }
-
-    .cylinders-imperial select.cell-input {
-        padding-left: 0.15rem;
-        font-size: 0.875rem;
-    }
-
-    .cylinders-imperial input.cell-input {
-        padding-right: 0.15rem;
-        padding-left: 0.15rem;
-    }
-
-    .cylinders-imperial .col-pressure {
-        width: 3.35rem;
+    .cylinders tr.row-issues {
+        display: block;
+        margin: -0.75rem 0 0.75rem;
     }
 }
 

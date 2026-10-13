@@ -99,12 +99,12 @@
         var columns = removableCylinders ? 6 : 5;
     }
     <div class="table-scroll">
-        <table class="input-table cylinders @(Units == UnitSystem.Imperial ? "cylinders-imperial" : null)">
+        <table class="input-table cylinders">
             <colgroup>
-                <col class="col-percent"/>
-                <col class="col-percent"/>
-                <col class="col-size"/>
-                <col class="col-pressure"/>
+                <col/>
+                <col/>
+                <col/>
+                <col/>
                 <col class="col-role"/>
                 @if (removableCylinders)
                 {
@@ -143,14 +143,14 @@
                                     ValueChanged="value => ChangeCylinderAsync(at, cylinder with { HeliumPercent = value })"/>
                     </td>
                     <td>
-                        <NumberCell Label="@($"{name} size in {Labels.CylinderSize}")" Value="CylinderSizes.WaterVolume(cylinder, Units)"
+                        <NumberCell Label="@($"{name} size in {Labels.CylinderSize}")" Value="CylinderSizes.Shown(cylinder, Units)"
                                     Invalid="issues[nameof(CylinderInput.Size)] is not null"
-                                    ValueChanged="value => ChangeCylinderAsync(at, CylinderSizes.WithWaterVolume(cylinder, value, Units))"/>
+                                    ValueChanged="value => ChangeCylinderAsync(at, CylinderSizes.WithSize(cylinder, value, Units))"/>
                     </td>
                     <td>
                         <NumberCell Label="@($"{name} fill pressure in {Labels.Pressure}")" Value="cylinder.StartPressure"
                                     Invalid="issues[nameof(CylinderInput.StartPressure)] is not null"
-                                    ValueChanged="value => ChangeCylinderAsync(at, cylinder with { StartPressure = value })"/>
+                                    ValueChanged="value => ChangeCylinderAsync(at, CylinderSizes.WithPressure(cylinder, value, Units))"/>
                     </td>
                     <td>
                         @if (CylinderRoles.Resolve(Value.Circuit, cylinder) == CylinderPurpose.Oxygen)
@@ -175,7 +175,7 @@
                 </tr>
                 <RowIssues Columns="columns"
                            Messages="[issues[nameof(CylinderInput.OxygenPercent)], issues[nameof(CylinderInput.HeliumPercent)],
-                                      issues[nameof(CylinderInput.Size)], issues[nameof(CylinderInput.RatedPressure)],
+                                      issues[nameof(CylinderInput.Size)],
                                       issues[nameof(CylinderInput.StartPressure)], issues[nameof(CylinderInput.Purpose)]]"/>
             }
             </tbody>
