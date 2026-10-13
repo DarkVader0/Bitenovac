@@ -168,7 +168,9 @@ nuget.org at the version pinned in `Directory.Packages.props`, not from the sour
 2. Wait for the next Official build, or run one: Actions → Official → Run workflow. The packages
    keep the library version rather than the date.
 3. Publish them from that drop: Actions → Deploy libraries → Run workflow. Leave the drop empty for
-   the newest one. A version that is already on nuget.org fails the run.
+   the newest one. Packages nuget.org already has at that version are skipped, so a run that
+   stopped part way can be run again; a run in which every package is already published fails, as
+   the version was not bumped.
 4. Once nuget.org lists the new version, move the Web app onto it by changing its two
    `PackageVersion` entries in `Directory.Packages.props`.
 
