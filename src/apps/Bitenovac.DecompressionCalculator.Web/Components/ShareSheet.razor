@@ -40,7 +40,9 @@
 
     private string Title => string.IsNullOrWhiteSpace(Plan.Name) ? FileNames.Fallback : Plan.Name;
 
-    private string FileName => FileNames.Pdf(Plan.Dives.Count > 1 ? $"{Title} - dive {Dive + 1}" : Title);
+    private string FileName => FileNames.Pdf(Plan.Dives.Count > 1 || !string.IsNullOrWhiteSpace(Plan.Dives[Dive].Name)
+        ? $"{Title} - {Plan.Dives[Dive].DisplayName(Dive + 1)}"
+        : Title);
 
     protected override async Task OnInitializedAsync()
     {

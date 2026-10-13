@@ -12,6 +12,7 @@
     --link: #0060a8;
 
     --danger: #b32121;
+    --warning: #b85c00;
     --success: #1c8043;
 
     /* Deliberately generous: the primary use is a wet finger on a boat deck. */
@@ -263,11 +264,32 @@ details > .field-grid {
     width: 7rem;
 }
 
-.icon-button.add-button {
+.icon,
+.icon-button > .icon {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: currentColor;
+}
+
+button:has(> .icon) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+/* On light buttons the action shows in its colour; a filled button keeps its own text colour. */
+:is(.secondary, .icon-button, .dive-tab) > .icon-add {
     color: var(--brand-bright);
-    font-size: 1.5rem;
-    font-weight: 600;
-    line-height: 1;
+}
+
+:is(.secondary, .icon-button) > .icon-remove {
+    color: var(--text-muted);
+}
+
+:is(.secondary, .icon-button):hover > .icon-remove {
+    color: var(--danger);
 }
 
 .input-table th,
@@ -349,6 +371,13 @@ details > .field-grid {
 .cell-input[type="number"] {
     appearance: textfield;
     -moz-appearance: textfield;
+}
+
+select.cell-input {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
 }
 
 .cell-input::-webkit-inner-spin-button,
@@ -447,6 +476,7 @@ a.icon-button {
 /* ------------------------------------------------------------------------ chart -- */
 
 .profile-chart {
+    position: relative;
     margin: 0 0 1rem;
 }
 
@@ -454,15 +484,6 @@ a.icon-button {
     display: block;
     width: 100%;
     height: auto;
-}
-
-.chart-water {
-    fill: #eef5fc;
-}
-
-.chart-grid {
-    stroke: var(--border);
-    stroke-width: 0.6;
 }
 
 .chart-label,
@@ -496,9 +517,16 @@ a.icon-button {
 }
 
 .chart-stop {
-    stroke: #c98a00;
-    stroke-width: 4;
+    stroke-width: 2;
     stroke-linecap: round;
+}
+
+.chart-stop-deco {
+    stroke: var(--danger);
+}
+
+.chart-stop-safety {
+    stroke: #e8890c;
 }
 
 .chart-switch {
@@ -515,6 +543,85 @@ a.icon-button {
     fill: var(--success);
     font-size: 10px;
     font-weight: 600;
+}
+
+.profile-chart svg {
+    touch-action: pan-y;
+    cursor: crosshair;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.chart-cursor line {
+    stroke: var(--border);
+    stroke-width: 0.6;
+}
+
+.chart-cursor-depth {
+    fill: var(--brand-bright);
+    stroke: var(--surface);
+    stroke-width: 1.5;
+}
+
+.chart-cursor-ceiling {
+    fill: var(--danger);
+    stroke: var(--surface);
+    stroke-width: 1.5;
+}
+
+/* Laid over the chart beside the cursor; pointer events pass through so moving onto it does not
+   count as leaving the chart. */
+.chart-readout {
+    position: absolute;
+    top: 0.75rem;
+    z-index: 1;
+    display: grid;
+    gap: 0.05rem;
+    margin: 0;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.35;
+    white-space: nowrap;
+    pointer-events: none;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.chart-readout div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.chart-readout dt {
+    color: var(--text-muted);
+}
+
+.chart-readout dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+.chart-readout-ceiling dd {
+    color: var(--danger);
+}
+
+.chart-readout-phase dd {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.chart-readout-hint {
+    position: absolute;
+    top: 0.25rem;
+    right: 0;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    pointer-events: none;
 }
 
 /* ------------------------------------------------------------------------ share -- */
@@ -574,14 +681,14 @@ a.icon-button {
     }
 
     .figures div,
-    .gas-card,
+    tr.gas-error td,
+    tr.gas-warning td,
     .row-stop td {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 
     .profile-chart,
-    .gas-card,
     tr {
         break-inside: avoid;
     }
@@ -618,6 +725,36 @@ a.icon-button {
     border-style: dashed;
 }
 
+.dive-name-heading {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+/* Reads as the card's title; the dashed line shows it can be renamed. */
+.dive-name {
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0.25rem 0.5rem;
+    margin-left: -0.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    background-color: transparent;
+    border-color: transparent;
+    border-bottom: 1px dashed var(--border);
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.dive-name::placeholder {
+    color: var(--text);
+    opacity: 1;
+}
+
+.dive-name:hover,
+.dive-name:focus {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
 .card-header {
     display: flex;
     flex-wrap: wrap;
@@ -633,6 +770,7 @@ a.icon-button {
 
 .surface-interval {
     margin: 0 0 1rem;
+    grid-template-columns: repeat(2, minmax(0, 9rem));
 }
 
 .series-row {
@@ -779,23 +917,28 @@ body:has(.app-banner) {
     display: none;
 }
 
-/* A computer with a mouse and room to spare keeps the settings open in a column on the left.
-   Tablets and phones, with touch and less width, keep the drawer behind the settings button. */
+.plans-panel {
+    display: none;
+}
+
+/* A computer with a mouse and room to spare keeps the settings open in a column on the right,
+   and from a wider screen the saved plans in a column on the left. Tablets and phones, with touch
+   and less width, keep the drawer behind the settings button and the plans on their own page. */
 @media (min-width: 1200px) and (hover: hover) and (pointer: fine) {
     main.content:has(> .settings-panel) {
         display: grid;
-        grid-template-columns: 24rem minmax(0, 64rem);
+        grid-template-columns: minmax(0, 64rem) 24rem;
         column-gap: 2rem;
         justify-content: center;
         max-width: none;
     }
 
     main.content:has(> .settings-panel) > * {
-        grid-column: 2;
+        grid-column: 1;
     }
 
     main.content:has(> .settings-panel) > .settings-panel {
-        grid-column: 1;
+        grid-column: 2;
         grid-row: 1 / span 99;
     }
 
@@ -818,6 +961,132 @@ body:has(.app-banner) {
     .settings-backdrop {
         display: none;
     }
+}
+
+@media (min-width: 1440px) and (hover: hover) and (pointer: fine) {
+    main.content:has(> .settings-panel) {
+        grid-template-columns: 17rem minmax(0, 64rem) 24rem;
+    }
+
+    main.content:has(> .settings-panel) > * {
+        grid-column: 2;
+    }
+
+    main.content:has(> .settings-panel) > .settings-panel {
+        grid-column: 3;
+    }
+
+    main.content:has(> .settings-panel) > .plans-panel {
+        position: sticky;
+        top: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        grid-column: 1;
+        grid-row: 1 / span 99;
+        align-self: start;
+        max-height: calc(100vh - 3rem);
+        overflow-y: auto;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+    }
+
+    .plans-button,
+    .another-plan {
+        display: none;
+    }
+}
+
+.plans-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: 0 0 0.75rem;
+}
+
+.plans-panel-header h2 {
+    margin: 0;
+}
+
+.plans-panel-header button {
+    padding: 0.35rem 0.75rem;
+}
+
+.plans-panel-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.plans-panel-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 0 0 0.25rem;
+    border-radius: var(--radius);
+}
+
+.plans-panel-item:hover,
+.plans-panel-item.current {
+    background-color: var(--surface-sunken);
+}
+
+.plans-panel-item.current {
+    box-shadow: inset 3px 0 0 var(--brand-bright);
+}
+
+.plans-panel-link {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0.5rem 0.25rem 0.5rem 0.75rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.plans-panel-link .plan-item-name {
+    font-size: 1rem;
+}
+
+/* The actions stay out of the way until the plan is pointed at or open. */
+.plans-panel-actions {
+    display: flex;
+    gap: 0.125rem;
+    padding-right: 0.25rem;
+    visibility: hidden;
+}
+
+.plans-panel-item:hover .plans-panel-actions,
+.plans-panel-item:focus-within .plans-panel-actions,
+.plans-panel-item.current .plans-panel-actions {
+    visibility: visible;
+}
+
+.plans-panel-actions .icon-button {
+    width: 2rem;
+    min-height: 2rem;
+    border-color: transparent;
+}
+
+.plans-panel-actions .icon-button:hover {
+    border-color: var(--border);
+}
+
+.plans-panel-confirm {
+    display: flex;
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.75rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.plans-panel-confirm button {
+    padding: 0.25rem 0.75rem;
+    min-height: 2rem;
 }
 
 .alert .secondary {
@@ -955,76 +1224,46 @@ td.phase {
 }
 
 .phase-stop,
+.phase-safetystop,
 .phase-gasswitch {
     stroke: var(--brand-bright);
 }
 
-.gas-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
-    gap: 0.75rem;
+.gas .number {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
-.gas-card {
-    padding: 0.75rem;
-    background-color: var(--surface-sunken);
-    border-left: 4px solid var(--border);
-    border-radius: var(--radius);
+.gas-name {
+    font-weight: 600;
 }
 
-.gas-card-danger {
-    border-left-color: var(--danger);
+/* Red: the cylinder runs out before the dive ends. Orange: it lasts, but without the reserve. */
+tr.gas-error td {
+    background-color: rgba(179, 33, 33, 0.08);
 }
 
-.gas-missing dt,
-.gas-missing dd {
+tr.gas-error .gas-end,
+tr.gas-error .gas-short {
     color: var(--danger);
-    font-weight: 600;
+    font-weight: 700;
 }
 
-.gas-card-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0 0.75rem;
-    margin: 0 0 0.5rem;
+tr.gas-warning td {
+    background-color: rgba(232, 137, 12, 0.12);
 }
 
-.gas-pressure {
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
+tr.gas-warning .gas-left {
+    color: var(--warning);
+    font-weight: 700;
 }
 
-.gas-card h4 {
-    margin: 0;
-    font-size: 1.1rem;
+tr.gas-error td:first-child {
+    box-shadow: inset 4px 0 0 var(--danger);
 }
 
-.gas-card h4 span {
-    color: var(--text-muted);
-    font-size: 0.875rem;
-    font-weight: 400;
-}
-
-.gas-card dl {
-    margin: 0;
-}
-
-.gas-card dl div {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.2rem 0;
-}
-
-.gas-card dt {
-    color: var(--text-muted);
-}
-
-.gas-card dd {
-    margin: 0;
-    font-variant-numeric: tabular-nums;
+tr.gas-warning td:first-child {
+    box-shadow: inset 4px 0 0 var(--warning);
 }
 
 /* ------------------------------------------------------------------------ phone -- */
@@ -1061,33 +1300,14 @@ td.phase {
         grid-template-columns: repeat(2, 1fr);
     }
 
-    .gas-list {
-        gap: 0.5rem;
+    .gas td,
+    .gas th {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.875rem;
     }
 
-    .gas-card {
-        padding: 0.5rem 0.75rem;
-    }
-
-    .gas-card h4 {
-        font-size: 1rem;
-    }
-
-    .gas-card dl {
-        display: grid;
-        grid-auto-columns: 1fr;
-        grid-auto-flow: column;
-        gap: 0.5rem;
-    }
-
-    .gas-card dl div {
-        flex-direction: column;
-        gap: 0;
-        padding: 0;
-    }
-
-    .gas-card dt {
-        font-size: 0.8125rem;
+    .gas td:nth-child(2) {
+        white-space: normal;
     }
 }
 

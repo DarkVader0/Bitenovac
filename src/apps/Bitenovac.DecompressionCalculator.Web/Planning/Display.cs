@@ -1,3 +1,4 @@
+using System.Globalization;
 using Bitenovac.DecompressionAlgorithms.Core.Environment;
 using Bitenovac.DecompressionAlgorithms.Core.Equipment;
 using Bitenovac.DecompressionAlgorithms.Core.Planning;
@@ -16,6 +17,12 @@ public static class Display
     public static string Minutes(TimeSpan duration) => Formats.Minutes(duration);
 
     public static string Clock(TimeSpan duration) => Formats.Clock(duration);
+
+    public static string HoursAndMinutes(TimeSpan duration)
+    {
+        var minutes = (int)Math.Round(duration.TotalMinutes, MidpointRounding.AwayFromZero);
+        return string.Create(CultureInfo.InvariantCulture, $"{minutes / 60}:{minutes % 60:00}");
+    }
 
     public static string Name(CylinderPurpose purpose) => Names.Of(purpose);
 

@@ -1,14 +1,14 @@
 @using System.Globalization
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 
 <figure class="profile-chart">
-    <svg viewBox="0 0 @Width @Height" role="img" aria-label="Dive profile: depth over time">
-        <rect class="chart-water" x="@F(Area.Left)" y="@F(Area.Top)" width="@F(Area.Width)" height="@F(Area.Height)"/>
-
+    <svg @ref="_svg" viewBox="0 0 @Width @Height" role="img" aria-label="Dive profile: depth over time">
         @foreach (var depth in _chart.DepthTicks)
         {
             var y = _chart.Y(depth, Area);
             <g>
-                <line class="chart-grid" x1="@F(Area.Left)" y1="@F(y)" x2="@F(Area.Left + Area.Width)" y2="@F(y)"/>
                 <text class="chart-label" x="@F(Area.Left - 6)" y="@F(y + 4)" text-anchor="end">@Display.Number(depth)</text>
             </g>
         }
@@ -17,7 +17,6 @@
         {
             var x = _chart.X(minutes, Area);
             <g>
-                <line class="chart-grid" x1="@F(x)" y1="@F(Area.Top)" x2="@F(x)" y2="@F(Area.Top + Area.Height)"/>
                 <text class="chart-label" x="@F(x)" y="@F(Area.Top + Area.Height + 16)" text-anchor="middle">@Display.Number(minutes)</text>
             </g>
         }
@@ -36,7 +35,7 @@
         @foreach (var stop in _chart.Stops)
         {
             var y = _chart.Y(stop.Depth, Area);
-            <line class="@(stop.IsGasSwitch ? "chart-switch" : "chart-stop")"
+            <line class="@(StopClass(stop))"
                   x1="@F(_chart.X(stop.StartMinutes, Area))" y1="@F(y)" x2="@F(_chart.X(stop.EndMinutes, Area))" y2="@F(y)"/>
             @if (stop.IsGasSwitch)
             {
@@ -47,9 +46,45 @@
             }
         }
 
+        @if (_readout is { } readout)
+        {
+            var x = _chart.X(readout.Runtime.TotalMinutes, Area);
+            <g class="chart-cursor">
+                <line x1="@F(x)" y1="@F(Area.Top)" x2="@F(x)" y2="@F(Area.Top + Area.Height)"/>
+                @if (readout.Ceiling is { } ceiling)
+                {
+                    <circle class="chart-cursor-ceiling" cx="@F(x)" cy="@F(_chart.Y(ceiling, Area))" r="3"/>
+                }
+                <circle class="chart-cursor-depth" cx="@F(x)" cy="@F(_chart.Y(readout.Depth, Area))" r="4"/>
+            </g>
+        }
+
         <text class="chart-caption" x="@F(Area.Left + 4)" y="@F(Area.Top - 5)">@Labels.Depth</text>
         <text class="chart-caption" x="@F(Area.Left + Area.Width)" y="@F(Height - 2)" text-anchor="end">min</text>
     </svg>
+    @if (_readout is { } shown)
+    {
+        var percent = _chart.X(shown.Runtime.TotalMinutes, Area) / Width * 100;
+        var side = percent > 55 ? $"right: calc({F(100 - percent)}% + 0.5rem)" : $"left: calc({F(percent)}% + 0.5rem)";
+        <dl class="chart-readout" style="@side" aria-live="polite">
+            <div><dt>Runtime</dt><dd>@Display.Clock(shown.Runtime)</dd></div>
+            <div><dt>Depth</dt><dd>@Display.Number(shown.Depth, 1) @Labels.Depth</dd></div>
+            <div class="chart-readout-ceiling">
+                <dt>Ceiling</dt>
+                <dd>@(shown.Ceiling is { } ceiling ? $"{Display.Number(ceiling, 1)} {Labels.Depth}" : "none")</dd>
+            </div>
+            <div><dt>TTS</dt><dd>@(shown.TimeToSurface is { } tts ? Display.Minutes(tts) : "–")</dd></div>
+            <div><dt>Gas</dt><dd>@shown.Gas</dd></div>
+            <div><dt>ppO₂</dt><dd>@Display.Number(shown.OxygenPressure, 2)</dd></div>
+            <div><dt>CNS</dt><dd>@Display.Number(shown.CnsPercent) %</dd></div>
+            <div><dt>OTU</dt><dd>@Display.Number(shown.OxygenToleranceUnits)</dd></div>
+            <div class="chart-readout-phase"><dt class="visually-hidden">Phase</dt><dd>@Display.Name(shown.Kind)</dd></div>
+        </dl>
+    }
+    else
+    {
+        <p class="chart-readout-hint">Touch or point at the profile</p>
+    }
 </figure>
 
 @code {
@@ -61,6 +96,12 @@
     private string _polyline = string.Empty;
     private string _ceiling = string.Empty;
     private string _ceilingZone = string.Empty;
+    private ChartReadout? _readout;
+
+    private ElementReference _svg;
+    private DotNetObjectReference<ProfileChartView>? _listener;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _tracker;
 
     [Parameter, EditorRequired]
     public DiveResult Result { get; set; } = default!;
@@ -78,7 +119,61 @@
         _ceilingZone = _chart.Ceiling.Count == 0
             ? string.Empty
             : $"{_ceiling} {F(_chart.X(_chart.Ceiling[^1].Minutes, Area))},{F(_chart.Y(0, Area))} {F(_chart.X(_chart.Ceiling[0].Minutes, Area))},{F(_chart.Y(0, Area))}";
+
+        if (_readout is not null)
+        {
+            _readout = ChartReadout.At(Result, _readout.Runtime.TotalMinutes);
+        }
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _listener = DotNetObjectReference.Create(this);
+        _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/chart.js");
+        _tracker = await _module.InvokeAsync<IJSObjectReference>("track", _svg, _listener);
+    }
+
+    [JSInvokable]
+    public void Point(double x)
+    {
+        _readout = ChartReadout.At(Result, (x - Area.Left) / Area.Width * _chart.MaximumMinutes);
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void Leave()
+    {
+        _readout = null;
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_tracker is not null)
+        {
+            await _tracker.InvokeVoidAsync("dispose");
+            await _tracker.DisposeAsync();
+        }
+
+        if (_module is not null)
+        {
+            await _module.DisposeAsync();
+        }
+
+        _listener?.Dispose();
+    }
+
+    private static string StopClass(ChartStop stop) => stop switch
+    {
+        { IsGasSwitch: true } => "chart-switch",
+        { IsSafetyStop: true } => "chart-stop chart-stop-safety",
+        _ => "chart-stop chart-stop-deco"
+    };
 
     private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 }
