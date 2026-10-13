@@ -111,7 +111,7 @@ else
 
 @if (_shareOpen)
 {
-    <ShareSheet Plan="_plan" OnClose="() => _shareOpen = false"/>
+    <ShareSheet Plan="_plan" Dive="_selected" OnClose="() => _shareOpen = false"/>
 }
 
 @if (_settingsOpen)
