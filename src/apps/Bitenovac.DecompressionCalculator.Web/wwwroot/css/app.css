@@ -411,11 +411,23 @@ button:has(> .icon) {
     -moz-appearance: textfield;
 }
 
-select.cell-input {
+/* The browser's own dropdown arrow differs on every system; a thin chevron in the text colour
+   marks a full field instead, and a table cell shows none, like its neighbours. */
+select {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
     cursor: pointer;
+}
+
+select:not(.cell-input) {
+    padding-right: 2.25rem;
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+        linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+    background-position: calc(100% - 1.15rem) 50%, calc(100% - 0.8rem) 50%;
+    background-size: 0.35rem 0.35rem;
+    background-repeat: no-repeat;
 }
 
 .cell-input::-webkit-inner-spin-button,
@@ -988,7 +1000,7 @@ body:has(.app-banner) {
         box-shadow: none;
     }
 
-    .settings-button,
+    .plan-header .settings-button,
     .settings-done,
     .settings-backdrop {
         display: none;
@@ -1131,9 +1143,9 @@ body:has(.app-banner) {
     display: none;
 }
 
-/* On a computer the stops come first and the chart closes the results; phones keep the chart under
-   the profile heading. */
-@media (min-width: 1200px) and (hover: hover) and (pointer: fine) {
+/* On a wide screen the stops come first and the chart closes the results; phones keep the chart
+   under the profile heading. */
+@media (min-width: 1024px) {
     section.results {
         display: flex;
         flex-direction: column;
