@@ -24,6 +24,10 @@
 
         <polygon class="chart-dive" points="@_polyline"/>
         <polyline class="chart-line" points="@_polyline"/>
+        @if (_ceiling.Length > 0)
+        {
+            <polyline class="chart-ceiling" points="@_ceiling"/>
+        }
 
         @foreach (var stop in _chart.Stops)
         {
@@ -51,6 +55,7 @@
 
     private ProfileChart _chart = default!;
     private string _polyline = string.Empty;
+    private string _ceiling = string.Empty;
 
     [Parameter, EditorRequired]
     public DiveResult Result { get; set; } = default!;
@@ -64,6 +69,7 @@
     {
         _chart = ProfileChart.Create(Result, Units);
         _polyline = string.Join(' ', _chart.Points.Select(point => $"{F(_chart.X(point.Minutes, Area))},{F(_chart.Y(point.Depth, Area))}"));
+        _ceiling = string.Join(' ', _chart.Ceiling.Select(point => $"{F(_chart.X(point.Minutes, Area))},{F(_chart.Y(point.Depth, Area))}"));
     }
 
     private static string F(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);

@@ -424,6 +424,13 @@ a.icon-button {
     stroke-linejoin: round;
 }
 
+.chart-ceiling {
+    fill: none;
+    stroke: var(--danger);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+}
+
 .chart-stop {
     stroke: #c98a00;
     stroke-width: 4;
