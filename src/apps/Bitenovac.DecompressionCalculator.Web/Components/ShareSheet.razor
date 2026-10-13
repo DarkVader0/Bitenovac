@@ -29,23 +29,33 @@
     [Parameter, EditorRequired]
     public DivePlanDocument Plan { get; set; } = default!;
 
+    /// <summary>
+    /// Gets or sets the zero-based index of the dive the sheet is made of: the one open in the plan.
+    /// </summary>
+    [Parameter]
+    public int Dive { get; set; }
+
     [Parameter]
     public EventCallback OnClose { get; set; }
 
     private string Title => string.IsNullOrWhiteSpace(Plan.Name) ? FileNames.Fallback : Plan.Name;
+
+    private string FileName => FileNames.Pdf(Plan.Dives.Count > 1 ? $"{Title} - dive {Dive + 1}" : Title);
 
     protected override async Task OnInitializedAsync()
     {
         _canShareFiles = await Share.CanShareFilesAsync();
     }
 
+    private byte[] Sheet() => DiveSheet.Create(Plan, Dive, DateTime.UtcNow, AppVersion.Current);
+
     private async Task SharePdfAsync()
     {
-        var pdf = DiveSheet.Create(Plan, DateTime.UtcNow);
-        var outcome = await Share.ShareFileAsync(pdf, FileNames.Pdf(Plan.Name), ShareService.PdfType, Title, Title);
+        var pdf = Sheet();
+        var outcome = await Share.ShareFileAsync(pdf, FileName, ShareService.PdfType, Title, Title);
         if (outcome == ShareOutcome.Failed)
         {
-            await Share.DownloadAsync(pdf, FileNames.Pdf(Plan.Name), ShareService.PdfType);
+            await Share.DownloadAsync(pdf, FileName, ShareService.PdfType);
             _status = "Sharing is not available here, so the PDF was downloaded instead.";
         }
         else
@@ -56,7 +66,7 @@
 
     private async Task DownloadPdfAsync()
     {
-        await Share.DownloadAsync(DiveSheet.Create(Plan, DateTime.UtcNow), FileNames.Pdf(Plan.Name), ShareService.PdfType);
+        await Share.DownloadAsync(Sheet(), FileName, ShareService.PdfType);
         _status = "Downloaded.";
     }
 
