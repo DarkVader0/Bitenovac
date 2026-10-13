@@ -317,6 +317,46 @@ details > .field-grid {
         padding-right: 0;
         font-size: 0.9375rem;
     }
+
+    /* Imperial adds a rated pressure, and six columns do not fit: the five numbers share the
+       first line and the role, with its remove button, takes the second. */
+    .input-table.cylinders-imperial,
+    .cylinders-imperial thead,
+    .cylinders-imperial tbody {
+        display: block;
+        min-width: 0;
+    }
+
+    .cylinders-imperial colgroup {
+        display: none;
+    }
+
+    .cylinders-imperial thead tr,
+    .cylinders-imperial tbody tr:not(.row-issues) {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .cylinders-imperial tbody tr:not(.row-issues) {
+        margin-bottom: 0.5rem;
+    }
+
+    .cylinders-imperial thead th:nth-child(n + 6) {
+        display: none;
+    }
+
+    .cylinders-imperial tbody td:nth-child(6) {
+        grid-column: 1 / 5;
+    }
+
+    .cylinders-imperial tbody td:nth-child(6):last-child {
+        grid-column: 1 / -1;
+    }
+
+    .cylinders-imperial tr.row-issues {
+        display: block;
+        margin: -0.5rem 0 0.5rem;
+    }
 }
 
 .cell-input[type="number"] {
@@ -839,7 +879,7 @@ table.profile {
 }
 
 .profile .col-phase {
-    width: 2.5rem;
+    width: 1.6rem;
 }
 
 .profile .col-apparatus {
@@ -850,8 +890,13 @@ table.profile {
     text-align: center;
 }
 
-td.phase {
+.profile th:first-child,
+.profile td.phase {
     padding-right: 0;
+    padding-left: 0.1rem;
+}
+
+td.phase {
     line-height: 0;
 }
 
@@ -893,8 +938,22 @@ td.phase {
     font-weight: 600;
 }
 
-.gas-card h4 {
+.gas-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0 0.75rem;
     margin: 0 0 0.5rem;
+}
+
+.gas-pressure {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.gas-card h4 {
+    margin: 0;
     font-size: 1.1rem;
 }
 
@@ -956,6 +1015,35 @@ td.phase {
 
     .figures {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .gas-list {
+        gap: 0.5rem;
+    }
+
+    .gas-card {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .gas-card h4 {
+        font-size: 1rem;
+    }
+
+    .gas-card dl {
+        display: grid;
+        grid-auto-columns: 1fr;
+        grid-auto-flow: column;
+        gap: 0.5rem;
+    }
+
+    .gas-card dl div {
+        flex-direction: column;
+        gap: 0;
+        padding: 0;
+    }
+
+    .gas-card dt {
+        font-size: 0.8125rem;
     }
 }
 

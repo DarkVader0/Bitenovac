@@ -28,7 +28,7 @@
                     <th><span class="visually-hidden">Phase</span></th>
                     <th class="number">Depth</th>
                     <th class="number">Time</th>
-                    <th class="number">Run</th>
+                    <th class="number">Runtime</th>
                     <th>Gas</th>
                     @if (ShowsApparatus)
                     {
@@ -89,15 +89,17 @@
             @foreach (var cylinder in Result.Cylinders)
             {
                 <article class="gas-card @(cylinder.IsExhausted || !cylinder.ReserveSatisfied ? "gas-card-danger" : null)">
-                    <h4>@cylinder.Gas <span>@Display.Name(cylinder.Purpose)</span></h4>
+                    <div class="gas-card-head">
+                        <h4>@cylinder.Gas <span>@Display.Name(cylinder.Purpose)</span></h4>
+                        <span class="gas-pressure"><span class="visually-hidden">Pressure </span>@Display.Number(cylinder.StartPressure) → @Display.Number(cylinder.EndPressure) @Labels.Pressure</span>
+                    </div>
                     <dl>
                         <div><dt>Used</dt><dd>@Display.Number(cylinder.GasUsed) @Labels.GasVolume</dd></div>
-                        <div><dt>Pressure</dt><dd>@Display.Number(cylinder.StartPressure) → @Display.Number(cylinder.EndPressure) @Labels.Pressure</dd></div>
                         @if (cylinder.Shortfall > 0)
                         {
                             <div class="gas-missing"><dt>Missing</dt><dd>@Display.Number(cylinder.Shortfall) @Labels.GasVolume</dd></div>
                         }
-                        <div><dt>Reserve needed</dt><dd>@Display.Number(cylinder.RequiredReserve) @Labels.GasVolume</dd></div>
+                        <div><dt>Reserve</dt><dd>@Display.Number(cylinder.RequiredReserve) @Labels.GasVolume</dd></div>
                         <div><dt>Left</dt><dd>@Display.Number(cylinder.ProjectedRemaining) @Labels.GasVolume</dd></div>
                     </dl>
                 </article>
