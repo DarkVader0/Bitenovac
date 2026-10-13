@@ -390,6 +390,28 @@ public sealed class PlanCalculatorTests
     }
 
     [Fact]
+    public void Calculate_ShouldFollowTheLastDecompressionStopWithTheSafetyStop_WhenTheDiveNeedsDecompression()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(DecompressionDive) with
+        {
+            Settings = PlannerSettings.Default(UnitSystem.Metric) with { SafetyStop = true }
+        };
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        var safetyIndex = dive.Profile.ToList().FindIndex(static phase => phase.Kind == SegmentKind.SafetyStop);
+        var lastStop = dive.Profile[safetyIndex - 1];
+        var safetyStop = dive.Profile[safetyIndex];
+        Assert.Equal(SegmentKind.Stop, lastStop.Kind);
+        Assert.Equal(lastStop.EndDepth, safetyStop.EndDepth, Precision);
+        Assert.Equal(TimeSpan.FromMinutes(3), safetyStop.Duration);
+        Assert.Single(dive.Profile, static phase => phase.Kind == SegmentKind.SafetyStop);
+    }
+
+    [Fact]
     public void Calculate_ShouldHaveNoTimeline_WhenTheDiveCannotBePlanned()
     {
         // Arrange

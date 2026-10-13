@@ -32,11 +32,11 @@ public enum SegmentKind
     GasSwitch,
 
     /// <summary>
-    /// A precautionary stop on a dive that needs no decompression, which the diver may cut short.
+    /// A precautionary stop the dive does not require, which the diver may cut short.
     /// </summary>
     /// <remarks>
-    /// A decompression stop lengthened to the safety stop's duration remains a <see cref="Stop"/>:
-    /// part of it is still required.
+    /// On a dive without decompression it is a stop of its own; on a dive with decompression it
+    /// follows the last <see cref="Stop"/>, at the same depth, once that stop has cleared.
     /// </remarks>
     SafetyStop
 }
