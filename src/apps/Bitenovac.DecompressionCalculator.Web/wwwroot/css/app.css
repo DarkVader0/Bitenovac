@@ -1413,36 +1413,46 @@ tr.gas-warning td:first-child {
     inset: 0;
     z-index: 30;
     background-color: var(--surface);
-    transition: opacity 0.3s ease-out;
+    transition: opacity 0.25s ease-out;
 }
 
 .loading-screen.loading-done {
     opacity: 0;
 }
 
-/* Held back for a moment, so a fast start never shows a dive at all; on a slower one it fades in,
-   then the profile traces itself and the ceiling appears. */
+/* Only transform and opacity move, which the browser animates off the main thread, so the dive stays
+   smooth while the app's runtime starts. The profile reads left to right in time, so a cover sliding
+   off it traces the dive; the ceiling then fades in on its own layer. */
 .loading-dive {
     position: absolute;
-    display: block;
+    inset: 20vh 0 auto 0;
     width: 8rem;
     height: 8rem;
-    inset: 20vh 0 auto 0;
     margin: 0 auto;
+    overflow: hidden;
     color: var(--text);
     opacity: 0;
-    animation: loading-dive-appear 0.3s ease-out 0.5s forwards;
+    animation: loading-dive-appear 0.15s ease-out 0.15s forwards;
 }
 
-.loading-dive-profile {
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-    animation: loading-dive-draw 2.6s ease-in-out 0.5s infinite;
+.loading-dive svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .loading-dive-ceiling {
     opacity: 0;
-    animation: loading-dive-ceiling 2.6s ease-in-out 0.5s infinite;
+    animation: loading-dive-ceiling 1.6s linear 0.15s infinite;
+}
+
+.loading-dive-cover {
+    position: absolute;
+    inset: 0;
+    background-color: var(--surface);
+    transform: translateX(0);
+    animation: loading-dive-cover 1.6s linear 0.15s infinite;
 }
 
 @keyframes loading-dive-appear {
@@ -1451,14 +1461,24 @@ tr.gas-warning td:first-child {
     }
 }
 
-@keyframes loading-dive-draw {
+@keyframes loading-dive-cover {
     0% {
-        stroke-dashoffset: 100;
+        transform: translateX(0);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
     }
 
-    60%,
+    55%,
+    86% {
+        transform: translateX(101%);
+    }
+
+    86.01% {
+        transform: translateX(-101%);
+        animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+    }
+
     100% {
-        stroke-dashoffset: 0;
+        transform: translateX(0);
     }
 }
 
@@ -1468,21 +1488,27 @@ tr.gas-warning td:first-child {
         opacity: 0;
     }
 
-    70%,
-    92% {
+    62%,
+    86% {
         opacity: 1;
     }
 
     100% {
-        opacity: 0;
+        opacity: 1;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .loading-dive-profile,
-    .loading-dive-ceiling {
+    .loading-dive-ceiling,
+    .loading-dive-cover {
         animation: none;
-        stroke-dashoffset: 0;
+    }
+
+    .loading-dive-ceiling {
         opacity: 1;
+    }
+
+    .loading-dive-cover {
+        display: none;
     }
 }
