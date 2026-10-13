@@ -191,7 +191,7 @@ public sealed class FailurePathIntegrationTests
                 [fixture.Combine(FixtureRepository.LibraryProject)],
                 "Debug",
                 fixture.Options.SyntheticSolutionPath("restore"),
-                fixture.Options.BinaryLogPath("restore"));
+                fixture.Options.BinaryLogPath("restore")).ExitCode;
         }
         finally
         {

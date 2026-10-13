@@ -1,3 +1,5 @@
+using Bitenovac.RemoteBuildTool.Core.Processes;
+
 namespace Bitenovac.RemoteBuildTool.Testing.Unit.Tests;
 
 public sealed class TestSuiteTests
@@ -69,5 +71,23 @@ public sealed class TestSuiteTests
 
         // Assert
         Assert.Empty(results);
+    }
+
+    [Fact]
+    public void RunAll_ShouldWriteWhatTheTestProcessUsed_WhenItWasMeasured()
+    {
+        // Arrange
+        var usage = new ResourceUsage(TimeSpan.FromSeconds(2), CpuTime: null, PeakMemoryBytes: null);
+        var jobs = new List<TestJob>
+        {
+            new("A.Tests", () => TestFactory.Result(TestRunOutcome.Passed) with { Usage = usage }),
+        };
+        using var output = new StringWriter();
+
+        // Act
+        TestSuite.RunAll(jobs, "results", maxParallelism: 1, output);
+
+        // Assert
+        Assert.Equal($"--- A.Tests{Environment.NewLine}resources: test A.Tests used 2.0 s{Environment.NewLine}", output.ToString());
     }
 }

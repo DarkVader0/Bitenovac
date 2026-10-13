@@ -1,3 +1,5 @@
+using Bitenovac.RemoteBuildTool.Core.Processes;
+
 namespace Bitenovac.RemoteBuildTool.Testing;
 
 /// <summary>
@@ -26,6 +28,6 @@ internal enum TestRunOutcome
 
 /// <summary>
 /// Represents the result of running one test project: its outcome, where its coverage report was
-/// written, and what it printed.
+/// written, what it printed, and what its test process used (<see langword="null"/> when it never started).
 /// </summary>
-internal sealed record TestRunResult(TestRunOutcome Outcome, int ExitCode, string ResultsDirectory, string Output);
+internal sealed record TestRunResult(TestRunOutcome Outcome, int ExitCode, string ResultsDirectory, string Output, ResourceUsage? Usage = null);

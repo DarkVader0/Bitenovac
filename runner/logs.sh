@@ -13,7 +13,8 @@
 #   Official_<drop version>/<run id>-<attempt>/   kept 365 days
 #   Official_failed_<run number>/...              kept 365 days, a release that dropped nothing
 #
-# Each attempt folder holds <command>.log per stage (plan.log, build-Debug.log, ...) and a .binlog
+# Each attempt folder holds <command>.log per stage (plan.log, build-Debug.log, ...), a
+# <command>.resources.csv beside each with the container's memory and CPU every 5 seconds, and a .binlog
 # per MSBuild invocation. Age counts from the last file written into an attempt folder.
 #
 # An Official run cannot know its drop version until 'release' takes one, so it logs into

@@ -39,6 +39,8 @@ internal static class TestSuite
             {
                 output.WriteLine($"--- {job.Name}");
                 output.Write(results[index].Output);
+                if (results[index].Usage is { } usage)
+                    output.WriteLine($"resources: test {job.Name} {usage}");
             }
         });
 

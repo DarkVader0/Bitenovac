@@ -12,7 +12,7 @@ public sealed class ProcessRunnerTests
         using var directory = TestFactory.Directory();
 
         // Act
-        var exitCode = ProcessRunner.Run("dotnet", ["--version"], directory.Path);
+        var exitCode = ProcessRunner.Run("dotnet", ["--version"], directory.Path).ExitCode;
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -25,7 +25,7 @@ public sealed class ProcessRunnerTests
         using var directory = TestFactory.Directory();
 
         // Act
-        var exitCode = ProcessRunner.Run("dotnet", ["exec", directory.Combine("not-an-assembly.dll")], directory.Path);
+        var exitCode = ProcessRunner.Run("dotnet", ["exec", directory.Combine("not-an-assembly.dll")], directory.Path).ExitCode;
 
         // Assert
         Assert.NotEqual(0, exitCode);
@@ -39,7 +39,7 @@ public sealed class ProcessRunnerTests
         var environment = new Dictionary<string, string> { ["REMOTEBUILDTOOL_TEST_VARIABLE"] = "set" };
 
         // Act
-        var exitCode = ProcessRunner.Run("dotnet", ["--version"], directory.Path, environment);
+        var exitCode = ProcessRunner.Run("dotnet", ["--version"], directory.Path, environment).ExitCode;
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -53,7 +53,7 @@ public sealed class ProcessRunnerTests
         using var directory = TestFactory.Directory();
 
         // Act
-        var (exitCode, output) = ProcessRunner.RunCaptured("dotnet", ["--version"], directory.Path);
+        var (exitCode, output, _) = ProcessRunner.RunCaptured("dotnet", ["--version"], directory.Path);
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -67,7 +67,7 @@ public sealed class ProcessRunnerTests
         using var directory = TestFactory.Directory();
 
         // Act
-        var (exitCode, output) = ProcessRunner.RunCaptured("dotnet", ["exec", directory.Combine("not-an-assembly.dll")], directory.Path);
+        var (exitCode, output, _) = ProcessRunner.RunCaptured("dotnet", ["exec", directory.Combine("not-an-assembly.dll")], directory.Path);
 
         // Assert
         Assert.NotEqual(0, exitCode);
@@ -85,6 +85,35 @@ public sealed class ProcessRunnerTests
 
         // Assert
         Assert.Throws<Win32Exception>(act);
+    }
+
+    [Fact]
+    public void Run_ShouldReportHowLongTheProcessRan_WhenItExits()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+
+        // Act
+        var result = ProcessRunner.Run("dotnet", ["--version"], directory.Path);
+
+        // Assert
+        Assert.True(result.Usage.Elapsed > TimeSpan.Zero);
+        Assert.Empty(result.Output);
+    }
+
+    [Fact]
+    public void RunCaptured_ShouldMeasureTheProcessTree_WhenTheSystemHasProc()
+    {
+        // Arrange
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Only Linux has /proc.");
+        using var directory = TestFactory.Directory();
+
+        // Act
+        var usage = ProcessRunner.RunCaptured("dotnet", ["--version"], directory.Path).Usage;
+
+        // Assert
+        Assert.NotNull(usage.CpuTime);
+        Assert.True(usage.PeakMemoryBytes > 0);
     }
 
     [Fact]
