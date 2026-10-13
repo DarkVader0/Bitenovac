@@ -6,7 +6,7 @@
 
 <header class="plan-header">
     <h1 class="page-title">Plans</h1>
-    <button type="button" @onclick="NewAsync">New plan</button>
+    <button type="button" @onclick="NewAsync"><Icon Name="IconName.Add"/>New plan</button>
 </header>
 
 @if (_plans is null)
@@ -39,8 +39,8 @@ else
                 else
                 {
                     <div class="button-row">
-                        <button type="button" class="secondary" @onclick="() => DuplicateAsync(plan)">Duplicate</button>
-                        <button type="button" class="secondary" @onclick="() => _confirmDelete = plan.Id">Delete</button>
+                        <button type="button" class="secondary" @onclick="() => DuplicateAsync(plan)"><Icon Name="IconName.Copy"/>Duplicate</button>
+                        <button type="button" class="secondary" @onclick="() => _confirmDelete = plan.Id"><Icon Name="IconName.Remove"/>Delete</button>
                     </div>
                 }
             </li>

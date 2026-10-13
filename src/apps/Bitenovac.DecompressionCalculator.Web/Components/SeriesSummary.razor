@@ -18,8 +18,8 @@
             {
                 var at = index;
                 <tr class="series-row @(at == Selected ? "row-stop" : null)" @onclick="() => SelectedChanged.InvokeAsync(at)">
-                    <td>Dive @(at + 1)</td>
-                    <td class="number">@(at == 0 ? "–" : Display.Clock(TimeSpan.FromMinutes(Plan.Dives[at].SurfaceIntervalMinutes)))</td>
+                    <td>@Plan.Dives[at].DisplayName(at + 1)</td>
+                    <td class="number">@(at == 0 ? "–" : Display.HoursAndMinutes(TimeSpan.FromMinutes(Plan.Dives[at].SurfaceIntervalMinutes)))</td>
                     @if (View.Results[at] is { Succeeded: true } result)
                     {
                         <td class="number">@Display.Number(result.MaximumDepth) @Labels.Depth</td>
@@ -43,7 +43,7 @@
                 </tr>
             }
             </tbody>
-            <caption>SI is the surface interval before the dive. SI, runtime and TTS in minutes. CNS and OTU include the earlier dives.</caption>
+            <caption>SI is the surface interval before the dive, in hours and minutes. Runtime and TTS in minutes. CNS and OTU include the earlier dives.</caption>
         </table>
     </div>
 </section>

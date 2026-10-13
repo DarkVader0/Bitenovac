@@ -1,22 +1,22 @@
 <nav class="dive-tabs no-print" aria-label="Dives">
-    @for (var index = 0; index < Count; index++)
+    @for (var index = 0; index < Names.Count; index++)
     {
         var at = index;
         <button type="button" class="dive-tab @(at == Selected ? "selected" : null)" aria-current="@(at == Selected ? "true" : null)"
                 @onclick="() => SelectedChanged.InvokeAsync(at)">
-            Dive @(at + 1)
+            @Names[at]
             @if (DivesWithIssues.Contains(at))
             {
-                <span class="badge" aria-label="Dive @(at + 1) needs attention"></span>
+                <span class="badge" aria-label="@($"{Names[at]} needs attention")"></span>
             }
         </button>
     }
-    <button type="button" class="dive-tab add" @onclick="OnAdd">+ Add dive</button>
+    <button type="button" class="dive-tab add" @onclick="OnAdd"><Icon Name="IconName.Add"/>Add dive</button>
 </nav>
 
 @code {
     [Parameter, EditorRequired]
-    public int Count { get; set; }
+    public IReadOnlyList<string> Names { get; set; } = [];
 
     [Parameter]
     public int Selected { get; set; }

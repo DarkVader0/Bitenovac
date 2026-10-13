@@ -39,7 +39,7 @@
                 <tbody>
                 @foreach (var phase in Result.Profile)
                 {
-                    <tr class="@(phase.Kind is SegmentKind.Stop or SegmentKind.GasSwitch ? "row-stop" : null)">
+                    <tr class="@(phase.Kind is SegmentKind.Stop or SegmentKind.SafetyStop or SegmentKind.GasSwitch ? "row-stop" : null)">
                         <td class="phase"><PhaseIcon Kind="phase.Kind"/></td>
                         <td class="number">@Display.Number(phase.EndDepth)</td>
                         <td class="number">@Display.Clock(phase.Duration)</td>
@@ -84,25 +84,41 @@
         }
 
         <h3>Gas</h3>
-        <div class="gas-list">
-            @foreach (var cylinder in Result.Cylinders)
-            {
-                <article class="gas-card @(cylinder.IsExhausted || !cylinder.ReserveSatisfied ? "gas-card-danger" : null)">
-                    <div class="gas-card-head">
-                        <h4>@cylinder.Gas <span>@Display.Name(cylinder.Purpose)</span></h4>
-                        <span class="gas-pressure"><span class="visually-hidden">Pressure </span>@Display.Number(cylinder.StartPressure) → @Display.Number(cylinder.EndPressure) @Labels.Pressure</span>
-                    </div>
-                    <dl>
-                        <div><dt>Used</dt><dd>@Display.Number(cylinder.GasUsed) @Labels.GasVolume</dd></div>
-                        @if (cylinder.Shortfall > 0)
+        <div class="table-scroll">
+            <table class="gas">
+                <caption>@GasCaption</caption>
+                <thead>
+                <tr>
+                    <th>Gas</th>
+                    <th>Use</th>
+                    <th class="number">Pressure</th>
+                    <th class="number">Used</th>
+                    <th class="number">Reserve</th>
+                    <th class="number">Left</th>
+                    @if (RunsShort)
+                    {
+                        <th class="number">Missing</th>
+                    }
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var cylinder in Result.Cylinders)
+                {
+                    <tr class="@GasState(cylinder)">
+                        <td class="gas-name">@cylinder.Gas</td>
+                        <td>@Display.Name(cylinder.Purpose)</td>
+                        <td class="number">@Display.Number(cylinder.StartPressure) → <span class="gas-end">@Display.Number(cylinder.EndPressure)</span></td>
+                        <td class="number">@Display.Number(cylinder.GasUsed)</td>
+                        <td class="number">@Display.Number(cylinder.RequiredReserve)</td>
+                        <td class="number gas-left">@Display.Number(cylinder.ProjectedRemaining)</td>
+                        @if (RunsShort)
                         {
-                            <div class="gas-missing"><dt>Missing</dt><dd>@Display.Number(cylinder.Shortfall) @Labels.GasVolume</dd></div>
+                            <td class="number gas-short">@(cylinder.Shortfall > 0 ? Display.Number(cylinder.Shortfall) : "–")</td>
                         }
-                        <div><dt>Reserve</dt><dd>@Display.Number(cylinder.RequiredReserve) @Labels.GasVolume</dd></div>
-                        <div><dt>Left</dt><dd>@Display.Number(cylinder.ProjectedRemaining) @Labels.GasVolume</dd></div>
-                    </dl>
-                </article>
-            }
+                    </tr>
+                }
+                </tbody>
+            </table>
         </div>
     }
 </section>
@@ -120,4 +136,32 @@
     private UnitLabels Labels => UnitLabels.For(Units);
 
     private bool ShowsApparatus => Result.Profile.Any(static phase => phase.Circuit != BreathingLoop.OpenCircuit.ToString());
+
+    private bool RunsShort => Result.Cylinders.Any(static cylinder => cylinder.Shortfall > 0);
+
+    private string GasCaption
+    {
+        get
+        {
+            var caption = $"Pressure in {Labels.Pressure}, gas in {Labels.GasVolume} at the surface.";
+            if (Result.Cylinders.Any(static cylinder => GasState(cylinder) == "gas-error"))
+            {
+                caption += " Red: the cylinder runs out.";
+            }
+
+            if (Result.Cylinders.Any(static cylinder => GasState(cylinder) == "gas-warning"))
+            {
+                caption += " Orange: the reserve is not met.";
+            }
+
+            return caption;
+        }
+    }
+
+    private static string? GasState(CylinderRow cylinder) => cylinder switch
+    {
+        { IsExhausted: true } or { Shortfall: > 0 } => "gas-error",
+        { ReserveSatisfied: false } => "gas-warning",
+        _ => null
+    };
 }

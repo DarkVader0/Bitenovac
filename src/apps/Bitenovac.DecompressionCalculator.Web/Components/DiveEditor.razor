@@ -1,6 +1,9 @@
 <section class="card no-print">
     <div class="card-header">
-        <h2>Dive @Number</h2>
+        <h2 class="dive-name-heading">
+            <input class="dive-name" type="text" aria-label="Dive name" placeholder="Dive @Number" maxlength="40"
+                   value="@Value.Name" @onchange="args => ChangeAsync(Value with { Name = NameOf(args.Value) })"/>
+        </h2>
         @if (CanRemove)
         {
             @if (_confirmRemove)
@@ -12,7 +15,7 @@
             }
             else
             {
-                <button type="button" class="secondary" @onclick="() => _confirmRemove = true">Remove dive</button>
+                <button type="button" class="secondary" @onclick="() => _confirmRemove = true"><Icon Name="IconName.Remove"/>Remove dive</button>
             }
         }
     </div>
@@ -20,9 +23,11 @@
     @if (Number > 1)
     {
         <div class="field-grid surface-interval">
-            <NumberField Label="Surface interval before this dive" Unit="min" Value="Value.SurfaceIntervalMinutes"
+            <NumberField @key="(Value.SurfaceIntervalMinutes, 0)" Label="Surface interval" Unit="h" Step="1" Value="IntervalHours"
+                         ValueChanged="hours => ChangeAsync(Value with { SurfaceIntervalMinutes = hours * 60 + IntervalMinutes })"/>
+            <NumberField @key="(Value.SurfaceIntervalMinutes, 1)" Label="@(" ")" Unit="min" Step="1" Value="IntervalMinutes"
                          Issue="@Issues[nameof(DiveInput.SurfaceIntervalMinutes)]"
-                         ValueChanged="value => ChangeAsync(Value with { SurfaceIntervalMinutes = value })"/>
+                         ValueChanged="minutes => ChangeAsync(Value with { SurfaceIntervalMinutes = IntervalHours * 60 + minutes })"/>
         </div>
     }
 
@@ -80,12 +85,12 @@
                 {
                     <td>
                         <button type="button" class="icon-button" title="Remove level" aria-label="Remove level @(at + 1)"
-                                @onclick="() => ChangeAsync(Value with { Levels = ListEdit.RemoveAt(Value.Levels, at) })">✕</button>
+                                @onclick="() => ChangeAsync(Value with { Levels = ListEdit.RemoveAt(Value.Levels, at) })"><Icon Name="IconName.Remove"/></button>
                     </td>
                 }
                 <td>
-                    <button type="button" class="icon-button add-button" title="Add a level after this one" aria-label="Add a level after level @(at + 1)"
-                            @onclick="() => ChangeAsync(Value with { Levels = ListEdit.Insert(Value.Levels, at + 1, NewInputs.LevelAfter(level)) })">+</button>
+                    <button type="button" class="icon-button" title="Add a level after this one" aria-label="Add a level after level @(at + 1)"
+                            @onclick="() => ChangeAsync(Value with { Levels = ListEdit.Insert(Value.Levels, at + 1, NewInputs.LevelAfter(level)) })"><Icon Name="IconName.Add"/></button>
                 </td>
             </tr>
             <RowIssues Columns="levelColumns" Messages="[issues[nameof(LevelInput.Depth)], issues[nameof(LevelInput.DurationMinutes)]]"/>
@@ -168,7 +173,7 @@
                     {
                         <td>
                             <button type="button" class="icon-button" title="Remove cylinder" aria-label="Remove @name"
-                                    @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.RemoveAt(Value.Cylinders, at) })">✕</button>
+                                    @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.RemoveAt(Value.Cylinders, at) })"><Icon Name="IconName.Remove"/></button>
                         </td>
                     }
                 </tr>
@@ -181,7 +186,7 @@
         </table>
     </div>
     <button type="button" class="secondary" @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.Add(Value.Cylinders, NewInputs.Cylinder(Units)) })">
-        Add cylinder
+        <Icon Name="IconName.Add"/>Add cylinder
     </button>
 </section>
 
@@ -220,6 +225,14 @@
             _confirmRemove = false;
         }
     }
+
+    private double IntervalHours => Math.Floor(Value.SurfaceIntervalMinutes / 60);
+
+    private double IntervalMinutes => Value.SurfaceIntervalMinutes - IntervalHours * 60;
+
+    // A cleared name goes back to the default, "Dive 2", rather than an empty title.
+    private static string? NameOf(object? value) =>
+        value is string name && !string.IsNullOrWhiteSpace(name) ? name.Trim() : null;
 
     private Task ChangeAsync(DiveInput dive) => ValueChanged.InvokeAsync(CylinderRoles.Apply(dive));
 

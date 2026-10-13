@@ -1,0 +1,105 @@
+@inject PlanStore Store
+@inject NavigationManager Navigation
+
+<nav class="plans-panel no-print" aria-label="Saved plans">
+    <div class="plans-panel-header">
+        <h2>Plans</h2>
+        <button type="button" class="secondary" @onclick="NewAsync"><Icon Name="IconName.Add"/>New plan</button>
+    </div>
+
+    @if (_plans is not null)
+    {
+        <ul class="plans-panel-list">
+            @foreach (var plan in _plans)
+            {
+                var shown = plan.Id == Current.Id ? Current : plan;
+                var current = plan.Id == Current.Id;
+                var name = string.IsNullOrWhiteSpace(shown.Name) ? "Untitled plan" : shown.Name;
+                <li class="plans-panel-item @(current ? "current" : null)">
+                    <a class="plans-panel-link" href="@($"plan/{plan.Id:D}")" aria-current="@(current ? "page" : null)">
+                        <span class="plan-item-name">@name</span>
+                        <span class="plan-item-meta">@PlanCopies.Describe(shown)</span>
+                    </a>
+                    @if (_confirmDelete == plan.Id)
+                    {
+                        <div class="plans-panel-confirm">
+                            <span>Delete this plan?</span>
+                            <button type="button" class="danger" @onclick="() => DeleteAsync(plan.Id)">Delete</button>
+                            <button type="button" class="secondary" @onclick="() => _confirmDelete = null">Cancel</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="plans-panel-actions">
+                            <button type="button" class="icon-button" title="Duplicate" aria-label="@($"Duplicate {name}")"
+                                    @onclick="() => DuplicateAsync(shown)">
+                                <Icon Name="IconName.Copy"/>
+                            </button>
+                            <button type="button" class="icon-button" title="Delete" aria-label="@($"Delete {name}")"
+                                    @onclick="() => _confirmDelete = plan.Id">
+                                <Icon Name="IconName.Remove"/>
+                            </button>
+                        </div>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</nav>
+
+@code {
+    private IReadOnlyList<DivePlanDocument>? _plans;
+    private Guid _listedFor;
+    private Guid? _confirmDelete;
+
+    [Parameter, EditorRequired]
+    public DivePlanDocument Current { get; set; } = default!;
+
+    // The open plan is drawn from the parameter, so its name follows typing without reloading the
+    // list or moving it to the top while it is edited.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Current.Id == _listedFor)
+        {
+            return;
+        }
+
+        _listedFor = Current.Id;
+        _confirmDelete = null;
+        _plans = await Store.ListAsync();
+    }
+
+    private async Task NewAsync()
+    {
+        var plan = PlanCopies.New(Current.Units, DateTime.UtcNow);
+        await Store.SaveAsync(plan);
+        Navigation.NavigateTo($"plan/{plan.Id:D}");
+    }
+
+    private async Task DuplicateAsync(DivePlanDocument plan)
+    {
+        await Store.SaveAsync(PlanCopies.Duplicate(plan, DateTime.UtcNow));
+        _plans = await Store.ListAsync();
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        await Store.DeleteAsync(id);
+        _confirmDelete = null;
+        _plans = await Store.ListAsync();
+
+        if (id != Current.Id)
+        {
+            return;
+        }
+
+        if (_plans is [var next, ..])
+        {
+            Navigation.NavigateTo($"plan/{next.Id:D}");
+        }
+        else
+        {
+            await NewAsync();
+        }
+    }
+}
