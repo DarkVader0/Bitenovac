@@ -66,6 +66,16 @@ internal static class TestFactory
         return plan with { Dives = [plan.Dives[0] with { Levels = [new LevelInput(6, 10)] }] };
     }
 
+    public static DivePlanDocument SafetyStopPlan()
+    {
+        var plan = Plan();
+        return plan with
+        {
+            Settings = plan.Settings with { SafetyStop = true },
+            Dives = [plan.Dives[0] with { Levels = [new LevelInput(12, 15)] }]
+        };
+    }
+
     public static DivePlanDocument OutOfGasPlan()
     {
         var plan = Plan();

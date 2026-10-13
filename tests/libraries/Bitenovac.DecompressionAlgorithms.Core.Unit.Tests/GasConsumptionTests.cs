@@ -177,11 +177,13 @@ public sealed class GasConsumptionTests
         Assert.Equal(166.98892, usage[0].EndPressure.InBar, Precision);
     }
 
-    [Fact]
-    public void Calculate_ShouldUseTheDecompressionRate_WhenTheSegmentIsADecompressionStop()
+    [Theory]
+    [InlineData(SegmentKind.Stop)]
+    [InlineData(SegmentKind.SafetyStop)]
+    public void Calculate_ShouldUseTheDecompressionRate_WhenTheSegmentIsAStop(SegmentKind kind)
     {
         // Arrange
-        var segments = new[] { TestFactory.CreateSegment(0, 10, kind: SegmentKind.Stop) };
+        var segments = new[] { TestFactory.CreateSegment(0, 10, kind: kind) };
         var cylinders = new[] { TestFactory.CreateCylinder(sizeLiter: 12, startPressureBar: 200) };
 
         // Act

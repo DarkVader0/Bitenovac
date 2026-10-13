@@ -26,7 +26,7 @@ public static class DiveSheet
     private const double SmallestChart = 120;
     private const double LargestChart = 230;
 
-    private static readonly PdfColor StopColor = PdfColor.FromRgb(201, 138, 0);
+    private static readonly PdfColor SafetyStopColor = PdfColor.FromRgb(232, 137, 12);
     private static readonly PdfColor SwitchColor = PdfColor.FromRgb(28, 128, 67);
     private static readonly PdfColor Water = PdfColor.FromRgb(238, 245, 252);
     private static readonly PdfColor DiveFill = PdfColor.FromRgb(214, 230, 245);
@@ -66,7 +66,7 @@ public static class DiveSheet
         sheet.Footnote(Disclaimer, PdfFont.HelveticaBold, 7.5, SheetWriter.Text);
         var title = string.IsNullOrWhiteSpace(plan.Name) ? "Dive plan" : plan.Name;
 
-        var which = plan.Dives.Count == 1 ? "Dive" : $"Dive {dive + 1} of {plan.Dives.Count}";
+        var which = Which(plan, dive);
         WriteTitle(sheet, title, $"{which} · {Summary.Date(exportedAt)} UTC · Bitenovac {appVersion}");
         sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan)}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
 
@@ -207,7 +207,7 @@ public static class DiveSheet
             })
             .ToArray();
 
-        sheet.Table(columns, rows, row => result.Profile[row].Kind is SegmentKind.Stop or SegmentKind.GasSwitch,
+        sheet.Table(columns, rows, row => result.Profile[row].Kind is SegmentKind.Stop or SegmentKind.SafetyStop or SegmentKind.GasSwitch,
             rowHeight, Math.Clamp(rowHeight * 0.62, 6.5, 10));
     }
 
@@ -280,8 +280,8 @@ public static class DiveSheet
         foreach (var stop in chart.Stops)
         {
             var y = chart.Y(stop.Depth, area);
-            page.Line(chart.X(stop.StartMinutes, area), y, chart.X(stop.EndMinutes, area), y, 3.2,
-                stop.IsGasSwitch ? SwitchColor : StopColor);
+            page.Line(chart.X(stop.StartMinutes, area), y, chart.X(stop.EndMinutes, area), y, 1.6,
+                StopColor(stop));
             if (stop.IsGasSwitch)
             {
                 page.Text(chart.X(stop.StartMinutes, area) + 3, y - 5, stop.Gas, PdfFont.HelveticaBold, 7, SwitchColor);
@@ -292,6 +292,28 @@ public static class DiveSheet
         page.Text(area.Left + area.Width, area.Top + area.Height + 20, "min", PdfFont.Helvetica, 7, SheetWriter.Muted, PdfAlign.Right);
         sheet.Advance(height);
     }
+
+    /// <remarks>
+    /// A dive of a series also gives its place in it, so a named dive still says which one it is.
+    /// </remarks>
+    private static string Which(DivePlanDocument plan, int dive)
+    {
+        var name = plan.Dives[dive].Name?.Trim();
+        var place = $"{dive + 1} of {plan.Dives.Count}";
+        if (string.IsNullOrEmpty(name))
+        {
+            return plan.Dives.Count == 1 ? "Dive" : $"Dive {place}";
+        }
+
+        return plan.Dives.Count == 1 ? name : $"{name} ({place})";
+    }
+
+    private static PdfColor StopColor(ChartStop stop) => stop switch
+    {
+        { IsGasSwitch: true } => SwitchColor,
+        { IsSafetyStop: true } => SafetyStopColor,
+        _ => SheetWriter.Danger
+    };
 
     /// <remarks>
     /// The ascent starts after the last level; a level of zero minutes has no phase of its own, so after the

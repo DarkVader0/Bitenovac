@@ -55,6 +55,7 @@ public static class Names
         SegmentKind.Ascent => "Ascent",
         SegmentKind.Stop => "Stop",
         SegmentKind.GasSwitch => "Switch",
+        SegmentKind.SafetyStop => "Safety stop",
         _ => kind.ToString()
     };
 

@@ -58,6 +58,7 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
 
     private readonly double _gradientFactorLow;
     private readonly BuhlmannState _state = new();
+    private readonly BuhlmannState _scratch = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BuhlmannZhl16cAlgorithm"/> class with the
@@ -233,6 +234,20 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
         _finalAscent.Clear();
         PlanFinalAscent(buhlmannState, request.Cylinders, request.Settings, _finalAscent);
         return _finalAscent;
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The ascent is planned on a copy of the state, so the dive can go on from where it was.
+    /// </remarks>
+    public TimeSpan? TimeToSurface(IDecompressionState state, DivePlanRequest request)
+    {
+        var buhlmannState = RequireOwnState(state);
+        ArgumentNullException.ThrowIfNull(request);
+
+        buhlmannState.CopyTo(_scratch);
+        PlanFinalAscent(_scratch, request.Cylinders, request.Settings, null);
+        return TimeSpan.FromMinutes(_scratch.RuntimeMinutes - buhlmannState.RuntimeMinutes);
     }
 
     private BuhlmannState RequireOwnState(IDecompressionState state)
@@ -595,7 +610,7 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
         {
             AscendTo(state, SafetyStopDepthMeter, averageDepthMeter, settings, output);
             var safetyStop = new DiveSegment(Depth.FromMeter(SafetyStopDepthMeter), SafetyStopDuration,
-                state.CurrentGas, SegmentKind.Stop, state.CurrentLoop);
+                state.CurrentGas, SegmentKind.SafetyStop, state.CurrentLoop);
             ApplySegment(state, safetyStop);
             output?.Add(safetyStop);
         }
@@ -718,8 +733,8 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
     /// </summary>
     /// <remarks>
     /// The stop is held in increments of the settings' stop time rounding, with oxygen breaks
-    /// inserted when the settings enable them, and then for <paramref name="extraHold"/> more.
-    /// Consecutive increments on the same gas are emitted as a single stop segment.
+    /// inserted when the settings enable them, and then for <paramref name="extraHold"/> more as a safety stop.
+    /// Consecutive increments on the same gas are emitted as a single stop segment; the safety stop follows on its own.
     /// </remarks>
     private static void HoldUntilClear(BuhlmannState state,
         double stopMeter,
@@ -773,13 +788,14 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
             }
         }
 
+        FlushHeldStop(state, stopDepth, ref heldMinutes, output);
+
         if (extraHold > TimeSpan.Zero)
         {
-            ApplySegment(state, new DiveSegment(stopDepth, extraHold, state.CurrentGas, SegmentKind.Stop, state.CurrentLoop));
-            heldMinutes += extraHold.TotalMinutes;
+            var safetyStop = new DiveSegment(stopDepth, extraHold, state.CurrentGas, SegmentKind.SafetyStop, state.CurrentLoop);
+            ApplySegment(state, safetyStop);
+            output?.Add(safetyStop);
         }
-
-        FlushHeldStop(state, stopDepth, ref heldMinutes, output);
     }
 
     private static void FlushHeldStop(BuhlmannState state,

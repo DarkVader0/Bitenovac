@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Bitenovac.DecompressionCalculator.Model;
 
 /// <summary>
@@ -60,9 +62,23 @@ public sealed record DiveInput
         init => _cylinders = [.. value ?? throw new ArgumentNullException(nameof(value))];
     }
 
+    /// <summary>
+    /// Gets the name the diver gave the dive, or <see langword="null"/> when it has none.
+    /// </summary>
+    public string? Name { get; init; }
+
+    /// <summary>
+    /// Returns the name to show for the dive: its own name, or <c>Dive</c> and its number when it has none.
+    /// </summary>
+    /// <param name="number">The dive's position in the plan, from 1.</param>
+    /// <returns>The trimmed name, or <c>Dive 2</c> for the second dive without one.</returns>
+    public string DisplayName(int number) =>
+        string.IsNullOrWhiteSpace(Name) ? $"Dive {number.ToString(CultureInfo.InvariantCulture)}" : Name.Trim();
+
     /// <inheritdoc/>
     public bool Equals(DiveInput? other) =>
         other is not null
+        && string.Equals(Name, other.Name, StringComparison.Ordinal)
         && SurfaceIntervalMinutes.Equals(other.SurfaceIntervalMinutes)
         && Circuit.Equals(other.Circuit)
         && _levels.AsSpan().SequenceEqual(other._levels)

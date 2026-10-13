@@ -21,6 +21,21 @@ public sealed class IDecompressionAlgorithmTests
         Assert.Equal(9, ceiling.InMeter, Precision);
     }
 
+    [Fact]
+    public void TimeToSurface_ShouldBeNull_WhenTheModelDoesNotOverrideIt()
+    {
+        // Arrange
+        IDecompressionAlgorithm algorithm = new FixedCeilingAlgorithm(Depth.FromMeter(9));
+        var profile = new DiveProfile([new DiveSegment(Depth.FromMeter(20), TimeSpan.FromMinutes(20), GasMixture.Air, SegmentKind.Bottom)]);
+        var request = new DivePlanRequest(profile, [TestFactory.CreateCylinder()], TestFactory.CreateSettings());
+
+        // Act
+        var timeToSurface = algorithm.TimeToSurface(new FixedState(), request);
+
+        // Assert
+        Assert.Null(timeToSurface);
+    }
+
     private sealed class FixedState : IDecompressionState;
 
     private sealed class FixedCeilingAlgorithm(Depth ceiling) : IDecompressionAlgorithm

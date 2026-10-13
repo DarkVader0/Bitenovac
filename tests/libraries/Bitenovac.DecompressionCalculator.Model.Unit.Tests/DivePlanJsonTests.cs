@@ -39,6 +39,21 @@ public sealed class DivePlanJsonTests
     }
 
     [Fact]
+    public void Deserialize_ShouldKeepTheDivesNames_WhenTheDivesAreNamed()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(TestFactory.Dive() with { Name = "Wreck" }, TestFactory.Dive(surfaceIntervalMinutes: 90));
+
+        // Act
+        var restored = DivePlanJson.Deserialize(DivePlanJson.Serialize(plan));
+
+        // Assert
+        Assert.Equal("Wreck", restored.Dives[0].Name);
+        Assert.Null(restored.Dives[1].Name);
+        Assert.Equal(plan, restored);
+    }
+
+    [Fact]
     public void Deserialize_ShouldReturnAnEqualPlan_WhenThePlanIsARebreatherSeries()
     {
         // Arrange

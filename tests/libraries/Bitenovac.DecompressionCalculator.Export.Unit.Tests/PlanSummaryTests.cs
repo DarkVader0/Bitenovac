@@ -63,6 +63,20 @@ public sealed class PlanSummaryTests
     }
 
     [Fact]
+    public void Text_ShouldNameTheSafetyStopApartFromDecompressionStops_WhenTheDiveNeedsNone()
+    {
+        // Arrange
+        var plan = TestFactory.SafetyStopPlan();
+
+        // Act
+        var text = PlanSummary.Text(plan, TestFactory.Now);
+
+        // Assert
+        Assert.Contains($"{Environment.NewLine}No decompression stops · safety stop 6 m 3 min{Environment.NewLine}", text,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Text_ShouldSayHowMuchGasIsMissing_WhenACylinderRunsOut()
     {
         // Arrange
@@ -88,6 +102,23 @@ public sealed class PlanSummaryTests
         // Assert
         Assert.Contains($"{Environment.NewLine}Dive 1: Open circuit", text, StringComparison.Ordinal);
         Assert.Contains($"{Environment.NewLine}Dive 2 (after 90 min on the surface): Open circuit", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Text_ShouldNameTheDiveByItsOwnName_WhenTheDiveIsNamed()
+    {
+        // Arrange
+        var series = TestFactory.SeriesPlan();
+        var plan = series with { Dives = [series.Dives[0], series.Dives[1] with { Name = "Wreck" }] };
+        var single = TestFactory.Plan() with { Dives = [TestFactory.Plan().Dives[0] with { Name = "Reef" }] };
+
+        // Act
+        var seriesText = PlanSummary.Text(plan, TestFactory.Now);
+        var singleText = PlanSummary.Text(single, TestFactory.Now);
+
+        // Assert
+        Assert.Contains($"{Environment.NewLine}Wreck (after 90 min on the surface): Open circuit", seriesText, StringComparison.Ordinal);
+        Assert.Contains($"{Environment.NewLine}Reef: Open circuit", singleText, StringComparison.Ordinal);
     }
 
     [Fact]

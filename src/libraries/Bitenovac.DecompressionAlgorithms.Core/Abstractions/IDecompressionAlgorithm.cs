@@ -88,4 +88,23 @@ public interface IDecompressionAlgorithm
     /// and ordered from the current depth to the surface.
     /// </remarks>
     IReadOnlyList<DiveSegment> CalculateFinalAscent(IDecompressionState state, DivePlanRequest request);
+
+    /// <summary>
+    /// Returns how long the final ascent from the current state would take, without advancing the state.
+    /// </summary>
+    /// <param name="state">The state from which the ascent would begin.</param>
+    /// <param name="request">The planning request supplying the cylinders and settings that govern the ascent.</param>
+    /// <returns>
+    /// The duration of the ascent <see cref="CalculateFinalAscent"/> would compute, or
+    /// <see langword="null"/> when the model cannot plan an ascent without changing the state.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="state"/> or <paramref name="request"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="StopNotClearedException">A stop on the ascent would never clear.</exception>
+    /// <remarks>
+    /// Asked at every moment of a dive, this is the time to surface a dive computer would show.
+    /// The default is <see langword="null"/>.
+    /// </remarks>
+    TimeSpan? TimeToSurface(IDecompressionState state, DivePlanRequest request) => null;
 }

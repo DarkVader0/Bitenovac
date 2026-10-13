@@ -29,5 +29,14 @@ public enum SegmentKind
     /// <summary>
     /// A change of breathing gas, typically performed at a stop.
     /// </summary>
-    GasSwitch
+    GasSwitch,
+
+    /// <summary>
+    /// A precautionary stop the dive does not require, which the diver may cut short.
+    /// </summary>
+    /// <remarks>
+    /// On a dive without decompression it is a stop of its own; on a dive with decompression it
+    /// follows the last <see cref="Stop"/>, at the same depth, once that stop has cleared.
+    /// </remarks>
+    SafetyStop
 }

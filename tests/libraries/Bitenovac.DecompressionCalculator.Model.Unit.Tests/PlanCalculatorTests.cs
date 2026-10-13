@@ -265,6 +265,166 @@ public sealed class PlanCalculatorTests
         Assert.Empty(dive.Ceiling);
     }
 
+    [Fact]
+    public void Calculate_ShouldEndTheTimelineOnTheDivesTotals_WhenTheDiveSurfaces()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(DecompressionDive);
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        var first = dive.Timeline[0];
+        var last = dive.Timeline[^1];
+        Assert.Equal(TimeSpan.Zero, first.Runtime);
+        Assert.Equal(0, first.CnsPercent, Precision);
+        Assert.Equal(TimeSpan.Zero, first.TimeToSurface);
+        Assert.Equal(dive.TotalRuntime, last.Runtime);
+        Assert.Equal(0, last.Depth, Precision);
+        Assert.Equal(dive.CnsPercent, last.CnsPercent, Precision);
+        Assert.Equal(dive.OxygenToleranceUnits, last.OxygenToleranceUnits, Precision);
+        Assert.Equal(TimeSpan.Zero, last.TimeToSurface);
+    }
+
+    [Fact]
+    public void Calculate_ShouldGiveThePlannedAscentAsTheTimeToSurface_WhenTheLastLevelEnds()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(DecompressionDive);
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        var endOfLevel = dive.Profile.Last(static phase => phase.Kind == SegmentKind.Bottom).Runtime;
+        var moment = dive.Timeline.Single(moment => (moment.Runtime - endOfLevel).Duration() < TimeSpan.FromSeconds(1));
+        Assert.NotNull(moment.TimeToSurface);
+        Assert.Equal((dive.TotalRuntime - endOfLevel).TotalMinutes, moment.TimeToSurface.Value.TotalMinutes, Precision);
+    }
+
+    [Fact]
+    public void Calculate_ShouldGiveTheRestOfTheAscentAsTheTimeToSurface_WhenTheDiveIsAscending()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(DecompressionDive);
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        var endOfLevel = dive.Profile.Last(static phase => phase.Kind == SegmentKind.Bottom).Runtime;
+        Assert.All(dive.Timeline.Where(moment => moment.Runtime > endOfLevel),
+            moment => Assert.Equal(dive.TotalRuntime - moment.Runtime, moment.TimeToSurface));
+    }
+
+    [Fact]
+    public void Calculate_ShouldLengthenTheTimeToSurface_WhenTheDiveStaysOnTheLevel()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(DecompressionDive);
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        var level = dive.Profile.Single(static phase => phase.Kind == SegmentKind.Bottom);
+        var onLevel = dive.Timeline
+            .Where(moment => moment.Runtime > level.Runtime - level.Duration && moment.Runtime <= level.Runtime)
+            .Select(static moment => moment.TimeToSurface!.Value)
+            .ToArray();
+        Assert.True(onLevel.Length > 10);
+        Assert.True(onLevel[^1] > onLevel[0]);
+    }
+
+    [Fact]
+    public void Calculate_ShouldGiveTheOxygenPressureOfTheGasAtItsDepth_WhenTheDiveIsOnTheLevel()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(DecompressionDive);
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        var surface = dive.Timeline[0].OxygenPressure;
+        var onLevel = dive.Timeline.First(static moment => Math.Abs(moment.Depth - 40) < 1e-9);
+        const double saltWaterBarAt40Meters = 1030 * 9.80665 * 40 / 100_000;
+        Assert.Equal("Air", onLevel.Gas);
+        Assert.Equal(surface + 0.21 * saltWaterBarAt40Meters, onLevel.OxygenPressure, Precision);
+    }
+
+    [Fact]
+    public void Calculate_ShouldStartTheTimelineWithTheExposureCarriedOver_WhenTheDiveFollowsAnother()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(DecompressionDive, TestFactory.Dive(depth: 18, minutes: 30, surfaceIntervalMinutes: 90));
+
+        // Act
+        var dives = PlanCalculator.Calculate(plan).Dives;
+
+        // Assert
+        Assert.Equal(dives[0].CnsPercent * 0.5, dives[1].Timeline[0].CnsPercent, Precision);
+        Assert.Equal(dives[0].OxygenToleranceUnits, dives[1].Timeline[0].OxygenToleranceUnits, Precision);
+        Assert.Equal(dives[1].CnsPercent, dives[1].Timeline[^1].CnsPercent, Precision);
+    }
+
+    [Fact]
+    public void Calculate_ShouldMarkTheSafetyStopAndTraceNoCeiling_WhenTheDiveNeedsNoDecompression()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(TestFactory.Dive(depth: 12, minutes: 15)) with
+        {
+            Settings = PlannerSettings.Default(UnitSystem.Metric) with { SafetyStop = true }
+        };
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        var stop = Assert.Single(dive.Profile, static phase => phase.Kind is SegmentKind.Stop or SegmentKind.SafetyStop);
+        Assert.Equal(SegmentKind.SafetyStop, stop.Kind);
+        Assert.Equal(TimeSpan.FromMinutes(3), stop.Duration);
+        Assert.Equal(TimeSpan.FromMinutes(3), dive.StopTime);
+        Assert.All(dive.Timeline, static moment => Assert.Equal(0, moment.Ceiling, Precision));
+    }
+
+    [Fact]
+    public void Calculate_ShouldFollowTheLastDecompressionStopWithTheSafetyStop_WhenTheDiveNeedsDecompression()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(DecompressionDive) with
+        {
+            Settings = PlannerSettings.Default(UnitSystem.Metric) with { SafetyStop = true }
+        };
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        var safetyIndex = dive.Profile.ToList().FindIndex(static phase => phase.Kind == SegmentKind.SafetyStop);
+        var lastStop = dive.Profile[safetyIndex - 1];
+        var safetyStop = dive.Profile[safetyIndex];
+        Assert.Equal(SegmentKind.Stop, lastStop.Kind);
+        Assert.Equal(lastStop.EndDepth, safetyStop.EndDepth, Precision);
+        Assert.Equal(TimeSpan.FromMinutes(3), safetyStop.Duration);
+        Assert.Single(dive.Profile, static phase => phase.Kind == SegmentKind.SafetyStop);
+    }
+
+    [Fact]
+    public void Calculate_ShouldHaveNoTimeline_WhenTheDiveCannotBePlanned()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(TestFactory.Dive(cylinders:
+            [TestFactory.Cylinder(oxygenPercent: 100, size: 3, purpose: CylinderPurpose.DecoGas)]));
+
+        // Act
+        var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
+
+        // Assert
+        Assert.Empty(dive.Timeline);
+    }
+
     private static double DepthAt(DiveResult dive, TimeSpan runtime)
     {
         var phase = dive.Profile.First(phase => phase.Runtime >= runtime);
