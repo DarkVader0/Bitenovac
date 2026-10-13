@@ -4,16 +4,16 @@
 <aside class="share-sheet" role="dialog" aria-modal="true" aria-label="Share plan" @onkeydown="CloseOnEscape">
     <div class="drawer-header">
         <h2>Share plan</h2>
-        <button type="button" class="secondary" @onclick="OnClose">Close</button>
+        <button type="button" class="secondary" @onclick="OnClose"><Icon Name="IconName.Close"/>Close</button>
     </div>
 
     <div class="share-options">
         @if (_canShareFiles)
         {
-            <button type="button" @onclick="SharePdfAsync">Share PDF</button>
+            <button type="button" @onclick="SharePdfAsync"><Icon Name="IconName.Share"/>Share PDF</button>
         }
-        <button type="button" class="secondary" @onclick="DownloadPdfAsync">Download PDF</button>
-        <button type="button" class="secondary" @onclick="PrintAsync">Print</button>
+        <button type="button" class="secondary" @onclick="DownloadPdfAsync"><Icon Name="IconName.Download"/>Download PDF</button>
+        <button type="button" class="secondary" @onclick="PrintAsync"><Icon Name="IconName.Print"/>Print</button>
     </div>
 
     @if (_status is not null)

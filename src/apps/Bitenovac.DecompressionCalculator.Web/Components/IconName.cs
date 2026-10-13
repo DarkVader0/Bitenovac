@@ -1,7 +1,7 @@
 namespace Bitenovac.DecompressionCalculator.Web.Components;
 
 /// <summary>
-/// Specifies an action icon, drawn the same wherever the action appears.
+/// Specifies an icon, drawn the same wherever it appears.
 /// </summary>
 public enum IconName
 {
@@ -18,5 +18,70 @@ public enum IconName
     /// <summary>
     /// Makes a copy of a plan.
     /// </summary>
-    Copy
+    Copy,
+
+    /// <summary>
+    /// Opens the list of saved plans.
+    /// </summary>
+    Plans,
+
+    /// <summary>
+    /// Shares the plan.
+    /// </summary>
+    Share,
+
+    /// <summary>
+    /// Opens the settings.
+    /// </summary>
+    Settings,
+
+    /// <summary>
+    /// Saves a file to the device.
+    /// </summary>
+    Download,
+
+    /// <summary>
+    /// Prints.
+    /// </summary>
+    Print,
+
+    /// <summary>
+    /// Closes a sheet or a panel.
+    /// </summary>
+    Close,
+
+    /// <summary>
+    /// Installs the app.
+    /// </summary>
+    Install,
+
+    /// <summary>
+    /// Reloads the app onto its new version.
+    /// </summary>
+    Reload,
+
+    /// <summary>
+    /// A descent.
+    /// </summary>
+    Descent,
+
+    /// <summary>
+    /// Time at a level.
+    /// </summary>
+    Level,
+
+    /// <summary>
+    /// An ascent.
+    /// </summary>
+    Ascent,
+
+    /// <summary>
+    /// A stop.
+    /// </summary>
+    Stop,
+
+    /// <summary>
+    /// A change of gas.
+    /// </summary>
+    GasSwitch
 }
