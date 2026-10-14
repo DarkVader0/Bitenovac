@@ -68,17 +68,16 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         if (verifyExitCode != 0)
             return ToolchainPreparation.Failed(verifyExitCode);
 
-        output.WriteLine("==> Restoring");
-        var restoreExitCode = Report("restore", output, MsBuildRunner.Restore(
+        var restoreExitCode = Run("restore", $"Restoring {debug.Count} project(s)", options, output, logs => MsBuildRunner.Restore(
             options.RepositoryRoot,
             debug.Select(project => project.FullPath),
             configuration: "Debug",
             options.SyntheticSolutionPath("restore"),
-            options.BinaryLogPath("restore")));
+            logs));
 
         if (restoreExitCode != 0)
         {
-            output.WriteError($"error: restore failed (exit {restoreExitCode}).");
+            output.WriteFailure($"restore failed (exit {restoreExitCode}).");
             return ToolchainPreparation.Failed(restoreExitCode);
         }
 
@@ -111,12 +110,10 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
             switch (DeploymentOf(entry))
             {
                 case Deployment.Publish:
-                    output.WriteLine($"--- {name}: publish");
-                    exitCode = Report($"publish-{name}", output, MsBuildRunner.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name), options.BinaryLogPath($"publish-{name}")));
+                    exitCode = Run($"publish-{name}", $"{name}: publish", options, output, logs => MsBuildRunner.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name), logs));
                     break;
                 case Deployment.Pack:
-                    output.WriteLine($"--- {name}: pack");
-                    exitCode = Report($"pack-{name}", output, MsBuildRunner.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"), options.BinaryLogPath($"pack-{name}")));
+                    exitCode = Run($"pack-{name}", $"{name}: pack", options, output, logs => MsBuildRunner.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"), logs));
                     break;
                 default:
                     output.WriteLine($"--- {name}: nothing to deploy");
@@ -125,7 +122,7 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
 
             if (exitCode != 0)
             {
-                output.WriteError($"error: could not deploy {entry.ProjectPath} (exit {exitCode}).");
+                output.WriteFailure($"could not deploy {entry.ProjectPath} (exit {exitCode}).");
                 return exitCode;
             }
         }
@@ -146,32 +143,30 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
 
         if (unrestored.Count > 0)
         {
-            output.WriteLine($"==> Restoring {unrestored.Count} project(s) plan did not restore");
-            var restoreExitCode = Report($"restore-{configuration}", output, MsBuildRunner.Restore(
+            var restoreExitCode = Run($"restore-{configuration}", $"Restoring {unrestored.Count} project(s) plan did not restore", options, output, logs => MsBuildRunner.Restore(
                 options.RepositoryRoot,
                 unrestored.Select(entry => entry.FullPath),
                 configuration,
                 options.SyntheticSolutionPath($"restore-{configuration}"),
-                options.BinaryLogPath($"restore-{configuration}")));
+                logs));
 
             if (restoreExitCode != 0)
             {
-                output.WriteError($"error: restore failed (exit {restoreExitCode}).");
+                output.WriteFailure($"restore failed (exit {restoreExitCode}).");
                 return restoreExitCode;
             }
         }
 
-        output.WriteLine($"==> Building {entries.Count} project(s) ({configuration})");
-        var exitCode = Report($"build-{configuration}", output, MsBuildRunner.Build(
+        var exitCode = Run($"build-{configuration}", $"Building {entries.Count} project(s) ({configuration})", options, output, logs => MsBuildRunner.Build(
             options.RepositoryRoot,
             entries.Select(entry => entry.FullPath),
             configuration,
             options.SyntheticSolutionPath($"build-{configuration}"),
             defaultProperties,
-            options.BinaryLogPath($"build-{configuration}")));
+            logs));
 
         if (exitCode != 0)
-            output.WriteError($"error: build failed (exit {exitCode}).");
+            output.WriteFailure($"build failed (exit {exitCode}).");
 
         return exitCode;
     }
@@ -200,10 +195,20 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void DisposeEvaluator() => _evaluator!.Dispose();
 
-    // The step names match the binary logs, so a heavy step leads straight to its .binlog.
-    private static int Report(string step, PipelineOutput output, ProcessResult result)
+    // MSBuild's own output is folded away; its errors are reported once it ends, where they are the
+    // first thing a failed step shows. The step names match the binary logs, so a heavy step leads
+    // straight to its .binlog.
+    private static int Run(string step, string title, PipelineOptions options, PipelineOutput output, Func<MsBuildLogs, ProcessResult> run)
     {
+        var logs = options.MsBuildLogs(step);
+        ProcessResult result;
+        using (output.Section(title, collapse: true))
+            result = run(logs);
+
         output.WriteLine($"resources: {step} {result.Usage}");
+        if (result.ExitCode != 0)
+            MsBuildErrors.Report(logs.ErrorLogPath, options.RepositoryRoot, output);
+
         return result.ExitCode;
     }
 
@@ -240,7 +245,7 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
 
         if (offenders.Count > 0)
         {
-            output.WriteError("error: these projects declare <TargetFrameworks>. Set a single <TargetFramework>, or change RepositoryTargetFramework in Directory.Build.props.");
+            output.WriteFailure("these projects declare <TargetFrameworks>. Set a single <TargetFramework>, or change RepositoryTargetFramework in Directory.Build.props.");
             foreach (var project in offenders)
                 output.WriteError($"  {project.Id}");
             return 1;

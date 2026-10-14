@@ -93,6 +93,12 @@ done
 
 [[ -n "${REMOTEBUILDTOOL_LOG_RUN:-}" ]] && run_args+=(--env "REMOTEBUILDTOOL_LOGS_DIR=/mnt/logs/${REMOTEBUILDTOOL_LOG_RUN}")
 
+# The step's run summary is a file the runner reads once the step ends; mounted on its own so the
+# command can append to it and nothing else of the runner's directory is visible.
+if [[ -n "${GITHUB_STEP_SUMMARY:-}" && -f "${GITHUB_STEP_SUMMARY}" ]]; then
+    run_args+=(--volume "${GITHUB_STEP_SUMMARY}:/mnt/step-summary.md" --env GITHUB_STEP_SUMMARY=/mnt/step-summary.md)
+fi
+
 exec docker run "${run_args[@]}" --entrypoint bash "${IMAGE}" -c '
     set -euo pipefail
     mkdir -p "${TMPDIR}"

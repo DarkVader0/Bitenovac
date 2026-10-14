@@ -56,7 +56,7 @@ internal static class CommandLine
 
     private static int Fail(PipelineOutput output, string message)
     {
-        output.WriteError($"error: {message}");
+        output.WriteFailure(message);
         return 1;
     }
 

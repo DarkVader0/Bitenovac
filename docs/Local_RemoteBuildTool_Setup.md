@@ -288,6 +288,16 @@ sudo ls /var/lib/docker/volumes/bitenovac-logs/_data/PR_18
 sudo cat /var/lib/docker/volumes/bitenovac-logs/_data/PR_18/16473829-1/test-Debug.log
 ```
 
+On GitHub, with RemoteBuildTool 1.2.0 or later in the runner image:
+
+- **Failures come first.** Compiler errors and failed stages are error annotations: they head the
+  run's page and show inline on the pull request's changed lines. MSBuild's own output and every
+  passing test project are folded into groups; a failing test project stays open.
+- **Every stage is timed.** Each part ends with a line such as
+  `<== Restoring 22 project(s) (1.9 s)`.
+- **The run summary** holds the plan's cache hits per configuration, why each miss builds, each
+  build's time, and a table of test projects with failures on top.
+
 Open a `.binlog` in the [MSBuild Structured Log Viewer](https://msbuildlog.com) to see why a project
 built, what every property evaluated to, and how long each target took. Binary logs need
 RemoteBuildTool 0.0.4 or later in the runner image; console logs work with any.

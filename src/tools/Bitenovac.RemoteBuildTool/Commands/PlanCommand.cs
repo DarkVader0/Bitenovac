@@ -2,6 +2,7 @@ using Bitenovac.RemoteBuildTool.Core.Graph;
 using Bitenovac.RemoteBuildTool.Core.Planning;
 using Bitenovac.RemoteBuildTool.Hashing;
 using Bitenovac.RemoteBuildTool.Planning;
+using Bitenovac.RemoteBuildTool.Reporting;
 using Bitenovac.RemoteBuildTool.Storage;
 using Bitenovac.RemoteBuildTool.Toolchains;
 
@@ -30,7 +31,7 @@ internal static class PlanCommand
         var total = discovered.Sum(found => found.RelativePaths.Count);
         if (total == 0)
         {
-            output.WriteError("error: no projects found in the repository.");
+            output.WriteFailure("no projects found in the repository.");
             return 1;
         }
 
@@ -42,9 +43,13 @@ internal static class PlanCommand
 
         foreach (var (toolchain, relativePaths) in discovered)
         {
-            var byConfiguration = PipelineOptions.Configurations.ToDictionary(
-                configuration => configuration,
-                configuration => toolchain.Evaluate(relativePaths, configuration));
+            Dictionary<string, IReadOnlyList<EvaluatedProject>> byConfiguration;
+            using (output.Section($"Evaluating {relativePaths.Count} {toolchain.Name} project(s)"))
+            {
+                byConfiguration = PipelineOptions.Configurations.ToDictionary(
+                    configuration => configuration,
+                    configuration => toolchain.Evaluate(relativePaths, configuration));
+            }
 
             var prepared = toolchain.Prepare(options, byConfiguration, output);
             if (!prepared.Succeeded)
@@ -63,17 +68,23 @@ internal static class PlanCommand
         var mainStore = new LocalVolumeArtifactStore(options.MainStoreRoot);
         var planState = new PlanState([]);
 
-        foreach (var configuration in PipelineOptions.Configurations)
+        using (output.Section("Hashing and looking up main"))
         {
-            var entries = PlanConfiguration(configuration, evaluated[configuration], mainStore, options.Cacheless);
-            planState.ByConfiguration[configuration] = entries;
+            foreach (var configuration in PipelineOptions.Configurations)
+            {
+                var entries = PlanConfiguration(configuration, evaluated[configuration], mainStore, options.Cacheless);
+                planState.ByConfiguration[configuration] = entries;
 
-            var hits = entries.Count(entry => entry.Hit);
-            output.WriteLine($"{configuration}: {entries.Count} project(s), {hits} cache hit(s), {entries.Count - hits} to build.");
-
-            foreach (var entry in entries.Where(entry => !entry.Hit).OrderBy(entry => entry.ProjectPath, StringComparer.Ordinal))
-                output.WriteLine($"  miss {entry.ProjectPath}: {entry.WhyCacheMiss}");
+                var hits = entries.Count(entry => entry.Hit);
+                var misses = entries
+                    .Where(entry => !entry.Hit)
+                    .OrderBy(entry => entry.ProjectPath, StringComparer.Ordinal)
+                    .Select(entry => $"  miss {entry.ProjectPath}: {entry.WhyCacheMiss}{Environment.NewLine}");
+                output.WriteGroup($"{configuration}: {entries.Count} project(s), {hits} cache hit(s), {entries.Count - hits} to build.", string.Concat(misses));
+            }
         }
+
+        output.AppendSummary(PlanSummary.ToMarkdown(planState.ByConfiguration));
 
         planState.Save(options.PlanFile);
         output.WriteLine($"Plan written to {options.PlanFile}");

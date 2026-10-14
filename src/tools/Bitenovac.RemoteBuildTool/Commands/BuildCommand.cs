@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Globalization;
 using Bitenovac.RemoteBuildTool.Core.Graph;
 using Bitenovac.RemoteBuildTool.Core.Planning;
 using Bitenovac.RemoteBuildTool.Planning;
@@ -36,13 +38,19 @@ internal static class BuildCommand
         var mainStore = new LocalVolumeArtifactStore(options.MainStoreRoot);
         var prStore = new LocalVolumeArtifactStore(options.PrStoreRoot);
 
-        var (materialised, skipped, unavailable) = MaterialiseHits(options, entries, configuration, mainStore, toolchains);
+        var stopwatch = Stopwatch.StartNew();
+        (int Materialised, int Skipped, HashSet<PlanEntry> Unavailable) hits;
+        using (output.Section($"Materialising cache hits from main ({configuration})"))
+            hits = MaterialiseHits(options, entries, configuration, mainStore, toolchains);
+        var (materialised, skipped, unavailable) = hits;
         output.WriteLine($"{configuration}: materialised {materialised} cache hit(s) from main"
             + (skipped > 0 ? $", {skipped} already present" : "") + ".");
 
         var toBuild = entries.Where(entry => !entry.Hit || unavailable.Contains(entry)).ToList();
-        foreach (var entry in toBuild.OrderBy(entry => entry.ProjectPath, StringComparer.Ordinal))
-            output.WriteLine($"  rebuild {entry.ProjectPath}: {entry.WhyCacheMiss ?? "main's entry could not be materialised"}");
+        var reasons = toBuild
+            .OrderBy(entry => entry.ProjectPath, StringComparer.Ordinal)
+            .Select(entry => $"  rebuild {entry.ProjectPath}: {entry.WhyCacheMiss ?? "main's entry could not be materialised"}{Environment.NewLine}");
+        output.WriteGroup($"{configuration}: {toBuild.Count} project(s) to rebuild", string.Concat(reasons));
 
         var order = ToolchainOrder.Resolve(entries);
 
@@ -54,17 +62,26 @@ internal static class BuildCommand
 
             var exitCode = toolchains.For(name).Build(options, batch, configuration, output);
             if (exitCode != 0)
+            {
+                output.AppendSummary($"### {configuration} build\n\n**Build failed** after {Seconds(stopwatch.Elapsed)}; the errors are annotated above.\n");
                 return exitCode;
+            }
         }
 
-        var staged = StageMisses(entries, configuration, prStore, toolchains);
+        int staged;
+        using (output.Section($"Staging rebuilt projects ({configuration})"))
+            staged = StageMisses(entries, configuration, prStore, toolchains);
 
         foreach (var entry in entries)
             MaterialisedMarker.Write(options.RepositoryRoot, new ProjectId(entry.ProjectPath), configuration, entry.FullHash);
 
         output.WriteLine($"{configuration}: build complete, staged {staged} rebuilt project(s).");
+        output.AppendSummary($"### {configuration} build\n\n{materialised + skipped} cache hit(s) reused, {toBuild.Count} project(s) rebuilt in {Seconds(stopwatch.Elapsed)}.\n");
         return 0;
     }
+
+    private static string Seconds(TimeSpan elapsed) =>
+        string.Create(CultureInfo.InvariantCulture, $"{elapsed.TotalSeconds:0.0} s");
 
     private static (int Materialised, int Skipped, HashSet<PlanEntry> Unavailable) MaterialiseHits(
         PipelineOptions options,

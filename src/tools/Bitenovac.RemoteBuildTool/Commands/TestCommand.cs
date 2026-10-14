@@ -1,7 +1,9 @@
+using System.Globalization;
 using Bitenovac.RemoteBuildTool.Core.Coverage;
 using Bitenovac.RemoteBuildTool.Core.Graph;
 using Bitenovac.RemoteBuildTool.Core.Planning;
 using Bitenovac.RemoteBuildTool.Planning;
+using Bitenovac.RemoteBuildTool.Reporting;
 using Bitenovac.RemoteBuildTool.Storage;
 using Bitenovac.RemoteBuildTool.Testing;
 using Bitenovac.RemoteBuildTool.Toolchains;
@@ -52,56 +54,66 @@ internal static class TestCommand
             Directory.Delete(coverageDirectory, recursive: true);
         Directory.CreateDirectory(coverageDirectory);
 
-        output.WriteLine($"==> Testing {testEntries.Count} project(s) ({configuration})");
-
         var failed = new List<string>();
         var noTestsRan = new List<string>();
         var toRun = new List<(PlanEntry Entry, string Name)>();
+        var summary = new TestSummary(configuration);
 
-        foreach (var entry in testEntries)
+        using (output.Section($"Testing {testEntries.Count} project(s) ({configuration})"))
         {
-            var name = Path.GetFileNameWithoutExtension(entry.ProjectPath);
-
-            if (entry.Hit && entry.CacheTestResults && ReuseCachedResult(new ProjectId(entry.ProjectPath), configuration, name, mainStore, coverageDirectory))
+            foreach (var entry in testEntries)
             {
-                output.WriteLine($"--- {name} (reused)");
-                continue;
+                var name = Path.GetFileNameWithoutExtension(entry.ProjectPath);
+
+                if (entry.Hit && entry.CacheTestResults && ReuseCachedResult(new ProjectId(entry.ProjectPath), configuration, name, mainStore, coverageDirectory))
+                {
+                    output.WriteLine($"--- {name} (reused)");
+                    summary.Reused(name);
+                    continue;
+                }
+
+                toRun.Add((entry, name));
             }
 
-            toRun.Add((entry, name));
-        }
-
-        var jobs = toRun
-            .Select(run => new TestJob(run.Name, () => toolchains.For(run.Entry.Toolchain).RunTests(run.Entry, configuration, run.Name, coverageDirectory)))
-            .ToList();
-        var results = TestSuite.RunAll(jobs, coverageDirectory, PipelineOptions.MaxParallelism(), output.Out);
-
-        for (var index = 0; index < toRun.Count; index++)
-        {
-            var (entry, name) = toRun[index];
-            var result = results[index];
-
-            switch (result.Outcome)
+            var jobs = toRun
+                .Select(run => new TestJob(run.Name, () => toolchains.For(run.Entry.Toolchain).RunTests(run.Entry, configuration, run.Name, coverageDirectory)))
+                .ToList();
+            var results = TestSuite.RunAll(jobs, coverageDirectory, PipelineOptions.MaxParallelism(), (job, result) =>
             {
-                case TestRunOutcome.Passed:
-                    if (entry.CacheTestResults)
-                        StageTestResult(new ProjectId(entry.ProjectPath), configuration, name, coverageDirectory, entry, prStore);
-                    break;
-                case TestRunOutcome.NoTestsRan:
-                    noTestsRan.Add(name);
-                    break;
-                case TestRunOutcome.Failed:
-                    failed.Add($"{name} (exit {result.ExitCode})");
-                    break;
+                Report(output, job, result);
+                summary.Ran(job.Name, result);
+            });
+
+            for (var index = 0; index < toRun.Count; index++)
+            {
+                var (entry, name) = toRun[index];
+                var result = results[index];
+
+                switch (result.Outcome)
+                {
+                    case TestRunOutcome.Passed:
+                        if (entry.CacheTestResults)
+                            StageTestResult(new ProjectId(entry.ProjectPath), configuration, name, coverageDirectory, entry, prStore);
+                        break;
+                    case TestRunOutcome.NoTestsRan:
+                        noTestsRan.Add(name);
+                        break;
+                    case TestRunOutcome.Failed:
+                        failed.Add($"{name} (exit {result.ExitCode})");
+                        break;
+                }
             }
         }
+
+        output.AppendSummary(summary.ToMarkdown());
 
         if (noTestsRan.Count > 0)
             output.WriteLine($"warning: test projects that ran no tests: {string.Join(", ", noTestsRan)}");
 
         if (failed.Count > 0)
         {
-            output.WriteError($"Test projects with failing tests:\n  {string.Join("\n  ", failed)}");
+            foreach (var project in failed)
+                output.WriteFailure($"{project} has failing tests.");
             return 1;
         }
 
@@ -110,7 +122,38 @@ internal static class TestCommand
         if (configuration != "Debug")
             return 0;
 
-        return RunCoverageGate(entries, coverageDirectory, options, output);
+        var gateExitCode = RunCoverageGate(entries, coverageDirectory, options, output);
+        if (gateExitCode != 0)
+            output.WriteFailure("a gated project is below its coverage policy; the lines above name it.");
+
+        output.AppendSummary(gateExitCode == 0 ? "Coverage gate passed.\n" : "**Coverage gate failed.**\n");
+        return gateExitCode;
+    }
+
+    // A project that passed is folded away; one that failed stays open, as it is what the reader
+    // came for.
+    private static void Report(PipelineOutput output, TestJob job, TestRunResult result)
+    {
+        var took = result.Usage is { } usage
+            ? string.Create(CultureInfo.InvariantCulture, $" in {usage.Elapsed.TotalSeconds:0.0} s")
+            : "";
+        var body = result.Usage is { } measured
+            ? $"{result.Output}resources: test {job.Name} {measured}{Environment.NewLine}"
+            : result.Output;
+
+        switch (result.Outcome)
+        {
+            case TestRunOutcome.Failed:
+                output.WriteLine($"--- {job.Name}: failed (exit {result.ExitCode}){took}");
+                output.Out.Write(body);
+                break;
+            case TestRunOutcome.NoTestsRan:
+                output.WriteGroup($"{job.Name}: ran no tests{took}", body);
+                break;
+            default:
+                output.WriteGroup($"{job.Name}: passed{took}", body);
+                break;
+        }
     }
 
     private static bool MaterialiseBuildOutputs(
@@ -141,7 +184,7 @@ internal static class TestCommand
 
             if (!source.TryGet(project, configuration, projectDirectory, out _, [.. outputDirectories.Select(directory => directory + "/")]))
             {
-                output.WriteError($"error: no build output available for {entry.ProjectPath}. Run 'build {configuration}' first.");
+                output.WriteFailure($"no build output available for {entry.ProjectPath}. Run 'build {configuration}' first.");
                 return false;
             }
 

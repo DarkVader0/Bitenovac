@@ -13,16 +13,17 @@ namespace Bitenovac.RemoteBuildTool.MsBuild;
 /// its own value, where a global property would override it.
 /// </para>
 /// <para>
-/// Every method writes a binary log to the path it is given, or none when that path is
+/// Every method writes its errors alone to a file, so they can be reported apart from the rest of
+/// the output, and a binary log to the path it is given, or none when that path is
 /// <see langword="null"/>; see <see cref="PipelineOptions.BinaryLogPath"/>.
 /// </para>
 /// </remarks>
 internal static class MsBuildRunner
 {
-    public static ProcessResult Restore(string repositoryRoot, IEnumerable<string> projectFullPaths, string configuration, string solutionPath, string? binaryLogPath)
+    public static ProcessResult Restore(string repositoryRoot, IEnumerable<string> projectFullPaths, string configuration, string solutionPath, MsBuildLogs logs)
     {
         SyntheticSolution.Write(solutionPath, projectFullPaths);
-        return RunMsBuild(repositoryRoot, solutionPath, "Restore", configuration, graph: false, new Dictionary<string, string>(), binaryLogPath);
+        return RunMsBuild(repositoryRoot, solutionPath, "Restore", configuration, graph: false, new Dictionary<string, string>(), logs);
     }
 
     public static ProcessResult Build(
@@ -31,25 +32,25 @@ internal static class MsBuildRunner
         string configuration,
         string solutionPath,
         IReadOnlyDictionary<string, string> defaultProperties,
-        string? binaryLogPath)
+        MsBuildLogs logs)
     {
         SyntheticSolution.Write(solutionPath, projectFullPaths);
-        return RunMsBuild(repositoryRoot, solutionPath, "Build", configuration, graph: true, defaultProperties, binaryLogPath);
+        return RunMsBuild(repositoryRoot, solutionPath, "Build", configuration, graph: true, defaultProperties, logs);
     }
 
     /// <summary>
     /// Packs a project already built in Release into <paramref name="outputDirectory"/>.
     /// </summary>
     /// <returns>The exit code of MSBuild and what it used.</returns>
-    public static ProcessResult Pack(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, string? binaryLogPath) =>
-        RunDotNet(repositoryRoot, "pack", projectFullPath, defaultProperties, outputDirectory, binaryLogPath);
+    public static ProcessResult Pack(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs) =>
+        RunDotNet(repositoryRoot, "pack", projectFullPath, defaultProperties, outputDirectory, logs);
 
     /// <summary>
     /// Publishes a project already built in Release into <paramref name="outputDirectory"/>.
     /// </summary>
     /// <returns>The exit code of MSBuild and what it used.</returns>
-    public static ProcessResult Publish(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, string? binaryLogPath) =>
-        RunDotNet(repositoryRoot, "publish", projectFullPath, defaultProperties, outputDirectory, binaryLogPath);
+    public static ProcessResult Publish(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs) =>
+        RunDotNet(repositoryRoot, "publish", projectFullPath, defaultProperties, outputDirectory, logs);
 
     private static ProcessResult RunDotNet(
         string repositoryRoot,
@@ -57,7 +58,7 @@ internal static class MsBuildRunner
         string projectFullPath,
         IReadOnlyDictionary<string, string> defaultProperties,
         string outputDirectory,
-        string? binaryLogPath)
+        MsBuildLogs logs)
     {
         List<string> arguments =
         [
@@ -68,7 +69,7 @@ internal static class MsBuildRunner
             "--output", outputDirectory,
         ];
 
-        AddBinaryLog(arguments, binaryLogPath);
+        AddLogs(arguments, logs);
         return ProcessRunner.Run("dotnet", arguments, repositoryRoot, defaultProperties);
     }
 
@@ -79,7 +80,7 @@ internal static class MsBuildRunner
         string configuration,
         bool graph,
         IReadOnlyDictionary<string, string> defaultProperties,
-        string? binaryLogPath)
+        MsBuildLogs logs)
     {
         List<string> arguments =
         [
@@ -93,16 +94,28 @@ internal static class MsBuildRunner
         if (graph)
             arguments.Add("-graphBuild");
 
-        AddBinaryLog(arguments, binaryLogPath);
+        AddLogs(arguments, logs);
         return ProcessRunner.Run("dotnet", arguments, repositoryRoot, defaultProperties);
     }
 
-    private static void AddBinaryLog(List<string> arguments, string? binaryLogPath)
+    private static void AddLogs(List<string> arguments, MsBuildLogs logs)
     {
-        if (binaryLogPath is null)
+        Directory.CreateDirectory(Path.GetDirectoryName(logs.ErrorLogPath)!);
+        File.Delete(logs.ErrorLogPath);
+        arguments.Add("-fileLogger1");
+        arguments.Add($"-fileLoggerParameters1:LogFile={logs.ErrorLogPath};ErrorsOnly");
+
+        if (logs.BinaryLogPath is null)
             return;
 
-        Directory.CreateDirectory(Path.GetDirectoryName(binaryLogPath)!);
-        arguments.Add($"-bl:{binaryLogPath}");
+        Directory.CreateDirectory(Path.GetDirectoryName(logs.BinaryLogPath)!);
+        arguments.Add($"-bl:{logs.BinaryLogPath}");
     }
 }
+
+/// <summary>
+/// Represents where one MSBuild invocation writes its logs.
+/// </summary>
+/// <param name="BinaryLogPath">The binary log, or <see langword="null"/> for none.</param>
+/// <param name="ErrorLogPath">The file that receives only the invocation's errors.</param>
+internal sealed record MsBuildLogs(string? BinaryLogPath, string ErrorLogPath);

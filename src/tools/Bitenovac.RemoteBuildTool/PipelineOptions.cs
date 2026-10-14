@@ -1,3 +1,5 @@
+using Bitenovac.RemoteBuildTool.MsBuild;
+
 namespace Bitenovac.RemoteBuildTool;
 
 /// <summary>
@@ -60,6 +62,17 @@ internal sealed record PipelineOptions(
     /// </returns>
     public string? BinaryLogPath(string name) =>
         LogsRoot is null ? null : Path.Combine(LogsRoot, $"{name}.binlog");
+
+    /// <summary>
+    /// Returns where one MSBuild invocation writes its logs.
+    /// </summary>
+    /// <param name="name">The name of the invocation, unique within the run; for example <c>build-Debug</c>.</param>
+    /// <returns>
+    /// The binary log of <see cref="BinaryLogPath"/>, and <c>errors/&lt;name&gt;.log</c> in this run's
+    /// own volume for the errors alone.
+    /// </returns>
+    public MsBuildLogs MsBuildLogs(string name) =>
+        new(BinaryLogPath(name), Path.Combine(PrStoreRoot, "errors", $"{name}.log"));
 
     /// <summary>
     /// Returns the number of processes and MSBuild nodes that one job may run at once.

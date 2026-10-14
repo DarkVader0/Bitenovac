@@ -22,7 +22,7 @@ internal static class ReleaseCommand
         var entries = PlanState.Load(options.PlanFile).For("Release");
         if (entries.Count == 0)
         {
-            output.WriteError("error: the plan selected nothing for Release, so there is nothing to release.");
+            output.WriteFailure("the plan selected nothing for Release, so there is nothing to release.");
             return 1;
         }
 
@@ -46,7 +46,7 @@ internal static class ReleaseCommand
                 var exitCode = toolchains.For(name).Publish(options, batch, version, staging, output);
                 if (exitCode != 0)
                 {
-                    output.WriteError($"error: release {version} failed; nothing was dropped.");
+                    output.WriteFailure($"release {version} failed; nothing was dropped.");
                     return exitCode;
                 }
             }

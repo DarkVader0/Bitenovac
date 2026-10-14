@@ -13,7 +13,7 @@ public sealed class FailurePathIntegrationTests
     private readonly CapturedOutput _output = new();
 
     [Fact]
-    public void Build_ShouldFail_WhenTheSourceDoesNotCompile()
+    public void Build_ShouldFailAndPointAtTheError_WhenTheSourceDoesNotCompile()
     {
         // Arrange
         using var fixture = FixtureRepository.Create();
@@ -25,6 +25,8 @@ public sealed class FailurePathIntegrationTests
 
         // Assert
         Assert.NotEqual(0, exitCode);
+        Assert.Contains("error: src/Lib/Calculator.cs(1,", _output.Errors, StringComparison.Ordinal);
+        Assert.Contains("error: build failed", _output.Errors, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -185,7 +187,7 @@ public sealed class FailurePathIntegrationTests
                 [fixture.Combine(FixtureRepository.LibraryProject)],
                 "Debug",
                 fixture.Options.SyntheticSolutionPath("restore"),
-                fixture.Options.BinaryLogPath("restore")).ExitCode;
+                fixture.Options.MsBuildLogs("restore")).ExitCode;
         }
         finally
         {
