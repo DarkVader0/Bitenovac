@@ -82,7 +82,7 @@ jobs:
 
   pr:
     name: PR
-    needs: [debug-test, release-test]
+    needs: [plan, debug-build, debug-test, release-build, release-test]
     if: always()
     runs-on: [self-hosted, linux, x64, bitenovac]
     timeout-minutes: 1
