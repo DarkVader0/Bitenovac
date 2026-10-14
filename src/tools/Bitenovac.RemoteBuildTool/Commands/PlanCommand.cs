@@ -60,13 +60,12 @@ internal static class PlanCommand
         foreach (var projects in evaluated.Values)
             ToolchainOrder.Resolve([.. projects.Values.Select(project => (project.Id, project.Toolchain, project.ProjectReferences))]);
 
-        var remoteBuildToolHash = RemoteBuildToolVersion.Compute(AppContext.BaseDirectory);
         var mainStore = new LocalVolumeArtifactStore(options.MainStoreRoot);
         var planState = new PlanState([]);
 
         foreach (var configuration in PipelineOptions.Configurations)
         {
-            var entries = PlanConfiguration(configuration, evaluated[configuration], mainStore, remoteBuildToolHash, options.Cacheless);
+            var entries = PlanConfiguration(configuration, evaluated[configuration], mainStore, options.Cacheless);
             planState.ByConfiguration[configuration] = entries;
 
             var hits = entries.Count(entry => entry.Hit);
@@ -85,7 +84,6 @@ internal static class PlanCommand
         string configuration,
         IReadOnlyDictionary<ProjectId, EvaluatedProject> evaluated,
         LocalVolumeArtifactStore mainStore,
-        string remoteBuildToolHash,
         bool cacheless)
     {
         var ids = evaluated.Keys.ToList();
@@ -102,7 +100,7 @@ internal static class PlanCommand
         }
 
         var forced = cacheless ? ids.ToHashSet() : null;
-        var decisions = CachePlanBuilder.Build(graph, ownHashInputs, stored, forced, [$"remotebuildtool:{remoteBuildToolHash}"]);
+        var decisions = CachePlanBuilder.Build(graph, ownHashInputs, stored, forced, [FingerprintFormat.Entry]);
 
         return ids.Select(id =>
         {

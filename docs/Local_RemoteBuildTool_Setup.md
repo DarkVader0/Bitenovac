@@ -126,9 +126,11 @@ bash runner/build-image.sh
 sudo bash runner/seed-cache.sh
 ```
 
-`seed-cache.sh` is needed because a new RemoteBuildTool release empties the cache: every project
-would build from zero on the next pull request. Set `REMOTEBUILDTOOL_SOURCE` before `build-image.sh`
-to install from a feed other than nuget.org.
+A new RemoteBuildTool release keeps the cache: only a project's inputs decide whether it is rebuilt.
+`seed-cache.sh` is needed only when the release changes the fingerprint rules (the release notes say
+so, and `FingerprintFormat.Version` in the source goes up), or after a `global.json` or Dockerfile
+change; then every project would build from zero on the next pull request. Set
+`REMOTEBUILDTOOL_SOURCE` before `build-image.sh` to install from a feed other than nuget.org.
 
 ### First time only: let the deploy workflow publish
 

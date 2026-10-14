@@ -3,8 +3,9 @@ using System.Security.Cryptography;
 namespace Bitenovac.RemoteBuildTool.Hashing;
 
 /// <summary>
-/// Represents the own-hash inputs that every project shares: the content hashes of
-/// <c>global.json</c> and <c>nuget.config</c> at the repository root.
+/// Represents the own-hash inputs that every project shares: the content hash of
+/// <c>global.json</c> at the repository root, which picks the SDK and any MSBuild SDK packages. Package
+/// sources in <c>nuget.config</c> are not an input: the packages they resolve to are.
 /// </summary>
 internal sealed class SharedHashInputs
 {
@@ -17,9 +18,6 @@ internal sealed class SharedHashInputs
         var entries = new List<string>();
 
         AddIfExists(entries, repositoryRoot, "global.json");
-        AddIfExists(entries, repositoryRoot, "nuget.config");
-        AddIfExists(entries, repositoryRoot, "NuGet.config");
-        AddIfExists(entries, repositoryRoot, "NuGet.Config");
 
         return new SharedHashInputs(entries);
     }
