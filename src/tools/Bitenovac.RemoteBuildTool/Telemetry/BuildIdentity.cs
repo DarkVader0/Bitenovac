@@ -34,14 +34,17 @@ internal sealed partial record BuildIdentity(
     /// <param name="read">Returns an environment variable, or <see langword="null"/> when it is unset.</param>
     /// <returns>
     /// The identity; outside a workflow, a <c>local-</c> build of the <c>local</c> queue and pool.
+    /// <c>REMOTEBUILDTOOL_BUILD_ID</c> and <c>REMOTEBUILDTOOL_QUEUE</c> name a build the service
+    /// starts itself.
     /// </returns>
     public static BuildIdentity FromEnvironment(Func<string, string?> read)
     {
         string? Value(string name) => read(name) is { Length: > 0 } value ? value : null;
 
-        var buildId = Value("GITHUB_RUN_ID") is { } runId
-            ? $"{runId}-{Value("GITHUB_RUN_ATTEMPT") ?? "1"}"
-            : $"local-{DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture)}";
+        var buildId = Value("REMOTEBUILDTOOL_BUILD_ID")
+            ?? (Value("GITHUB_RUN_ID") is { } runId
+                ? $"{runId}-{Value("GITHUB_RUN_ATTEMPT") ?? "1"}"
+                : $"local-{DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture)}");
         var reference = Value("GITHUB_REF");
         int? pullRequest = reference is not null && PullRequestRef().Match(reference) is { Success: true } match
             ? int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)
@@ -49,7 +52,7 @@ internal sealed partial record BuildIdentity(
 
         return new BuildIdentity(
             buildId,
-            Value("GITHUB_WORKFLOW") ?? "local",
+            Value("REMOTEBUILDTOOL_QUEUE") ?? Value("GITHUB_WORKFLOW") ?? "local",
             Value("REMOTEBUILDTOOL_POOL") ?? "local",
             Value("REMOTEBUILDTOOL_MACHINE") ?? Environment.MachineName,
             Value("GITHUB_JOB"),

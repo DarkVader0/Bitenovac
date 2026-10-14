@@ -127,6 +127,7 @@ internal sealed class EnvironmentVariables : IDisposable
         "REMOTEBUILDTOOL_MAX_CPU",
         "REMOTEBUILDTOOL_LOGS_DIR",
         "REMOTEBUILDTOOL_TELEMETRY_DIR",
+        "REMOTEBUILDTOOL_CONFIG",
     ];
 
     private readonly Dictionary<string, string?> _original =

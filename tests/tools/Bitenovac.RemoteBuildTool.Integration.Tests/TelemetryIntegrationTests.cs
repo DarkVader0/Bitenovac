@@ -20,10 +20,10 @@ public sealed class TelemetryIntegrationTests
         var planExitCode = PlanCommand.Run(fixture.Options, _output.Pipeline);
         var buildExitCode = BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline);
         var testExitCode = TestCommand.Run(fixture.Options, "Debug", _output.Pipeline);
-        var reportExitCode = ReportBuildCommand.Run(fixture.Options, _output.Pipeline, "success", null);
+        BuildSummarizer.Write(telemetry, identity, "success", DateTimeOffset.UtcNow, BuildTimeline.Unknown, "host-1");
 
         // Assert
-        Assert.Equal([0, 0, 0, 0], [planExitCode, buildExitCode, testExitCode, reportExitCode]);
+        Assert.Equal([0, 0, 0], [planExitCode, buildExitCode, testExitCode]);
         var prefix = identity.BuildId + ".";
 
         var stages = TelemetryWriter.Read(telemetry, TelemetryWriter.StageTable, prefix, TelemetryJsonContext.Default.StageInfo)

@@ -1,6 +1,6 @@
 -- The telemetry contract on the database side: one typed, empty table per record type, matching
--- src/tools/Bitenovac.RemoteBuildTool/Telemetry/TelemetryRecords.cs. Compaction casts every raw
--- JSON line to these types, so a column that happens to be null all day keeps its type.
+-- TelemetryRecords.cs. Compaction casts every raw JSON line to these types, so a column that
+-- happens to be null all day keeps its type.
 
 CREATE TABLE schema_build (
     SchemaVersion INTEGER,

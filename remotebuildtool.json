@@ -1,0 +1,14 @@
+{
+  "branch": "master",
+  "pollSeconds": 60,
+  "buildReportSeconds": 120,
+  "housekeeping": "03:30:00",
+  "cacheAudit": "01:00:00",
+  "cacheAuditConfiguration": "Debug",
+  "logRetentionDays": {
+    "PR_": 30,
+    "CacheRefresh_": 30,
+    "CacheAudit_": 30,
+    "Official_": 365
+  }
+}

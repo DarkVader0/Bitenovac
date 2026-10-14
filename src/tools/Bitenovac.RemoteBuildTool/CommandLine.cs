@@ -27,8 +27,7 @@ internal static class CommandLine
                 "audit" => WithConfiguration(args, output, configuration => AuditCommand.Run(options, configuration, output)),
                 "release" => ReleaseCommand.Run(options, output),
                 "graph" => GraphCommand.Run(options, output),
-                "report-build" when args.Length >= 2 => ReportBuildCommand.Run(options, output, args[1], args.Length >= 3 ? args[2] : null),
-                "report-build" => Fail(output, "A result is required, such as 'success' or 'failure'."),
+                "serve" => ServeCommand.Run(output, Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_CONFIG") is { Length: > 0 } settings ? settings : ServeCommand.DefaultSettingsPath),
                 "--help" or "-h" => Usage(output),
                 _ => Fail(output, $"Unknown command '{args[0]}'."),
             };
@@ -76,8 +75,8 @@ internal static class CommandLine
               remotebuildtool release           Build every project in Release under the next release
                                                 version and drop its deployable output
               remotebuildtool graph             Print the graph with each target's hashes
-              remotebuildtool report-build <Result> [<jobs.json>]
-                                                Sum up this build's stages into its BuildInfo record
+              remotebuildtool serve             Run the service: fill main from the watched branch, record
+                                                builds, compact telemetry, prune logs, audit the cache
 
             Environment:
               REMOTEBUILDTOOL_REPO_ROOT       Repository root (default: current directory)
@@ -88,5 +87,6 @@ internal static class CommandLine
                                  never promotes)
               REMOTEBUILDTOOL_COVERAGE_HTML   0 to skip the HTML coverage report (default: on locally, off in CI)
               REMOTEBUILDTOOL_TELEMETRY_DIR   Telemetry share; every command writes its records there (default: none)
+              REMOTEBUILDTOOL_CONFIG          The service's host settings (default: /etc/remotebuildtool/config.json)
             """);
 }

@@ -28,9 +28,14 @@ build_args=(
 )
 [[ -n "${REMOTEBUILDTOOL_SOURCE:-}" ]] && build_args+=(--build-arg "REMOTEBUILDTOOL_SOURCE=${REMOTEBUILDTOOL_SOURCE}")
 
-exec docker build \
+docker build \
     --file "${REPO_ROOT}/docker/ci-runner.Dockerfile" \
     "${build_args[@]}" \
     --tag "bitenovac-remotebuildtool-runner:${sdk_version}" \
     "$@" \
     "${REPO_ROOT}"
+
+# The service runs the image too; restarting it puts the new release to work at once.
+if [[ -r /etc/remotebuildtool/.env ]]; then
+    bash "${REPO_ROOT}/runner/service.sh" start
+fi

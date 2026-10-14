@@ -6,7 +6,9 @@ What you end up with:
 
 - 6 GitHub runners in Ubuntu (WSL), each job limited to 1 CPU and 2 GB RAM
 - the pinned RemoteBuildTool release already installed in the runner image
-- the build cache already filled from `master`
+- the **RemoteBuildTool service**, always running beside the runners: it fills the build cache from
+  every new commit on `master`, records every build, compacts telemetry, prunes old logs and
+  audits the cache. No workflow does any of that.
 
 Ubuntu commands go in the **Ubuntu** terminal. Windows commands go in **PowerShell**.
 
@@ -57,25 +59,28 @@ git switch master
 git pull
 ```
 
-**2. Get a token**
+**2. Get two tokens**
 
-Open https://github.com/DarkVader0/Bitenovac-Decompression/settings/actions/runners/new
-and copy the value after `--token`.
-
-- It works for 1 hour.
+- **Runner token**: open https://github.com/DarkVader0/Bitenovac-Decompression/settings/actions/runners/new
+  and copy the value after `--token`. It works for 1 hour and is needed only for setup.
+- **Service token**: on GitHub, your profile Settings → Developer settings → Fine-grained tokens →
+  Generate new token. Repository access: only this repository. Permissions: **Contents: Read** and
+  **Actions: Read**. Pick a long expiry; when it runs out, run setup again with a new one. The
+  service reads `master` and the finished workflow runs with it, for the build records' queue and
+  preparation times.
 
 **3. Run setup** (Ubuntu)
 
 ```bash
 cd ~/bitenovac
-sudo bash runner/setup-runner.sh --token <TOKEN> --instances 6 --cpus 1 --memory 2g
+sudo systemctl stop 'actions.runner.*' 2> /dev/null
+sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --api-token <SERVICE TOKEN> --instances 6 --cpus 1 --memory 2g
 ```
 
 Takes a few minutes. It must end with:
 
 ```
-Promoted 42 entries into main.
-  ok    main is warm
+  ok    remotebuildtool-service is running; follow it with: sudo bash runner/service.sh logs
 ==> Ready
 ```
 
@@ -83,11 +88,15 @@ Promoted 42 entries into main.
 
 ```bash
 systemctl list-units 'actions.runner.*' --no-pager
+sudo bash runner/service.sh logs
 ```
 
-All six runners must be `active running`.
+All six runners must be `active running`. On GitHub, Settings → Actions → Runners must show
+`DESKTOP-...-1` to `DESKTOP-...-6` as **Idle**.
 
-On GitHub, Settings → Actions → Runners must show `DESKTOP-...-1` to `DESKTOP-...-6` as **Idle**.
+Within a minute the service log shows `Cache refresh of <commit> started`: it is building `master`
+to fill the cache. Pull requests already work meanwhile; they are only faster once it has finished
+(`Cache refresh of <commit>: success`).
 
 **5. Done.** Open a pull request into `master` and it runs on your PC.
 
@@ -95,16 +104,63 @@ On GitHub, Settings → Actions → Runners must show `DESKTOP-...-1` to `DESKTO
 
 ## Every day
 
-- **The Ubuntu window must be running.** After a reboot, open Ubuntu once and the runners start
-  by themselves. While WSL is off, pull requests wait in "Queued".
+- **The Ubuntu window must be running.** After a reboot, open Ubuntu once and the runners and the
+  service start by themselves. While WSL is off, pull requests wait in "Queued".
 - **Watch the runners work** (Ubuntu): `journalctl -u 'actions.runner.*' -f`
+- **Watch the service** (Ubuntu): `sudo bash runner/service.sh logs`
+
+---
+
+## The RemoteBuildTool service
+
+One container, `remotebuildtool-service`, restarted whenever it stops. Every 15 seconds it starts
+whatever is due:
+
+| Work | When | What |
+|---|---|---|
+| Cache refresh | a new commit on `master` | builds and tests Debug and Release, then promotes into main. The only way anything enters the cache, so only merged code ever does |
+| Build records | every 2 minutes | a `build` telemetry row for every workflow run GitHub finished, with its queue and preparation time |
+| Housekeeping | daily, 03:30 UTC | compacts the telemetry of earlier days and deletes logs past their retention |
+| Cache audit | daily, 01:00 UTC | rebuilds `master` in Debug from scratch and compares it with the cache |
+
+One build, refresh or audit, runs at a time. Its logs land in the logs share like any other's,
+under `CacheRefresh_<commit>` or `CacheAudit_<commit>`, and its telemetry under queue
+`Cache refresh` or `Cache audit`.
+
+**Its settings come from two places:**
+
+- `/etc/remotebuildtool/config.json` on this machine, written by setup: the repository, the service
+  token, where the stores are, the pool. Readable by the runners' account only.
+- `remotebuildtool.json` at the root of `master`, all optional: the branch to watch, how often to
+  look, the daily times, and how long to keep each kind of log. A change takes effect once the
+  service has refreshed the commit that makes it.
+
+```json
+{
+  "branch": "master",
+  "pollSeconds": 60,
+  "buildReportSeconds": 120,
+  "housekeeping": "03:30:00",
+  "cacheAudit": "01:00:00",
+  "cacheAuditConfiguration": "Debug",
+  "logRetentionDays": { "PR_": 30, "CacheRefresh_": 30, "CacheAudit_": 30, "Official_": 365 }
+}
+```
+
+`"cacheAudit": null` turns the audit off. Stop, start and follow it (Ubuntu):
+
+```bash
+sudo bash runner/service.sh stop
+sudo bash runner/service.sh start
+sudo bash runner/service.sh logs
+```
 
 ---
 
 ## After releasing RemoteBuildTool, or changing the Dockerfile or `global.json`
 
-Pull requests use the RemoteBuildTool release **installed in the runner image**, not the source in
-the pull request. To ship a change to RemoteBuildTool:
+Pull requests and the service use the RemoteBuildTool release **installed in the runner image**,
+not the source in the pull request. To ship a change to RemoteBuildTool:
 
 1. Bump `<VersionPrefix>` in `src/tools/Bitenovac.RemoteBuildTool/Bitenovac.RemoteBuildTool.csproj`
    and merge it. That is the only place the version lives: `runner/build-image.sh` reads it from
@@ -122,15 +178,15 @@ nuget.org takes a few minutes to index a new package. Once it is listed, and aft
 cd ~/bitenovac
 git switch master
 git pull
-bash runner/build-image.sh
-sudo bash runner/seed-cache.sh
+sudo bash runner/build-image.sh
 ```
 
-A new RemoteBuildTool release keeps the cache: only a project's inputs decide whether it is rebuilt.
-`seed-cache.sh` is needed only when the release changes the fingerprint rules (the release notes say
-so, and `FingerprintFormat.Version` in the source goes up), or after a `global.json` or Dockerfile
-change; then every project would build from zero on the next pull request. Set
-`REMOTEBUILDTOOL_SOURCE` before `build-image.sh` to install from a feed other than nuget.org.
+It restarts the service on the new image. A new RemoteBuildTool release keeps the cache: only a
+project's inputs decide whether it is rebuilt. When a release changes the fingerprint rules (the
+release notes say so, and `FingerprintFormat.Version` in the source goes up), or after a
+`global.json` or Dockerfile change, every project misses once; the service's next cache refresh
+fills the cache again. Set `REMOTEBUILDTOOL_SOURCE` before `build-image.sh` to install from a feed
+other than nuget.org.
 
 ### First time only: let the deploy workflow publish
 
@@ -222,9 +278,8 @@ bash deploy/web.sh /tmp/site [2026.10.11.001]
 
 ## Fill the cache again
 
-After every push to `master`, and every 4 hours, the **Cache refresh** workflow fills the cache by
-itself: it builds, tests and promotes what changed. Run this only when pull requests are slower than
-they should be (Ubuntu):
+The service refills the cache by itself from every new commit on `master`. To fill it from this
+checkout by hand instead, such as on a machine without the service (Ubuntu):
 
 ```bash
 cd ~/bitenovac
@@ -239,15 +294,20 @@ It must end with `Promoted 42 entries into main.`
 
 ## Cache audit
 
-Every night at 01:00 UTC the **Cache audit** workflow checks that the cache can be trusted. It plans
-`master` with the cache off, rebuilds every project in Debug from scratch, and compares each rebuild
-with main's entry under the same fingerprint, file for file in `bin/`. They must be identical. A
-mismatch fails the run and names the project and files: its fingerprint misses an input, so a pull
-request could have been handed stale output as a cache hit. Fix the fingerprint, then refill the
-cache with `sudo bash runner/seed-cache.sh`.
+Every night at 01:00 UTC the service checks that the cache can be trusted. It plans `master` with
+the cache off, rebuilds every project in Debug from scratch, and compares each rebuild with main's
+entry under the same fingerprint, file for file in `bin/`. They must be identical. A mismatch fails
+the audit and names the project and files: its fingerprint misses an input, so a pull request could
+have been handed stale output as a cache hit. The service log and the audit's build record show it:
 
-A project main holds under another fingerprint, as when `master` moved since the last Cache
-refresh, is skipped rather than compared. Run it by hand from Actions → Cache audit → Run workflow.
+```bash
+sudo bash runner/service.sh logs
+bash runner/telemetry.sh query "FROM build WHERE Queue = 'Cache audit' ORDER BY EndTime DESC LIMIT 5"
+```
+
+The audit's `audit-Debug.log` in its logs folder lists every project as `match`, `MISMATCH` or
+`skip`. A project main holds under another fingerprint, as when `master` moved since the last cache
+refresh, is skipped rather than compared.
 
 ---
 
@@ -280,20 +340,20 @@ sudo ls /var/lib/docker/volumes/bitenovac-official/_data
 
 ## Logs
 
-Every PR, Cache refresh and Official run keeps its logs in the `bitenovac-logs` volume, one folder
-per pull request or build and one folder per run attempt inside it:
+Every PR, Official, cache refresh and cache audit keeps its logs in the `bitenovac-logs` volume, one
+folder per pull request or commit and one folder per run attempt inside it:
 
 ```
-PR_18/16473829-1/               kept 30 days
-CacheRefresh_412/16473901-1/    kept 30 days
-Official_2026.10.11.001/...     kept 1 year
-Official_failed_57/...          kept 1 year; a release that dropped nothing
+PR_18/16473829-1/                                        kept 30 days
+CacheRefresh_8f3c2a1b9d0e/cacherefresh-8f3c2a1b9d0e-...  kept 30 days
+Official_2026.10.11.001/...                              kept 1 year
+Official_failed_57/...                                   kept 1 year; a release that dropped nothing
 ```
 
 Each attempt folder holds the full output of every stage (`plan.log`, `build-Debug.log`,
 `test-Debug.log`, `release.log`, ...) and an MSBuild binary log per restore, build, publish and
-pack (`build-Debug.binlog`, `publish-<app>.binlog`, ...). Every run prunes what is past its
-retention when it finishes.
+pack (`build-Debug.binlog`, `publish-<app>.binlog`, ...). The service deletes what is past its
+retention every night; `logRetentionDays` in `remotebuildtool.json` sets it.
 
 To read them (Ubuntu):
 
@@ -350,8 +410,8 @@ grep -h "resources:" /srv/bitenovac/logs/PR_18/16473829-1/*.log
 
 ## Telemetry
 
-With RemoteBuildTool 1.2.0 or later in the runner image, every stage of every PR, Cache refresh and
-Official run records what it did, as JSON lines on the NFS share setup creates in Ubuntu
+With RemoteBuildTool 1.2.0 or later in the runner image, every stage of every PR, Official, cache
+refresh and cache audit records what it did, as JSON lines on the NFS share setup creates in Ubuntu
 (`/srv/bitenovac`, mounted into jobs as the `bitenovac-telemetry` volume). The logs moved onto the
 same share, so the logs path in every record opens from anywhere that mounts it.
 
@@ -368,10 +428,10 @@ so a job killed by its timeout records nothing.
 
 ### Querying
 
-Every night at 03:30 UTC the **Telemetry compaction** workflow turns each finished day into
-Parquet under `parquet/<table>/` and rebuilds `telemetry.duckdb`: a view per table over the Parquet
-and today's raw lines, so a query always sees everything. Run it by hand from Actions → Telemetry
-compaction → Run workflow, or `bash runner/telemetry.sh compact`.
+Every night at 03:30 UTC the service turns each finished day into Parquet under `parquet/<table>/`
+and rebuilds `telemetry.duckdb`: a view per table over the Parquet and today's raw lines, so a
+query always sees everything. The service also writes each GitHub build's `build` row a couple of
+minutes after it finishes, and its own builds' rows as they end.
 
 Query it with the DuckDB CLI in the runner image (Ubuntu):
 
@@ -381,7 +441,7 @@ bash runner/telemetry.sh shell
 bash runner/telemetry.sh query "FROM build_percentiles WHERE Queue = 'PR'"
 ```
 
-Ready-made queries, from `runner/telemetry/queries.sql`:
+Ready-made queries, from `queries.sql` in RemoteBuildTool:
 
 | Query | Answers |
 |---|---|
@@ -396,7 +456,8 @@ Ready-made queries, from `runner/telemetry/queries.sql`:
 | `build_stages('<build id>')` | one build's stages in order, with their logs path |
 | `build_targets('<build id>')` | what each stage of one build did with each project |
 
-A build id is the run id and attempt, as in `16473829-1`; the run's URL ends in the run id. To drill
+A GitHub build's id is the run id and attempt, as in `16473829-1`; the run's URL ends in the run id.
+The service's own builds are `cacherefresh-<commit>-<time>` and `cacheaudit-<commit>-<time>`. To drill
 from a slow day into its slowest PR build:
 
 ```sql
@@ -406,8 +467,8 @@ FROM build_stages('16473829-1');
 
 Its `LogsPath` is the build's folder under `/srv/bitenovac/logs`.
 
-`runner/telemetry/schema.sql` types every column. A field the records gain later is left out of
-the views until it is added there.
+`schema.sql` in RemoteBuildTool types every column. A field the records gain later is left out of
+the views until a release adds it there.
 
 Setup moves the logs of an earlier setup onto the share. Stop the runners first if setup says the
 logs volume is in use: `sudo systemctl stop 'actions.runner.*'`.
@@ -429,8 +490,9 @@ sudo rm /etc/exports.d/bitenovac.exports && sudo exportfs -ra
 sudo rm -rf /srv/bitenovac
 ```
 
-`--purge` keeps the Official drops and the telemetry; the `docker volume rm` deletes the drops and
-the last line the telemetry. Use the SDK version from `global.json` in the image name.
+`--uninstall` stops the service as well. `--purge` keeps the Official drops and the telemetry; the
+`docker volume rm` deletes the drops and the last line the telemetry. Use the SDK version from
+`global.json` in the image name.
 
 **3.** Check that nothing is left:
 

@@ -1,16 +1,15 @@
-using Bitenovac.RemoteBuildTool.Commands;
 using Bitenovac.RemoteBuildTool.Telemetry;
 
 namespace Bitenovac.RemoteBuildTool.Unit.Tests;
 
-public sealed class ReportBuildCommandTests
+public sealed class BuildSummarizerTests
 {
     private const int Precision = 6;
 
     private static readonly DateTimeOffset Created = new(2026, 10, 14, 10, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public void Run_ShouldSumTheStagesAndJobsIntoTheBuild_WhenBothAreThere()
+    public void Write_ShouldSumTheStagesAndJobsIntoTheBuild_WhenBothAreThere()
     {
         // Arrange
         using var directory = TestFactory.Directory();
@@ -53,10 +52,9 @@ public sealed class ReportBuildCommandTests
         var now = Created.AddSeconds(105);
 
         // Act
-        var exitCode = ReportBuildCommand.Run(options, TestFactory.Silence(), "failure", jobs, now);
+        BuildSummarizer.Write(root, options.Identity!, "failure", now, BuildTimeline.FromJobs(WorkflowJob.Parse(File.ReadAllText(jobs)), now), "service");
 
         // Assert
-        Assert.Equal(0, exitCode);
         var build = Assert.Single(TelemetryWriter.Read(root, TelemetryWriter.BuildTable, "100-1.", TelemetryJsonContext.Default.BuildInfo));
         Assert.Equal("100-1", build.BuildId);
         Assert.Equal("PR", build.Queue);
@@ -89,7 +87,7 @@ public sealed class ReportBuildCommandTests
     }
 
     [Fact]
-    public void Run_ShouldTakeTheTimesFromTheStagesAndLeaveTheJobsOut_WhenThereIsNoJobList()
+    public void Write_ShouldTakeTheTimesFromTheStagesAndLeaveTheJobsOut_WhenThereIsNoJobList()
     {
         // Arrange
         using var directory = TestFactory.Directory();
@@ -97,7 +95,7 @@ public sealed class ReportBuildCommandTests
         WriteStage(options.TelemetryRoot!, Stage("promote", "host-1", Created, durationMS: 1_000, cpuMS: 500, allocatedMS: 1_000, peak: 10, memory: 0.01));
 
         // Act
-        ReportBuildCommand.Run(options, TestFactory.Silence(), "success", directory.Combine("missing.json"), Created.AddSeconds(5));
+        BuildSummarizer.Write(options.TelemetryRoot!, options.Identity!, "success", Created.AddSeconds(5), BuildTimeline.Unknown, "service");
 
         // Assert
         var build = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.BuildTable, "100-1.", TelemetryJsonContext.Default.BuildInfo));
@@ -113,14 +111,14 @@ public sealed class ReportBuildCommandTests
     }
 
     [Fact]
-    public void Run_ShouldWriteABuildWithoutStages_WhenNoStageReachedTheShare()
+    public void Write_ShouldWriteABuildWithoutStages_WhenNoStageReachedTheShare()
     {
         // Arrange
         using var directory = TestFactory.Directory();
         var options = TestFactory.TelemetryOptions(directory);
 
         // Act
-        ReportBuildCommand.Run(options, TestFactory.Silence(), "cancelled", null);
+        BuildSummarizer.Write(options.TelemetryRoot!, options.Identity!, "cancelled", DateTimeOffset.UtcNow, BuildTimeline.Unknown, "service");
 
         // Assert
         var build = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.BuildTable, "100-1.", TelemetryJsonContext.Default.BuildInfo));
@@ -129,22 +127,6 @@ public sealed class ReportBuildCommandTests
         Assert.Null(build.CpuUtilization);
         Assert.Null(build.E2ETimeMS);
         Assert.Null(build.HostCpuUtilization);
-    }
-
-    [Fact]
-    public void Run_ShouldReportNothing_WhenThereIsNoTelemetryShare()
-    {
-        // Arrange
-        using var directory = TestFactory.Directory();
-        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
-        using var writer = new StringWriter();
-
-        // Act
-        var exitCode = ReportBuildCommand.Run(options, new PipelineOutput(writer, TextWriter.Null), "success", null);
-
-        // Assert
-        Assert.Equal(0, exitCode);
-        Assert.Contains("nothing to report", writer.ToString(), StringComparison.Ordinal);
     }
 
     private static StageInfo Stage(string name, string machine, DateTimeOffset start, long durationMS, long cpuMS, long allocatedMS, long peak, double memory) => new()

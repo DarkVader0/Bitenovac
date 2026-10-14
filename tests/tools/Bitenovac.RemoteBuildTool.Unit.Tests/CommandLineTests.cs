@@ -129,40 +129,26 @@ public sealed class CommandLineTests : IDisposable
         Assert.DoesNotContain("InvalidOperationException", output.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>
-    /// Points the environment variables this run reads at a temporary repository and stores.
-    /// </summary>
     [Fact]
-    public void Run_ShouldFail_WhenReportBuildIsGivenNoResult()
-    {
-        // Arrange
-        string[] arguments = ["report-build"];
-
-        // Act
-        var exitCode = CommandLine.Run(arguments, TestFactory.Silence());
-
-        // Assert
-        Assert.Equal(1, exitCode);
-    }
-
-    [Theory]
-    [InlineData("report-build", "success")]
-    [InlineData("report-build", "failure", "jobs.json")]
-    public void Run_ShouldDispatchToReportBuild_WhenAResultIsGiven(params string[] arguments)
+    public void Run_ShouldFailNamingTheSettings_WhenServeFindsNoHostSettings()
     {
         // Arrange
         using var repository = TestFactory.Directory();
         PointAt(repository, repository.Combine("pr"));
+        _environment.Set("REMOTEBUILDTOOL_CONFIG", repository.Combine("config.json"));
         var output = new CapturedOutput();
 
         // Act
-        var exitCode = CommandLine.Run(arguments, output.Pipeline);
+        var exitCode = CommandLine.Run(["serve"], output.Pipeline);
 
         // Assert
-        Assert.Equal(0, exitCode);
-        Assert.Contains("nothing to report", output.Out, StringComparison.Ordinal);
+        Assert.Equal(1, exitCode);
+        Assert.Contains($"No service settings at {repository.Combine("config.json")}", output.Error, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Points the environment variables this run reads at a temporary repository and stores.
+    /// </summary>
     private void PointAt(TemporaryDirectory repository, string prStore)
     {
         _environment.Clear();

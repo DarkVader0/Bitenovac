@@ -46,7 +46,9 @@ public sealed partial class TelemetrySchemaTests
 
     private static IEnumerable<string> Columns(string table)
     {
-        var sql = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "schema.sql"));
+        using var stream = typeof(TelemetryWriter).Assembly.GetManifestResourceStream("Telemetry.schema.sql")!;
+        using var reader = new StreamReader(stream);
+        var sql = reader.ReadToEnd();
         var body = Table().Matches(sql).Single(match => match.Groups["name"].Value == table).Groups["body"].Value;
         return body
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

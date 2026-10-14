@@ -23,6 +23,9 @@
 #   --memory SIZE      Memory each agent's job containers may use, in docker's notation (6g).
 #                      Unlimited by default.
 #   --no-seed          Skip filling main's artifact store from this checkout (see seed-cache.sh).
+#   --api-token TOKEN  GitHub token the RemoteBuildTool service reads the repository and its
+#                      workflow runs with: a fine-grained token with read access to Contents and
+#                      Actions. Without it the service is not installed, and nothing fills main.
 #   --repo URL        Repository to serve. Defaults to the origin remote of this checkout.
 #   --labels LIST      Comma separated labels the workflow selects on.
 #                      Defaults to self-hosted,linux,x64,bitenovac.
@@ -59,6 +62,7 @@ readonly MAIN_VOLUME="bitenovac-main"
 readonly LOGS_VOLUME="bitenovac-logs"
 readonly OFFICIAL_VOLUME="bitenovac-official"
 readonly TELEMETRY_VOLUME="bitenovac-telemetry"
+readonly WORK_VOLUME="bitenovac-service-work"
 # Served over NFS, so the logs and telemetry paths records point at resolve the same from every
 # machine that mounts the share. This machine serves it for now.
 readonly SHARE_ROOT="/srv/bitenovac"
@@ -108,6 +112,7 @@ runner_version=""
 instances=1
 cpus=""
 memory=""
+api_token=""
 seed=true
 uninstall=false
 purge=false
@@ -122,6 +127,7 @@ while [[ $# -gt 0 ]]; do
         --instances)      instances="${2:-}";      shift 2 ;;
         --cpus)           cpus="${2:-}";           shift 2 ;;
         --memory)         memory="${2:-}";         shift 2 ;;
+        --api-token)      api_token="${2:-}";      shift 2 ;;
         --no-seed)        seed=false;              shift ;;
         --uninstall)      uninstall=true;          shift ;;
         --purge)          purge=true;              shift ;;
@@ -138,6 +144,9 @@ command -v systemctl > /dev/null 2>&1 || fail "systemd is required; the agent is
 if [[ "${uninstall}" == true ]]; then
     [[ -n "${token}" ]] || fail "--uninstall needs --token as well, to deregister the runners with GitHub."
 
+    bash "${REPO_ROOT}/runner/service.sh" stop > /dev/null
+    ok "stopped remotebuildtool-service"
+
     log "Removing the runners"
 
     found=false
@@ -153,7 +162,8 @@ if [[ "${uninstall}" == true ]]; then
     ok "removed ${RUNNER_HOME}"
 
     if [[ "${purge}" == true ]]; then
-        docker volume rm "${NUGET_VOLUME}" "${MAIN_VOLUME}" "${LOGS_VOLUME}" "${TELEMETRY_VOLUME}" > /dev/null 2>&1 || true
+        docker volume rm "${NUGET_VOLUME}" "${MAIN_VOLUME}" "${LOGS_VOLUME}" "${TELEMETRY_VOLUME}" "${WORK_VOLUME}" > /dev/null 2>&1 || true
+        rm -rf /etc/remotebuildtool
         rm -rf "${SHARE_ROOT}/logs"
         ok "deleted the package cache, main artifact store and logs"
         warn "kept the telemetry in ${SHARE_ROOT}/telemetry; delete it by hand once it is no longer wanted"
@@ -293,12 +303,6 @@ share_volume() {
 share_volume "${LOGS_VOLUME}" logs
 share_volume "${TELEMETRY_VOLUME}" telemetry
 
-if bash "${REPO_ROOT}/runner/telemetry.sh" compact > /dev/null; then
-    ok "telemetry.duckdb ready; query it with: bash runner/telemetry.sh shell"
-else
-    warn "could not build telemetry.duckdb; the Telemetry compaction workflow builds it nightly"
-fi
-
 docker volume create "${NUGET_VOLUME}" > /dev/null
 docker volume create "${MAIN_VOLUME}" > /dev/null
 docker volume create "${OFFICIAL_VOLUME}" > /dev/null
@@ -389,7 +393,8 @@ rm -f /tmp/actions-runner.tar.gz
 
 # -------------------------------------------------------------------------------------- seed ----
 
-if [[ "${seed}" == true ]]; then
+# With the service, its first refresh fills main from the watched branch instead.
+if [[ "${seed}" == true && -z "${api_token}" ]]; then
     log "Seeding main's artifact store from this checkout"
     if REMOTEBUILDTOOL_MAX_CPU="${cpu_share}" REMOTEBUILDTOOL_CPUS="${cpu_share}" REMOTEBUILDTOOL_MEMORY="${memory}" \
         bash "${REPO_ROOT}/runner/seed-cache.sh" --user "${run_as}"; then
@@ -397,6 +402,56 @@ if [[ "${seed}" == true ]]; then
     else
         warn "seeding failed; the runners work, but the first pull request builds everything"
     fi
+fi
+
+# ----------------------------------------------------------------------------------- service ----
+
+# The service writes main alone: it builds every new commit of the watched branch, the first one
+# as soon as it starts.
+if [[ -n "${api_token}" ]]; then
+    log "RemoteBuildTool service"
+
+    [[ "${api_token}" =~ ^[A-Za-z0-9_]+$ ]] || fail "--api-token does not look like a GitHub token."
+    repository="${repo_url#https://github.com/}"
+    [[ "${repository}" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] \
+        || fail "The service needs a GitHub repository, got '${repo_url}'."
+
+    docker volume create "${WORK_VOLUME}" > /dev/null
+    docker run --rm --user 0 --entrypoint chown --volume "${WORK_VOLUME}:/work" \
+        "bitenovac-remotebuildtool-runner:${sdk_version}" "${RUN_UID}:${RUN_GID}" /work
+
+    install -d -m 0755 /etc/remotebuildtool
+    # Readable by the agents' account alone: it holds the token.
+    install -m 0600 -o "${run_as}" -g "${run_as}" /dev/null /etc/remotebuildtool/config.json
+    cat > /etc/remotebuildtool/config.json <<JSON
+{
+  "repository": "${repository}",
+  "gitHubToken": "${api_token}",
+  "pool": "docker",
+  "machine": "$(hostname)-service",
+  "workRoot": "/work",
+  "mainStore": "/mnt/main",
+  "logsRoot": "/mnt/logs",
+  "telemetryRoot": "/srv/bitenovac/telemetry",
+  "maxCpu": ${cpu_share}
+}
+JSON
+    {
+        printf 'SERVICE_UID=%s\n' "${RUN_UID}"
+        printf 'SERVICE_GID=%s\n' "${RUN_GID}"
+        printf 'SERVICE_CPUS=%s\n' "${cpu_share}"
+        printf 'SERVICE_MEMORY=%s\n' "${memory}"
+        printf 'NUGET_VOLUME=%s\n' "${NUGET_VOLUME}"
+        printf 'MAIN_VOLUME=%s\n' "${MAIN_VOLUME}"
+        printf 'LOGS_VOLUME=%s\n' "${LOGS_VOLUME}"
+        printf 'TELEMETRY_VOLUME=%s\n' "${TELEMETRY_VOLUME}"
+        printf 'WORK_VOLUME=%s\n' "${WORK_VOLUME}"
+    } > /etc/remotebuildtool/.env
+
+    bash "${REPO_ROOT}/runner/service.sh" start > /dev/null
+    ok "remotebuildtool-service is running; follow it with: sudo bash runner/service.sh logs"
+else
+    warn "no --api-token: the RemoteBuildTool service is not installed, so nothing refreshes main"
 fi
 
 # ------------------------------------------------------------------------------------- ready ----

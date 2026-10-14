@@ -210,6 +210,9 @@ internal sealed class FixtureRepository : IDisposable
     {
         try
         {
+            foreach (var file in Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories))
+                File.SetAttributes(file, FileAttributes.Normal);
+
             Directory.Delete(Root, recursive: true);
         }
         catch (IOException)

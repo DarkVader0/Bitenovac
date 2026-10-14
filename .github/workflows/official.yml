@@ -11,7 +11,6 @@ concurrency:
 
 permissions:
   contents: read
-  actions: read
 
 env:
   DOTNET_NOLOGO: "true"
@@ -33,21 +32,6 @@ jobs:
       - name: Build and drop
         run: bash runner/in-container.sh release
 
-      - name: Fetch job timings
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p artifacts
-          curl -fsS -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
-            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}/jobs?per_page=100" \
-            -o artifacts/jobs.json || echo "Job timings unavailable; the build is reported without them."
-
-      - name: Report build
-        if: always()
-        continue-on-error: true
-        run: bash runner/in-container.sh report-build "${{ job.status }}" artifacts/jobs.json
-
       - name: Drop this run's volume
         if: always()
         run: docker volume rm -f "${REMOTEBUILDTOOL_PR_VOLUME}"
@@ -55,7 +39,3 @@ jobs:
       - name: Name logs after the drop
         if: always()
         run: bash runner/logs.sh seal-official "${{ github.run_number }}"
-
-      - name: Prune old logs
-        if: always()
-        run: bash runner/logs.sh prune
