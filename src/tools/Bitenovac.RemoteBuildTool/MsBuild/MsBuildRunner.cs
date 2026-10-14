@@ -12,11 +12,6 @@ namespace Bitenovac.RemoteBuildTool.MsBuild;
 /// reads the environment at the lowest precedence, so a project that sets the property itself keeps
 /// its own value, where a global property would override it.
 /// </para>
-/// <para>
-/// Every method writes its errors alone to a file, so they can be reported apart from the rest of
-/// the output, and a binary log to the path it is given, or none when that path is
-/// <see langword="null"/>; see <see cref="PipelineOptions.BinaryLogPath"/>.
-/// </para>
 /// </remarks>
 internal static class MsBuildRunner
 {

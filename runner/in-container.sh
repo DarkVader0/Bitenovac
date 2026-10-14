@@ -23,9 +23,6 @@ readonly LOGS_VOLUME="${REMOTEBUILDTOOL_LOGS_VOLUME:-bitenovac-logs}"
 readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-bitenovac-official}"
 readonly TELEMETRY_VOLUME="${REMOTEBUILDTOOL_TELEMETRY_VOLUME:-bitenovac-telemetry}"
 readonly STAGING_VOLUME="${REMOTEBUILDTOOL_STAGING_VOLUME:-bitenovac-staging}"
-# Every run attempt keeps its own artifact store in the staging volume, where the RemoteBuildTool
-# service promotes it into main once its pull request is merged, and deletes it after a day. An
-# attempt gets a clean store: a re-run never reads what a cancelled attempt left behind.
 readonly RUN_STORE="${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
 
 cd "${REPO_ROOT}"

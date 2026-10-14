@@ -54,8 +54,6 @@ exec docker run \
     --init \
     --user "$(id -u):$(id -g)" \
     --volume "${LOGS_VOLUME}:/mnt/logs" \
-    --env "SHORT_LIVED_DAYS=${SHORT_LIVED_DAYS}" \
-    --env "OFFICIAL_DAYS=${OFFICIAL_DAYS}" \
     --entrypoint bash \
     "${IMAGE}" -c '
         set -euo pipefail
