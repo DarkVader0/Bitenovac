@@ -194,35 +194,34 @@ public sealed class DotNetToolchainTests
     }
 
     [Fact]
-    public void RunTests_ShouldThrow_WhenTheTestAssemblyWasNeverBuilt()
+    public void RunTests_ShouldThrow_WhenTheTestExecutableWasNeverBuilt()
     {
         // Arrange
         using var directory = TestFactory.Directory();
         using var toolchain = new DotNetToolchain(directory.Path, new FakeMsBuild());
-        var entry = Entry(directory, "tests/A/A.Tests.csproj", new() { ["TargetPath"] = directory.Combine("tests/A/bin/A.Tests.dll") });
+        var entry = Entry(directory, "tests/A/A.Tests.csproj", new() { ["RunCommand"] = directory.Combine("tests/A/bin/A.Tests") });
 
         // Act
         Action act = () => toolchain.RunTests(entry, "Debug", "A.Tests", directory.Combine("results"));
 
         // Assert
         var exception = Assert.Throws<InvalidOperationException>(act);
-        Assert.StartsWith("No built test assembly found for tests/A/A.Tests.csproj (Debug)", exception.Message, StringComparison.Ordinal);
+        Assert.StartsWith("No built test executable found for tests/A/A.Tests.csproj (Debug)", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void RunTests_ShouldRunTheBuiltAssembly_WhenItExists()
+    public void RunTests_ShouldRunTheBuiltExecutable_WhenItExists()
     {
         // Arrange
         using var directory = TestFactory.Directory();
         using var toolchain = new DotNetToolchain(directory.Path, new FakeMsBuild());
-        var assembly = TestFactory.WriteFile(directory.Combine("tests/A/bin/A.Tests.dll"), "not an assembly");
-        var entry = Entry(directory, "tests/A/A.Tests.csproj", new() { ["TargetPath"] = assembly });
+        var entry = Entry(directory, "tests/A/A.Tests.csproj", new() { ["RunCommand"] = NoTestsExecutable(directory) });
 
         // Act
         var result = toolchain.RunTests(entry, "Debug", "A.Tests", directory.Combine("results"));
 
         // Assert
-        Assert.Equal(TestRunOutcome.Failed, result.Outcome);
+        Assert.Equal(TestRunOutcome.NoTestsRan, result.Outcome);
         Assert.NotNull(result.Usage);
     }
 
@@ -242,6 +241,19 @@ public sealed class DotNetToolchainTests
 
         // Assert
         Assert.Equal(Enum.Parse<TestReport>(expected), report);
+    }
+
+    /// <summary>
+    /// Writes a script that exits as a test project that ran no tests does, runnable as it stands.
+    /// </summary>
+    private static string NoTestsExecutable(TemporaryDirectory directory)
+    {
+        if (OperatingSystem.IsWindows())
+            return TestFactory.WriteFile(directory.Combine("tests/A/bin/A.Tests.cmd"), "@exit 8\r\n");
+
+        var script = TestFactory.WriteFile(directory.Combine("tests/A/bin/A.Tests"), "#!/bin/sh\nexit 8\n");
+        File.SetUnixFileMode(script, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        return script;
     }
 
     private static Dictionary<string, string> Executable => new() { ["OutputType"] = "Exe" };

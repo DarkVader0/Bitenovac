@@ -124,6 +124,6 @@ internal interface IToolchain : IDisposable
     /// <summary>
     /// Runs one built test project, collecting coverage into <paramref name="resultsDirectory"/>.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The project's test assembly has not been built.</exception>
+    /// <exception cref="InvalidOperationException">The project's test executable has not been built.</exception>
     TestRunResult RunTests(PlanEntry entry, string configuration, string resultsFilePrefix, string resultsDirectory);
 }

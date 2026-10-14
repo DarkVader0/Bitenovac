@@ -3,13 +3,12 @@ using Bitenovac.RemoteBuildTool.Core.Processes;
 namespace Bitenovac.RemoteBuildTool.Testing;
 
 /// <summary>
-/// Provides methods for running one test project and collecting coverage.
+/// Provides methods for running one test project by starting its own executable and collecting
+/// coverage.
 /// </summary>
 /// <remarks>
-/// A Microsoft.Testing.Platform test project is compiled as an application that hosts the test
-/// platform, so its assembly is run with <c>dotnet exec</c>. Its apphost is not used: the artifact
-/// store keeps content, not file modes, so one materialised from it comes back without its execute
-/// bit.
+/// A Microsoft.Testing.Platform test project is compiled as an executable that hosts the test
+/// platform, so the apphost that MSBuild reports as <c>RunCommand</c> is started directly.
 /// </remarks>
 internal static class TestRunner
 {
@@ -17,16 +16,16 @@ internal static class TestRunner
     /// Runs one test project with coverage and, when <paramref name="report"/> names one, a TRX
     /// report named after the project.
     /// </summary>
-    /// <param name="assemblyPath">The test project's assembly.</param>
+    /// <param name="executablePath">The test project's executable.</param>
     /// <param name="projectName">The project's name, which prefixes its coverage and names its report.</param>
     /// <param name="resultsDirectory">Where coverage and the report go.</param>
     /// <param name="report">Which TRX report the project can write.</param>
     /// <returns>The result.</returns>
-    public static TestRunResult Run(string assemblyPath, string projectName, string resultsDirectory, TestReport report = TestReport.None)
+    public static TestRunResult Run(string executablePath, string projectName, string resultsDirectory, TestReport report = TestReport.None)
     {
         Directory.CreateDirectory(resultsDirectory);
 
-        var (exitCode, output, usage) = ProcessRunner.RunCaptured("dotnet", ["exec", assemblyPath, .. Arguments(projectName, resultsDirectory, report)], Path.GetDirectoryName(assemblyPath)!);
+        var (exitCode, output, usage) = ProcessRunner.RunCaptured(executablePath, Arguments(projectName, resultsDirectory, report), Path.GetDirectoryName(executablePath)!);
 
         var outcome = exitCode switch
         {

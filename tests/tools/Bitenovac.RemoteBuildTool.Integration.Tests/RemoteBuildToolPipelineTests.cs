@@ -75,6 +75,11 @@ public sealed class RemoteBuildToolPipelineTests
 
         Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
         Assert.Contains("materialised 2 cache hit(s) from main", reported, StringComparison.Ordinal);
+        if (!OperatingSystem.IsWindows())
+        {
+            var apphost = fixture.Combine($"tests/Lib.Tests/bin/Debug/{FixtureRepository.TargetFramework}/Lib.Tests");
+            Assert.Equal(UnixFileMode.UserExecute, File.GetUnixFileMode(apphost) & UnixFileMode.UserExecute);
+        }
 
         Assert.Contains("(reused)", reported, StringComparison.Ordinal);
         Assert.Equal(firstRunReports, CoverageReportNames(fixture));

@@ -86,21 +86,4 @@ public sealed class TestRunnerTests
         // Assert
         Assert.Null(path);
     }
-
-    [Fact]
-    public void Run_ShouldFailTheProject_WhenItsAssemblyCannotRun()
-    {
-        // Arrange
-        using var directory = TestFactory.Directory();
-        var assembly = TestFactory.WriteFile(directory.Combine("bin/Lib.Tests.dll"), "not an assembly");
-
-        // Act
-        var result = TestRunner.Run(assembly, "Lib.Tests", directory.Combine("results"), TestReport.Trx);
-
-        // Assert
-        Assert.Equal(TestRunOutcome.Failed, result.Outcome);
-        Assert.NotEqual(0, result.ExitCode);
-        Assert.NotNull(result.Usage);
-        Assert.Null(result.ReportPath);
-    }
 }

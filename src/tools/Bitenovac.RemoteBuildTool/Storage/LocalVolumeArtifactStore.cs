@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Bitenovac.RemoteBuildTool.Core.Graph;
@@ -20,7 +21,7 @@ namespace Bitenovac.RemoteBuildTool.Storage;
 /// <code>
 /// &lt;root&gt;/blobs/&lt;ab&gt;/&lt;sha256 of content&gt;          one copy of each distinct file
 /// &lt;root&gt;/&lt;project path&gt;/&lt;Configuration&gt;/
-///     entries/&lt;fullHash&gt;/manifest.json          relative path -> blob, plus both hashes
+///     entries/&lt;fullHash&gt;/manifest.json          relative path -> blob and execute bit, plus both hashes
 ///     current                                     names the live entry
 /// </code>
 /// <para>
@@ -30,12 +31,18 @@ namespace Bitenovac.RemoteBuildTool.Storage;
 /// reader that resolves <c>current</c> before the rename sees the complete previous entry, never a
 /// partially written one.
 /// </para>
+/// <para>
+/// Blobs hold content only. Where the file system keeps Unix file modes, a file's execute bit is
+/// recorded in the manifest and given back when the file is copied out, so an apphost stays
+/// runnable.
+/// </para>
 /// </remarks>
 public sealed class LocalVolumeArtifactStore : IArtifactStore
 {
     private const string CurrentFileName = "current";
     private const string ManifestFileName = "manifest.json";
     private const string BlobsDirectoryName = "blobs";
+    private const UnixFileMode ExecuteBits = UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
 
     private readonly string _root;
 
@@ -48,11 +55,29 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
     /// <paramref name="root"/> is <see langword="null"/>, empty or white space.
     /// </exception>
     public LocalVolumeArtifactStore(string root)
+        : this(root, keepsFileModes: !OperatingSystem.IsWindows())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LocalVolumeArtifactStore"/> class rooted at the
+    /// specified directory, creating the directory if it does not exist.
+    /// </summary>
+    /// <param name="root">The directory this store reads and writes.</param>
+    /// <param name="keepsFileModes">Whether the file system keeps Unix file modes; Windows does not.</param>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="root"/> is <see langword="null"/>, empty or white space.
+    /// </exception>
+    internal LocalVolumeArtifactStore(string root, bool keepsFileModes)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
         _root = Path.GetFullPath(root);
+        KeepsFileModes = keepsFileModes;
         Directory.CreateDirectory(_root);
     }
+
+    [UnsupportedOSPlatformGuard("windows")]
+    private bool KeepsFileModes { get; }
 
     /// <inheritdoc/>
     public bool Contains(ProjectId project, string configuration) =>
@@ -119,6 +144,8 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
             var destination = Path.Combine(destinationDirectory, file.Path.Replace('/', Path.DirectorySeparatorChar));
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             File.Copy(blob, destination, overwrite: true);
+            if (KeepsFileModes && file.Executable)
+                File.SetUnixFileMode(destination, File.GetUnixFileMode(destination) | ExecuteBits);
         }
 
         return true;
@@ -210,7 +237,7 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
         ArgumentNullException.ThrowIfNull(files);
 
         var manifest = files
-            .Select(file => new ManifestFile(file.Path, WriteBlob(file.SourceFile)))
+            .Select(file => new ManifestFile(file.Path, WriteBlob(file.SourceFile), IsExecutable(file.SourceFile)))
             .OrderBy(file => file.Path, StringComparer.Ordinal)
             .ToList();
 
@@ -283,7 +310,7 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
         foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
         {
             var relative = Path.GetRelativePath(sourceDirectory, file).Replace('\\', '/');
-            files[relative] = new ManifestFile(relative, WriteBlob(file));
+            files[relative] = new ManifestFile(relative, WriteBlob(file), IsExecutable(file));
         }
 
         var merged = files.Values.OrderBy(file => file.Path, StringComparer.Ordinal).ToList();
@@ -391,6 +418,10 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
 
     private const long InMemoryHashLimit = 8 * 1024 * 1024;
 
+    private bool IsExecutable(string file) =>
+        KeepsFileModes && (File.GetUnixFileMode(file) & UnixFileMode.UserExecute) != 0;
+
+    // A blob is written fresh rather than copied, so it never takes on its source's mode.
     private string WriteBlob(string sourceFile)
     {
         var length = new FileInfo(sourceFile).Length;
@@ -401,7 +432,12 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
             using (var stream = File.OpenRead(sourceFile))
                 streamedDigest = Convert.ToHexStringLower(SHA256.HashData(stream));
 
-            return StoreBlob(streamedDigest, blobPath => File.Copy(sourceFile, blobPath, overwrite: true));
+            return StoreBlob(streamedDigest, blobPath =>
+            {
+                using var source = File.OpenRead(sourceFile);
+                using var blob = File.Create(blobPath);
+                source.CopyTo(blob);
+            });
         }
 
         var content = File.ReadAllBytes(sourceFile);
@@ -490,5 +526,5 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
 
     private sealed record Manifest(string OwnHash, string FullHash, List<ManifestFile> Files);
 
-    private sealed record ManifestFile(string Path, string Blob);
+    private sealed record ManifestFile(string Path, string Blob, bool Executable);
 }

@@ -101,7 +101,7 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
             CoverageName: project.GetPropertyValue("AssemblyName"),
             Properties: new Dictionary<string, string>
             {
-                [DotNetToolchain.TargetPathProperty] = project.GetPropertyValue("TargetPath"),
+                [DotNetToolchain.RunCommandProperty] = project.GetPropertyValue("RunCommand"),
                 [DotNetToolchain.TargetFrameworksProperty] = project.GetPropertyValue("TargetFrameworks"),
                 [DotNetToolchain.OutputTypeProperty] = project.GetPropertyValue("OutputType"),
                 [DotNetToolchain.IsPackableProperty] = project.GetPropertyValue("IsPackable"),

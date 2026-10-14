@@ -84,7 +84,7 @@ public sealed class TestCommandTests
     }
 
     [Fact]
-    public void Run_ShouldFailTheProject_WhenItsTestAssemblyWasNeverBuilt()
+    public void Run_ShouldFailTheProject_WhenItsTestExecutableWasNeverBuilt()
     {
         // Arrange
         using var directory = TestFactory.Directory();
@@ -97,7 +97,7 @@ public sealed class TestCommandTests
         var entry = TestFactory.Entry(
             project.Value,
             fullPath: directory.Combine("tests/A/A.Tests.csproj"),
-            properties: new Dictionary<string, string> { ["TargetPath"] = directory.Combine("tests/A/bin/Release/A.Tests.dll") },
+            properties: new Dictionary<string, string> { ["RunCommand"] = directory.Combine("tests/A/bin/Release/A.Tests") },
             isTestProject: true,
             ownHash: "own",
             fullHash: "full");
@@ -109,7 +109,7 @@ public sealed class TestCommandTests
 
         // Assert
         Assert.Equal(1, exitCode);
-        Assert.Contains("No built test assembly found for tests/A/A.Tests.csproj", output.Out, StringComparison.Ordinal);
+        Assert.Contains("No built test executable found for tests/A/A.Tests.csproj", output.Out, StringComparison.Ordinal);
         Assert.Contains("A.Tests (exit -1)", output.Error, StringComparison.Ordinal);
     }
 

@@ -26,10 +26,10 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
     public const string ToolchainName = "dotnet";
 
     /// <summary>
-    /// The name of the property that holds the assembly MSBuild builds, which a
-    /// Microsoft.Testing.Platform test project runs as.
+    /// The name of the property that holds the test executable reported by MSBuild, which is the
+    /// apphost of a Microsoft.Testing.Platform test project.
     /// </summary>
-    public const string TargetPathProperty = "TargetPath";
+    public const string RunCommandProperty = "RunCommand";
 
     public const string TargetFrameworksProperty = "TargetFrameworks";
 
@@ -214,11 +214,11 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
 
     public TestRunResult RunTests(PlanEntry entry, string configuration, string resultsFilePrefix, string resultsDirectory)
     {
-        var assembly = entry.Properties.GetValueOrDefault(TargetPathProperty, "");
-        if (!File.Exists(assembly))
-            throw new InvalidOperationException($"No built test assembly found for {entry.ProjectPath} ({configuration}) at '{assembly}'. Run 'build' first.");
+        var executable = entry.Properties.GetValueOrDefault(RunCommandProperty, "");
+        if (!File.Exists(executable))
+            throw new InvalidOperationException($"No built test executable found for {entry.ProjectPath} ({configuration}) at '{executable}'. Run 'build' first.");
 
-        return TestRunner.Run(assembly, resultsFilePrefix, resultsDirectory, ReportOf(entry));
+        return TestRunner.Run(executable, resultsFilePrefix, resultsDirectory, ReportOf(entry));
     }
 
     // The resolved packages are among the hash inputs as "package:<id>/<version>", transitive ones too.
