@@ -21,4 +21,8 @@
         <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <None Include="..\..\..\runner\telemetry\schema.sql" Link="schema.sql" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
+
 </Project>

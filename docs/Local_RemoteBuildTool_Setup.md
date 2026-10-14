@@ -350,11 +350,50 @@ same share, so the logs path in every record opens from anywhere that mounts it.
 | `machine` | sample every 30 s while a stage runs | host CPU and memory, the container's CPU and memory |
 
 Files land in `<table>/date=<yyyy-MM-dd>/`, one per stage. Records are written when a stage ends,
-so a job killed by its timeout records nothing. To look at today's (Ubuntu):
+so a job killed by its timeout records nothing.
+
+### Querying
+
+Every night at 03:30 UTC the **Telemetry compaction** workflow turns each finished day into
+Parquet under `parquet/<table>/` and rebuilds `telemetry.duckdb`: a view per table over the Parquet
+and today's raw lines, so a query always sees everything. Run it by hand from Actions → Telemetry
+compaction → Run workflow, or `bash runner/telemetry.sh compact`.
+
+Query it with the DuckDB CLI in the runner image (Ubuntu):
 
 ```bash
-ls /srv/bitenovac/telemetry/stage/date=$(date -u +%F)
+cd ~/bitenovac
+bash runner/telemetry.sh shell
+bash runner/telemetry.sh query "FROM build_percentiles WHERE Queue = 'PR'"
 ```
+
+Ready-made queries, from `runner/telemetry/queries.sql`:
+
+| Query | Answers |
+|---|---|
+| `build_percentiles` | builds per queue and day: P50, P80 and P95 end-to-end time, P80 queue and preparation time |
+| `stage_percentiles` | P80 of each stage and each of its phases, CPU and memory use |
+| `cache_hit_rate` | the share of projects build stages restored instead of building, per day |
+| `cache_miss_reasons` | why projects missed the cache in the last 7 days, most frequent first |
+| `slowest_targets` | the slowest projects and test projects of the last 7 days |
+| `flaky_tests` | test cases that both passed and failed on the same commit in the last 30 days |
+| `failing_tests` | test cases that failed, per day |
+| `machine_load` | host CPU and memory per machine and hour |
+| `build_stages('<build id>')` | one build's stages in order, with their logs path |
+| `build_targets('<build id>')` | what each stage of one build did with each project |
+
+A build id is the run id and attempt, as in `16473829-1`; the run's URL ends in the run id. To drill
+from a slow day into its slowest PR build:
+
+```sql
+FROM build WHERE Queue = 'PR' AND CAST(EndTime AS DATE) = DATE '2026-10-14' ORDER BY E2ETimeMS DESC LIMIT 1;
+FROM build_stages('16473829-1');
+```
+
+Its `LogsPath` is the build's folder under `/srv/bitenovac/logs`.
+
+`runner/telemetry/schema.sql` types every column. A field the records gain later is left out of
+the views until it is added there.
 
 Setup moves the logs of an earlier setup onto the share. Stop the runners first if setup says the
 logs volume is in use: `sudo systemctl stop 'actions.runner.*'`.

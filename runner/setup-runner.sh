@@ -293,6 +293,12 @@ share_volume() {
 share_volume "${LOGS_VOLUME}" logs
 share_volume "${TELEMETRY_VOLUME}" telemetry
 
+if bash "${REPO_ROOT}/runner/telemetry.sh" compact > /dev/null; then
+    ok "telemetry.duckdb ready; query it with: bash runner/telemetry.sh shell"
+else
+    warn "could not build telemetry.duckdb; the Telemetry compaction workflow builds it nightly"
+fi
+
 docker volume create "${NUGET_VOLUME}" > /dev/null
 docker volume create "${MAIN_VOLUME}" > /dev/null
 docker volume create "${OFFICIAL_VOLUME}" > /dev/null
