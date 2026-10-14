@@ -10,6 +10,7 @@
 #
 #   PR_<pr number>/<run id>-<attempt>/            kept 30 days
 #   CacheRefresh_<run number>/<run id>-<attempt>/ kept 30 days
+#   CacheAudit_<run number>/<run id>-<attempt>/   kept 30 days
 #   Official_<drop version>/<run id>-<attempt>/   kept 365 days
 #   Official_failed_<run number>/...              kept 365 days, a release that dropped nothing
 #
@@ -72,6 +73,7 @@ exec docker run \
                 }
                 expire "PR_*" "${SHORT_LIVED_DAYS}"
                 expire "CacheRefresh_*" "${SHORT_LIVED_DAYS}"
+                expire "CacheAudit_*" "${SHORT_LIVED_DAYS}"
                 expire "Official_*" "${OFFICIAL_DAYS}"
                 find . -mindepth 1 -maxdepth 1 -type d -empty -delete 2> /dev/null || true
                 find . -mindepth 1 -maxdepth 1 -xtype l -delete 2> /dev/null || true

@@ -237,6 +237,20 @@ It must end with `Promoted 42 entries into main.`
 
 ---
 
+## Cache audit
+
+Every night at 01:00 UTC the **Cache audit** workflow checks that the cache can be trusted. It plans
+`master` with the cache off, rebuilds every project in Debug from scratch, and compares each rebuild
+with main's entry under the same fingerprint, file for file in `bin/`. They must be identical. A
+mismatch fails the run and names the project and files: its fingerprint misses an input, so a pull
+request could have been handed stale output as a cache hit. Fix the fingerprint, then refill the
+cache with `sudo bash runner/seed-cache.sh`.
+
+A project main holds under another fingerprint, as when `master` moved since the last Cache
+refresh, is skipped rather than compared. Run it by hand from Actions → Cache audit → Run workflow.
+
+---
+
 ## Official builds
 
 Every 12 hours, at 00:00 and 12:00 UTC, the **Official** workflow builds every project in Release

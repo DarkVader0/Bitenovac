@@ -125,6 +125,33 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
     }
 
     /// <summary>
+    /// Reads the content digest of every file of the entry for the specified project and
+    /// configuration, without copying any.
+    /// </summary>
+    /// <param name="project">The project to look up.</param>
+    /// <param name="configuration">The build configuration.</param>
+    /// <param name="hash">
+    /// When this method returns, contains the hashes the entry was stored under, if it was found;
+    /// otherwise, the default value.
+    /// </param>
+    /// <param name="files">
+    /// When this method returns, contains each file's digest by its path within the entry, if the
+    /// entry was found; otherwise, an empty dictionary.
+    /// </param>
+    /// <returns><see langword="true"/> if the entry was found; otherwise, <see langword="false"/>.</returns>
+    public bool TryGetFileDigests(ProjectId project, string configuration, out StoredTargetHash hash, out IReadOnlyDictionary<string, string> files)
+    {
+        if (!TryReadManifest(project, configuration, out var manifest, out hash))
+        {
+            files = new Dictionary<string, string>();
+            return false;
+        }
+
+        files = manifest.Files.ToDictionary(file => file.Path, file => file.Blob, StringComparer.Ordinal);
+        return true;
+    }
+
+    /// <summary>
     /// Reads one file of the entry for the specified project and configuration as text, without
     /// copying the rest of the entry.
     /// </summary>

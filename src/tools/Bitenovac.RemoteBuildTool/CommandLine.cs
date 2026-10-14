@@ -24,6 +24,7 @@ internal static class CommandLine
                 "build" => WithConfiguration(args, output, configuration => BuildCommand.Run(options, configuration, output)),
                 "test" => WithConfiguration(args, output, configuration => TestCommand.Run(options, configuration, output)),
                 "promote" => PromoteCommand.Run(options, output),
+                "audit" => WithConfiguration(args, output, configuration => AuditCommand.Run(options, configuration, output)),
                 "release" => ReleaseCommand.Run(options, output),
                 "graph" => GraphCommand.Run(options, output),
                 "report-build" when args.Length >= 2 => ReportBuildCommand.Run(options, output, args[1], args.Length >= 3 ? args[2] : null),
@@ -71,6 +72,7 @@ internal static class CommandLine
               remotebuildtool build <Config>    Materialise hits, compile misses
               remotebuildtool test <Config>     Restore or run tests, gate coverage on Debug
               remotebuildtool promote           Copy this run's qualifying entries into main
+              remotebuildtool audit <Config>    Compare a cacheless rebuild with main's entries under the same fingerprints
               remotebuildtool release           Build every project in Release under the next release
                                                 version and drop its deployable output
               remotebuildtool graph             Print the graph with each target's hashes
