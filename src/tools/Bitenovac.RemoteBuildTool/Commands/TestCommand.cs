@@ -163,7 +163,7 @@ internal static class TestCommand
         Project = entry.ProjectPath,
         Toolchain = entry.Toolchain,
         Kind = "test",
-        TestKind = StageRecorder.TestKindOf(name),
+        TestKind = TestKind.Of(name),
         CacheOutcome = "miss",
         WhyCacheMiss = entry.Hit ? null : entry.WhyCacheMiss,
         OwnHash = entry.OwnHash,

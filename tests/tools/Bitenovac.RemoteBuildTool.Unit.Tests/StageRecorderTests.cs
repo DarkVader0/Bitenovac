@@ -247,25 +247,6 @@ public sealed class StageRecorderTests
         Assert.Equal("plan", stage.Name);
     }
 
-    [Theory]
-    [InlineData("Lib.Unit.Tests", "Unit")]
-    [InlineData("Lib.integration.Tests", "Integration")]
-    [InlineData("Lib.E2E.Tests", "E2E")]
-    [InlineData("Lib.Api.Tests", "Api")]
-    [InlineData("Lib.Contract.Tests", "Other")]
-    [InlineData("Lib.Tests", "Other")]
-    [InlineData("Lib.Unit.Specs", "Other")]
-    public void TestKindOf_ShouldNameTheSegmentBeforeTests_WhenItIsAKnownKind(string projectName, string expected)
-    {
-        // Arrange
-
-        // Act
-        var kind = StageRecorder.TestKindOf(projectName);
-
-        // Assert
-        Assert.Equal(expected, kind);
-    }
-
     private static IEnumerable<T> Read<T>(TemporaryDirectory directory, string table, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo) =>
         TelemetryWriter.Read(directory.Combine("telemetry"), table, "100-1.", typeInfo);
 }

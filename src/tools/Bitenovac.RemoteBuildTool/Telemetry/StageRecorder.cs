@@ -4,24 +4,6 @@ using Bitenovac.RemoteBuildTool.Core.Processes;
 namespace Bitenovac.RemoteBuildTool.Telemetry;
 
 /// <summary>
-/// Specifies a part of a stage whose time <see cref="StageInfo"/> reports on its own.
-/// </summary>
-internal enum StagePhase
-{
-    Evaluation,
-    Restore,
-    Hashing,
-    CacheLookup,
-    CacheRestore,
-    Build,
-    Test,
-    Coverage,
-    Publish,
-    Pack,
-    Store,
-}
-
-/// <summary>
 /// Collects what one stage did and, when it ends, writes it to the telemetry share: its
 /// <see cref="StageInfo"/>, a <see cref="TargetInfo"/> per project it handled, a
 /// <see cref="TestInfo"/> per test case it ran, and the <see cref="MachineSample"/>s taken while it ran.
@@ -42,17 +24,14 @@ internal sealed class StageRecorder : IDisposable
     private readonly BuildIdentity _identity;
     private readonly string _stage;
     private readonly string? _configuration;
-    private readonly Func<MachineCounters> _readCounters;
     private readonly DateTimeOffset _startTime = DateTimeOffset.UtcNow;
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly long?[] _phases = new long?[Enum.GetValues<StagePhase>().Length];
     private readonly List<TargetInfo> _targets = [];
     private readonly List<TestInfo> _tests = [];
     private readonly List<ResourceUsage> _processes = [];
-    private readonly List<MachineSample> _samples = [];
     private readonly Lock _gate = new();
-    private readonly Timer _sampler;
-    private MachineCounters _lastCounters;
+    private readonly MachineSampler _sampler;
     private int? _projects;
     private int? _cacheHits;
     private string? _dropVersion;
@@ -66,10 +45,7 @@ internal sealed class StageRecorder : IDisposable
         _identity = options.Identity ?? BuildIdentity.FromEnvironment(_ => null);
         _stage = stage;
         _configuration = configuration;
-        _readCounters = readCounters;
-        _lastCounters = readCounters();
-        Sample(_lastCounters, _lastCounters);
-        _sampler = new Timer(_ => SampleNow(), null, sampleInterval, sampleInterval);
+        _sampler = new MachineSampler(_identity, Name, sampleInterval, readCounters);
     }
 
     /// <summary>
@@ -95,26 +71,6 @@ internal sealed class StageRecorder : IDisposable
         TimeSpan? sampleInterval = null,
         Func<MachineCounters>? readCounters = null) =>
         new(options, output, stage, configuration, sampleInterval ?? DefaultSampleInterval, readCounters ?? (() => MachineCounters.Read()));
-
-    /// <summary>
-    /// Returns the test kind a test project's name implies, from the segment before <c>.Tests</c>.
-    /// </summary>
-    /// <param name="projectName">The test project's name, as in <c>Lib.Integration.Tests</c>.</param>
-    /// <returns><c>Unit</c>, <c>Integration</c>, <c>E2E</c> or <c>Api</c>; otherwise <c>Other</c>.</returns>
-    public static string TestKindOf(string projectName)
-    {
-        var segments = projectName.Split('.');
-        return segments.Length >= 3 && segments[^1].Equals("Tests", StringComparison.OrdinalIgnoreCase)
-            ? segments[^2] switch
-            {
-                var kind when kind.Equals("Unit", StringComparison.OrdinalIgnoreCase) => "Unit",
-                var kind when kind.Equals("Integration", StringComparison.OrdinalIgnoreCase) => "Integration",
-                var kind when kind.Equals("E2E", StringComparison.OrdinalIgnoreCase) => "E2E",
-                var kind when kind.Equals("Api", StringComparison.OrdinalIgnoreCase) => "Api",
-                _ => "Other",
-            }
-            : "Other";
-    }
 
     /// <summary>
     /// Starts timing a phase; the time is added to the phase when the returned scope is disposed.
@@ -221,10 +177,7 @@ internal sealed class StageRecorder : IDisposable
             _completed = true;
         }
 
-        _sampler.Dispose();
-        var counters = _readCounters();
-        Sample(_lastCounters, counters);
-
+        var (counters, samples) = _sampler.Stop();
         var stage = Summarise(exitCode, counters);
         if (_options.TelemetryRoot is { } root)
         {
@@ -232,7 +185,7 @@ internal sealed class StageRecorder : IDisposable
             TelemetryWriter.Write(root, TelemetryWriter.StageTable, name, _startTime, [stage], TelemetryJsonContext.Default.StageInfo);
             TelemetryWriter.Write(root, TelemetryWriter.TargetTable, name, _startTime, _targets, TelemetryJsonContext.Default.TargetInfo);
             TelemetryWriter.Write(root, TelemetryWriter.TestTable, name, _startTime, _tests, TelemetryJsonContext.Default.TestInfo);
-            TelemetryWriter.Write(root, TelemetryWriter.MachineTable, name, _startTime, _samples, TelemetryJsonContext.Default.MachineSample);
+            TelemetryWriter.Write(root, TelemetryWriter.MachineTable, name, _startTime, samples, TelemetryJsonContext.Default.MachineSample);
         }
 
         return exitCode;
@@ -300,55 +253,5 @@ internal sealed class StageRecorder : IDisposable
             LogsPath = _identity.LogsPath,
             DropVersion = _dropVersion,
         };
-    }
-
-    private void SampleNow()
-    {
-        lock (_gate)
-        {
-            if (_completed)
-                return;
-
-            var counters = _readCounters();
-            Sample(_lastCounters, counters);
-            _lastCounters = counters;
-        }
-    }
-
-    private void Sample(MachineCounters earlier, MachineCounters now) =>
-        _samples.Add(new MachineSample
-        {
-            BuildId = _identity.BuildId,
-            Queue = _identity.Queue,
-            Pool = _identity.Pool,
-            Machine = _identity.Machine,
-            Stage = Name,
-            Time = DateTimeOffset.UtcNow,
-            HostCpuUtilization = now.HostCpuUtilizationSince(earlier),
-            HostMemoryUsedBytes = now.HostMemoryUsedBytes,
-            HostMemoryTotalBytes = now.HostMemoryTotalBytes,
-            HostMemoryUtilization = now.HostMemoryTotalBytes > 0 ? (double?)now.HostMemoryUsedBytes / now.HostMemoryTotalBytes : null,
-            ContainerCpuMS = now.ContainerCpuTime is { } cpu ? (long)cpu.TotalMilliseconds : null,
-            ContainerMemoryBytes = now.ContainerMemoryBytes,
-            ContainerMemoryLimitBytes = now.ContainerMemoryLimitBytes,
-        });
-
-    /// <summary>
-    /// Represents a phase being timed; disposing it adds the time to the phase.
-    /// </summary>
-    internal readonly struct PhaseScope : IDisposable
-    {
-        private readonly StageRecorder _recorder;
-        private readonly StagePhase _phase;
-        private readonly long _started;
-
-        public PhaseScope(StageRecorder recorder, StagePhase phase)
-        {
-            _recorder = recorder;
-            _phase = phase;
-            _started = Stopwatch.GetTimestamp();
-        }
-
-        public void Dispose() => _recorder.Add(_phase, Stopwatch.GetElapsedTime(_started));
     }
 }
