@@ -211,17 +211,34 @@ public sealed class ServiceSettingsTests
         Assert.Empty(state.ReportedBuilds);
     }
 
-    [Fact]
-    public void ToolCommandSelf_ShouldStartThisProcessesOwnProgram_WhenItRunsAsAnApphost()
+    [Theory]
+    [InlineData("/opt/remotebuildtool/remotebuildtool")]
+    [InlineData(@"C:\tools\Bitenovac.RemoteBuildTool.exe")]
+    public void ToolCommandFor_ShouldStartTheProgramItself_WhenItIsTheToolsOwnExecutable(string processPath)
     {
         // Arrange
-        var path = Environment.ProcessPath!;
 
         // Act
-        var command = ToolCommand.Self;
+        var command = ToolCommand.For(processPath, "/tool/Bitenovac.RemoteBuildTool.dll");
 
         // Assert
-        Assert.Equal(path, command.FileName);
+        Assert.Equal(processPath, command.FileName);
         Assert.Empty(command.PrefixArguments);
+    }
+
+    [Theory]
+    [InlineData("/usr/share/dotnet/dotnet")]
+    [InlineData(@"C:\Program Files\dotnet\dotnet.exe")]
+    [InlineData(null)]
+    public void ToolCommandFor_ShouldRunTheAssemblyWithDotnet_WhenDotnetStartedThisProcess(string? processPath)
+    {
+        // Arrange
+
+        // Act
+        var command = ToolCommand.For(processPath, "/tool/Bitenovac.RemoteBuildTool.dll");
+
+        // Assert
+        Assert.Equal("dotnet", command.FileName);
+        Assert.Equal(["/tool/Bitenovac.RemoteBuildTool.dll"], command.PrefixArguments);
     }
 }
