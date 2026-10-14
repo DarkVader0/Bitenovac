@@ -58,6 +58,10 @@ readonly NUGET_VOLUME="bitenovac-runner-nuget"
 readonly MAIN_VOLUME="bitenovac-main"
 readonly LOGS_VOLUME="bitenovac-logs"
 readonly OFFICIAL_VOLUME="bitenovac-official"
+readonly TELEMETRY_VOLUME="bitenovac-telemetry"
+# Served over NFS, so the logs and telemetry paths records point at resolve the same from every
+# machine that mounts the share. This machine serves it for now.
+readonly SHARE_ROOT="/srv/bitenovac"
 
 # Every agent lives in its own directory under RUNNER_HOME. The glob is what uninstall and
 # reinstall sweep, so it must match every layout this script has ever produced.
@@ -149,13 +153,16 @@ if [[ "${uninstall}" == true ]]; then
     ok "removed ${RUNNER_HOME}"
 
     if [[ "${purge}" == true ]]; then
-        docker volume rm "${NUGET_VOLUME}" "${MAIN_VOLUME}" "${LOGS_VOLUME}" > /dev/null 2>&1 || true
+        docker volume rm "${NUGET_VOLUME}" "${MAIN_VOLUME}" "${LOGS_VOLUME}" "${TELEMETRY_VOLUME}" > /dev/null 2>&1 || true
+        rm -rf "${SHARE_ROOT}/logs"
         ok "deleted the package cache, main artifact store and logs"
+        warn "kept the telemetry in ${SHARE_ROOT}/telemetry; delete it by hand once it is no longer wanted"
     else
         warn "kept ${NUGET_VOLUME}, ${MAIN_VOLUME} and ${LOGS_VOLUME}; pass --purge to delete them"
     fi
 
     warn "kept ${OFFICIAL_VOLUME}, which holds the Official drops; remove it with: docker volume rm ${OFFICIAL_VOLUME}"
+    warn "kept the NFS export of ${SHARE_ROOT}; remove it with: sudo rm /etc/exports.d/bitenovac.exports && sudo exportfs -ra"
 
     log "Uninstalled."
     exit 0
@@ -242,9 +249,52 @@ sdk_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
 log "Building bitenovac-remotebuildtool-runner:${sdk_version} (.NET SDK ${sdk_version}, RemoteBuildTool)"
 bash "${REPO_ROOT}/runner/build-image.sh"
 
+# ------------------------------------------------------------------------------------- share ----
+
+log "NFS share"
+
+apt-get install --yes --no-install-recommends nfs-kernel-server > /dev/null
+install -d -o "${run_as}" -g "${run_as}" "${SHARE_ROOT}" "${SHARE_ROOT}/logs" "${SHARE_ROOT}/telemetry"
+
+# Whoever a client runs as, it writes as the agents' account, so job containers and the root
+# container that migrates old logs leave files the agents can prune.
+install -d /etc/exports.d
+printf '%s 127.0.0.1(rw,sync,no_subtree_check,all_squash,anonuid=%s,anongid=%s)\n' \
+    "${SHARE_ROOT}" "${RUN_UID}" "${RUN_GID}" > /etc/exports.d/bitenovac.exports
+systemctl enable --now nfs-server > /dev/null 2>&1 || true
+exportfs -ra || fail "Could not export ${SHARE_ROOT}. Under WSL, systemd must be on (see docs/Local_RemoteBuildTool_Setup.md)."
+ok "exporting ${SHARE_ROOT} to this machine"
+
+# A volume an earlier setup made locally moves onto the share first; removing it fails while a
+# job still has it mounted.
+share_volume() {
+    local name="$1" directory="$2" type
+    if type="$(docker volume inspect --format '{{index .Options "type"}}' "${name}" 2> /dev/null)"; then
+        if [[ "${type}" == nfs ]]; then
+            ok "${name} is on the share"
+            return
+        fi
+        docker run --rm --user 0 --entrypoint cp \
+            --volume "${name}:/from:ro" \
+            --volume "${SHARE_ROOT}/${directory}:/to" \
+            "bitenovac-remotebuildtool-runner:${sdk_version}" -a /from/. /to/
+        docker volume rm "${name}" > /dev/null \
+            || fail "${name} is in use. Stop the runners (sudo systemctl stop 'actions.runner.*') and run setup again."
+        ok "moved the contents of ${name} onto the share"
+    fi
+
+    docker volume create --driver local \
+        --opt type=nfs \
+        --opt "o=addr=127.0.0.1,rw,nfsvers=4.2" \
+        --opt "device=:${SHARE_ROOT}/${directory}" \
+        "${name}" > /dev/null
+    ok "${name} -> ${SHARE_ROOT}/${directory}"
+}
+share_volume "${LOGS_VOLUME}" logs
+share_volume "${TELEMETRY_VOLUME}" telemetry
+
 docker volume create "${NUGET_VOLUME}" > /dev/null
 docker volume create "${MAIN_VOLUME}" > /dev/null
-docker volume create "${LOGS_VOLUME}" > /dev/null
 docker volume create "${OFFICIAL_VOLUME}" > /dev/null
 # A new volume is owned by root, and the job containers run as the agent's user. Without this
 # they cannot write to it, and for the NuGet cache specifically every restore downloads
@@ -252,10 +302,9 @@ docker volume create "${OFFICIAL_VOLUME}" > /dev/null
 docker run --rm --user 0 --entrypoint chown \
     --volume "${NUGET_VOLUME}:/cache" \
     --volume "${MAIN_VOLUME}:/mnt/main" \
-    --volume "${LOGS_VOLUME}:/mnt/logs" \
     --volume "${OFFICIAL_VOLUME}:/mnt/official" \
-    "bitenovac-remotebuildtool-runner:${sdk_version}" -R "${RUN_UID}:${RUN_GID}" /cache /mnt/main /mnt/logs /mnt/official
-ok "volumes ready: ${NUGET_VOLUME}, ${MAIN_VOLUME}, ${LOGS_VOLUME}, ${OFFICIAL_VOLUME} — owned by ${run_as}"
+    "bitenovac-remotebuildtool-runner:${sdk_version}" -R "${RUN_UID}:${RUN_GID}" /cache /mnt/main /mnt/official
+ok "volumes ready: ${NUGET_VOLUME}, ${MAIN_VOLUME}, ${OFFICIAL_VOLUME} — owned by ${run_as}"
 
 # ------------------------------------------------------------------------------------- agent ----
 
@@ -301,6 +350,7 @@ for (( instance = 1; instance <= instances; instance++ )); do
         printf 'REMOTEBUILDTOOL_MAX_CPU=%s\n' "${cpu_share}"
         printf 'REMOTEBUILDTOOL_CPUS=%s\n' "${cpu_share}"
         [[ -n "${memory}" ]] && printf 'REMOTEBUILDTOOL_MEMORY=%s\n' "${memory}"
+        printf 'REMOTEBUILDTOOL_POOL=docker\n'
     } > "${agent_dir}/.env"
 
     chown -R "${run_as}:${run_as}" "${agent_dir}"
@@ -363,7 +413,9 @@ cat <<EOF
   Jobs build in throwaway containers; ${NUGET_VOLUME}, ${MAIN_VOLUME}, ${LOGS_VOLUME} and
   ${OFFICIAL_VOLUME} persist. The Official workflow drops one directory per release into
   ${OFFICIAL_VOLUME}, named yyyy.MM.dd.NNN. Every PR, Cache refresh and Official run keeps its
-  console output and MSBuild binary logs in ${LOGS_VOLUME} — see runner/logs.sh.
+  console output and MSBuild binary logs in ${LOGS_VOLUME}, and every stage writes its telemetry
+  to ${TELEMETRY_VOLUME}; both are NFS volumes on ${SHARE_ROOT} — see runner/logs.sh and
+  docs/Local_RemoteBuildTool_Setup.md.
   A per-run store (bitenovac-pr-<run id>) is created and dropped by the workflow itself — see
   .github/workflows/pr.yml, cache-refresh.yml and official.yml.
 

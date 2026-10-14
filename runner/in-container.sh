@@ -21,6 +21,7 @@ readonly NUGET_VOLUME="${REMOTEBUILDTOOL_NUGET_VOLUME:-bitenovac-runner-nuget}"
 readonly MAIN_VOLUME="${REMOTEBUILDTOOL_MAIN_VOLUME:-bitenovac-main}"
 readonly LOGS_VOLUME="${REMOTEBUILDTOOL_LOGS_VOLUME:-bitenovac-logs}"
 readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-bitenovac-official}"
+readonly TELEMETRY_VOLUME="${REMOTEBUILDTOOL_TELEMETRY_VOLUME:-bitenovac-telemetry}"
 # Keyed on the run id, not the PR number, so a re-run of the same PR gets a clean volume instead
 # of reading stale state a cancelled attempt left behind.
 readonly PR_VOLUME="${REMOTEBUILDTOOL_PR_VOLUME:-bitenovac-pr-${GITHUB_RUN_ID:-local}}"
@@ -87,11 +88,21 @@ run_args=(
 [[ -n "${REMOTEBUILDTOOL_MEMORY:-}" ]] && run_args+=(--memory "${REMOTEBUILDTOOL_MEMORY}" --memory-swap "${REMOTEBUILDTOOL_MEMORY}")
 
 # Passed through when set.
-for variable in GITHUB_ACTIONS GITHUB_RUN_ID REMOTEBUILDTOOL_MAX_CPU REMOTEBUILDTOOL_CACHELESS REMOTEBUILDTOOL_COVERAGE_HTML; do
+for variable in GITHUB_ACTIONS GITHUB_RUN_ID GITHUB_RUN_ATTEMPT GITHUB_WORKFLOW GITHUB_JOB GITHUB_REPOSITORY GITHUB_REF GITHUB_SHA \
+    REMOTEBUILDTOOL_MAX_CPU REMOTEBUILDTOOL_CACHELESS REMOTEBUILDTOOL_COVERAGE_HTML REMOTEBUILDTOOL_POOL REMOTEBUILDTOOL_LOG_RUN; do
     [[ -n "${!variable:-}" ]] && run_args+=(--env "${variable}=${!variable}")
 done
 
 [[ -n "${REMOTEBUILDTOOL_LOG_RUN:-}" ]] && run_args+=(--env "REMOTEBUILDTOOL_LOGS_DIR=/mnt/logs/${REMOTEBUILDTOOL_LOG_RUN}")
+
+# Telemetry records name the runner, not the throwaway container the command runs in.
+run_args+=(--env "REMOTEBUILDTOOL_MACHINE=${RUNNER_NAME:-$(hostname)}")
+
+# Every command writes its telemetry to the share when this machine has one (see
+# runner/setup-runner.sh); a machine set up before it simply records nothing.
+if docker volume inspect "${TELEMETRY_VOLUME}" > /dev/null 2>&1; then
+    run_args+=(--volume "${TELEMETRY_VOLUME}:/mnt/telemetry" --env REMOTEBUILDTOOL_TELEMETRY_DIR=/mnt/telemetry)
+fi
 
 # The step's run summary is a file the runner reads once the step ends; mounted on its own so the
 # command can append to it and nothing else of the runner's directory is visible.

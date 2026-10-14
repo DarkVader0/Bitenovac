@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Bitenovac.RemoteBuildTool.Core.Processes;
 using Bitenovac.RemoteBuildTool.MsBuild;
 using Bitenovac.RemoteBuildTool.Planning;
+using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Testing;
 
 namespace Bitenovac.RemoteBuildTool.Toolchains.DotNet;
@@ -60,7 +61,8 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
     public ToolchainPreparation Prepare(
         PipelineOptions options,
         IReadOnlyDictionary<string, IReadOnlyList<EvaluatedProject>> byConfiguration,
-        PipelineOutput output)
+        PipelineOutput output,
+        StageRecorder stage)
     {
         var debug = byConfiguration["Debug"];
 
@@ -68,12 +70,12 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         if (verifyExitCode != 0)
             return ToolchainPreparation.Failed(verifyExitCode);
 
-        var restoreExitCode = Run("restore", $"Restoring {debug.Count} project(s)", options, output, logs => MsBuildRunner.Restore(
+        var restoreExitCode = Run("restore", $"Restoring {debug.Count} project(s)", StagePhase.Restore, options, output, stage, logs => MsBuildRunner.Restore(
             options.RepositoryRoot,
             debug.Select(project => project.FullPath),
             configuration: "Debug",
             options.SyntheticSolutionPath("restore"),
-            logs));
+            logs)).ExitCode;
 
         if (restoreExitCode != 0)
         {
@@ -90,16 +92,16 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         return new ToolchainPreparation(0, refreshed);
     }
 
-    public int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, PipelineOutput output) =>
-        Build(options, entries, configuration, new Dictionary<string, string>(), output);
+    public int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, PipelineOutput output, StageRecorder stage) =>
+        Build(options, entries, configuration, new Dictionary<string, string>(), output, stage);
 
-    public int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output)
+    public int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output, StageRecorder stage)
     {
         // VersionPrefix, not Version: SDK targets derive Version from VersionPrefix only while Version
         // is unset, so a release Version would mask a project's own VersionPrefix.
         var defaultProperties = new Dictionary<string, string> { ["VersionPrefix"] = version };
 
-        var exitCode = Build(options, entries, "Release", defaultProperties, output);
+        var exitCode = Build(options, entries, "Release", defaultProperties, output, stage);
         if (exitCode != 0)
             return exitCode;
 
@@ -107,23 +109,40 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         {
             var name = Path.GetFileNameWithoutExtension(entry.ProjectPath);
 
-            switch (DeploymentOf(entry))
+            var (kind, result) = DeploymentOf(entry) switch
             {
-                case Deployment.Publish:
-                    exitCode = Run($"publish-{name}", $"{name}: publish", options, output, logs => MsBuildRunner.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name), logs));
-                    break;
-                case Deployment.Pack:
-                    exitCode = Run($"pack-{name}", $"{name}: pack", options, output, logs => MsBuildRunner.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"), logs));
-                    break;
-                default:
-                    output.WriteLine($"--- {name}: nothing to deploy");
-                    continue;
+                Deployment.Publish => ("publish", Run($"publish-{name}", $"{name}: publish", StagePhase.Publish, options, output, stage, logs =>
+                    MsBuildRunner.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name), logs))),
+                Deployment.Pack => ("pack", Run($"pack-{name}", $"{name}: pack", StagePhase.Pack, options, output, stage, logs =>
+                    MsBuildRunner.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"), logs))),
+                _ => ((string?)null, (ProcessResult?)null),
+            };
+
+            if (kind is null || result is null)
+            {
+                output.WriteLine($"--- {name}: nothing to deploy");
+                continue;
             }
 
-            if (exitCode != 0)
+            stage.AddTarget(new TargetInfo
             {
-                output.WriteFailure($"could not deploy {entry.ProjectPath} (exit {exitCode}).");
-                return exitCode;
+                Project = entry.ProjectPath,
+                Toolchain = Name,
+                Kind = kind,
+                CacheOutcome = "miss",
+                OwnHash = entry.OwnHash,
+                FullHash = entry.FullHash,
+                DurationMS = (long)result.Usage.Elapsed.TotalMilliseconds,
+                CpuTimeMS = result.Usage.CpuTime is { } cpu ? (long)cpu.TotalMilliseconds : null,
+                PeakMemoryBytes = result.Usage.PeakMemoryBytes,
+                Succeeded = result.ExitCode == 0,
+                ExitCode = result.ExitCode,
+            });
+
+            if (result.ExitCode != 0)
+            {
+                output.WriteFailure($"could not deploy {entry.ProjectPath} (exit {result.ExitCode}).");
+                return result.ExitCode;
             }
         }
 
@@ -135,7 +154,8 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         IReadOnlyList<PlanEntry> entries,
         string configuration,
         IReadOnlyDictionary<string, string> defaultProperties,
-        PipelineOutput output)
+        PipelineOutput output,
+        StageRecorder stage)
     {
         var unrestored = entries
             .Where(entry => !RestoreOutputs.Materialise(options.RepositoryRoot, entry.FullPath, options.RestoreOutputsRoot))
@@ -143,12 +163,12 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
 
         if (unrestored.Count > 0)
         {
-            var restoreExitCode = Run($"restore-{configuration}", $"Restoring {unrestored.Count} project(s) plan did not restore", options, output, logs => MsBuildRunner.Restore(
+            var restoreExitCode = Run($"restore-{configuration}", $"Restoring {unrestored.Count} project(s) plan did not restore", StagePhase.Restore, options, output, stage, logs => MsBuildRunner.Restore(
                 options.RepositoryRoot,
                 unrestored.Select(entry => entry.FullPath),
                 configuration,
                 options.SyntheticSolutionPath($"restore-{configuration}"),
-                logs));
+                logs)).ExitCode;
 
             if (restoreExitCode != 0)
             {
@@ -157,13 +177,33 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
             }
         }
 
-        var exitCode = Run($"build-{configuration}", $"Building {entries.Count} project(s) ({configuration})", options, output, logs => MsBuildRunner.Build(
+        var step = $"build-{configuration}";
+        var exitCode = Run(step, $"Building {entries.Count} project(s) ({configuration})", StagePhase.Build, options, output, stage, logs => MsBuildRunner.Build(
             options.RepositoryRoot,
             entries.Select(entry => entry.FullPath),
             configuration,
-            options.SyntheticSolutionPath($"build-{configuration}"),
+            options.SyntheticSolutionPath(step),
             defaultProperties,
-            logs));
+            logs)).ExitCode;
+
+        // One MSBuild process builds them all, so a project's CPU time and memory are not its own.
+        var durations = MsBuildPerformance.ProjectDurations(options.MsBuildLogs(step).PerformanceLogPath);
+        foreach (var entry in entries)
+        {
+            stage.AddTarget(new TargetInfo
+            {
+                Project = entry.ProjectPath,
+                Toolchain = Name,
+                Kind = "build",
+                CacheOutcome = "miss",
+                WhyCacheMiss = entry.WhyCacheMiss ?? "main's entry could not be materialised",
+                OwnHash = entry.OwnHash,
+                FullHash = entry.FullHash,
+                DurationMS = durations.TryGetValue(Path.GetFullPath(entry.FullPath), out var duration) ? (long)duration.TotalMilliseconds : null,
+                Succeeded = exitCode == 0,
+                ExitCode = exitCode,
+            });
+        }
 
         if (exitCode != 0)
             output.WriteFailure($"build failed (exit {exitCode}).");
@@ -177,7 +217,18 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         if (!File.Exists(executable))
             throw new InvalidOperationException($"No built test executable found for {entry.ProjectPath} ({configuration}) at '{executable}'. Run 'build' first.");
 
-        return TestRunner.Run(executable, resultsFilePrefix, resultsDirectory);
+        return TestRunner.Run(executable, resultsFilePrefix, resultsDirectory, ReportOf(entry));
+    }
+
+    // The resolved packages are among the hash inputs as "package:<id>/<version>", transitive ones too.
+    private static TestReport ReportOf(PlanEntry entry)
+    {
+        bool References(string package) => entry.OwnHashInputs.Any(input =>
+            input.StartsWith($"package:{package}/", StringComparison.OrdinalIgnoreCase));
+
+        return References("Microsoft.Testing.Extensions.TrxReport") ? TestReport.Trx
+            : References("xunit.v3.core") || References("xunit.v3.core.mtp-v1") || References("xunit.v3.core.mtp-v2") ? TestReport.XunitTrx
+            : TestReport.None;
     }
 
     public void Dispose()
@@ -198,18 +249,21 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
     // MSBuild's own output is folded away; its errors are reported once it ends, where they are the
     // first thing a failed step shows. The step names match the binary logs, so a heavy step leads
     // straight to its .binlog.
-    private static int Run(string step, string title, PipelineOptions options, PipelineOutput output, Func<MsBuildLogs, ProcessResult> run)
+    private static ProcessResult Run(
+        string step, string title, StagePhase phase, PipelineOptions options, PipelineOutput output, StageRecorder stage, Func<MsBuildLogs, ProcessResult> run)
     {
         var logs = options.MsBuildLogs(step);
         ProcessResult result;
         using (output.Section(title, collapse: true))
+        using (stage.Measure(phase))
             result = run(logs);
 
+        stage.AddProcess(result.Usage);
         output.WriteLine($"resources: {step} {result.Usage}");
         if (result.ExitCode != 0)
             MsBuildErrors.Report(logs.ErrorLogPath, options.RepositoryRoot, output);
 
-        return result.ExitCode;
+        return result;
     }
 
     private static Deployment DeploymentOf(PlanEntry entry)

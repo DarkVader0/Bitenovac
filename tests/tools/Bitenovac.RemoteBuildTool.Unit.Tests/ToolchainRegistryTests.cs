@@ -1,4 +1,5 @@
 using Bitenovac.RemoteBuildTool.Planning;
+using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Testing;
 using Bitenovac.RemoteBuildTool.Toolchains;
 using Bitenovac.RemoteBuildTool.Toolchains.DotNet;
@@ -78,13 +79,14 @@ public sealed class ToolchainRegistryTests
         public ToolchainPreparation Prepare(
             PipelineOptions options,
             IReadOnlyDictionary<string, IReadOnlyList<EvaluatedProject>> byConfiguration,
-            PipelineOutput output) =>
+            PipelineOutput output,
+            StageRecorder stage) =>
             throw new NotSupportedException();
 
-        public int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, PipelineOutput output) =>
+        public int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, PipelineOutput output, StageRecorder stage) =>
             throw new NotSupportedException();
 
-        public int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output) =>
+        public int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output, StageRecorder stage) =>
             throw new NotSupportedException();
 
         public TestRunResult RunTests(PlanEntry entry, string configuration, string resultsFilePrefix, string resultsDirectory) =>

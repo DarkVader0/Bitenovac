@@ -1,6 +1,7 @@
 using System.Xml.Linq;
 using Bitenovac.RemoteBuildTool.Commands;
 using Bitenovac.RemoteBuildTool.Core.Processes;
+using Bitenovac.RemoteBuildTool.Telemetry;
 
 namespace Bitenovac.RemoteBuildTool.Integration.Tests;
 
@@ -174,7 +175,7 @@ internal sealed class FixtureRepository : IDisposable
     /// <summary>
     /// Replaces the specified options of this fixture and returns it.
     /// </summary>
-    public FixtureRepository With(bool? cacheless = null, string? prStoreRoot = null, bool? coverageHtml = null, string? logsRoot = null)
+    public FixtureRepository With(bool? cacheless = null, string? prStoreRoot = null, bool? coverageHtml = null, string? logsRoot = null, string? telemetryRoot = null, BuildIdentity? identity = null)
     {
         Options = Options with
         {
@@ -182,6 +183,8 @@ internal sealed class FixtureRepository : IDisposable
             PrStoreRoot = prStoreRoot ?? Options.PrStoreRoot,
             CoverageHtml = coverageHtml ?? Options.CoverageHtml,
             LogsRoot = logsRoot ?? Options.LogsRoot,
+            TelemetryRoot = telemetryRoot ?? Options.TelemetryRoot,
+            Identity = identity ?? Options.Identity,
         };
 
         return this;

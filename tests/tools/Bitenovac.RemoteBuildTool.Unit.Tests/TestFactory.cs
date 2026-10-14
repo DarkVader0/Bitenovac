@@ -1,5 +1,6 @@
 using Bitenovac.RemoteBuildTool.Core.Graph;
 using Bitenovac.RemoteBuildTool.Planning;
+using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Toolchains.DotNet;
 
 namespace Bitenovac.RemoteBuildTool.Unit.Tests;
@@ -83,6 +84,25 @@ internal static class TestFactory
 
     public static PlanState Plan(string configuration, params PlanEntry[] entries) =>
         new(new Dictionary<string, List<PlanEntry>> { [configuration] = [.. entries] });
+
+    public static BuildIdentity Identity(string buildId = "100-1", string machine = "host-1") =>
+        new(buildId, "PR", "docker", machine, "plan", "owner/repo", "refs/pull/7/merge", "abc123", 7, "PR_7/100-1");
+
+    public static MachineCounters Counters(
+        long hostBusy = 0,
+        long hostTotal = 0,
+        double containerCpuSeconds = 0,
+        long containerPeak = 0,
+        long containerLimit = 0,
+        double cpuLimit = 1) =>
+        new(hostBusy, hostTotal, 8L << 30, 6L << 30, TimeSpan.FromSeconds(containerCpuSeconds), containerPeak / 2, containerPeak, containerLimit, cpuLimit);
+
+    public static PipelineOptions TelemetryOptions(TemporaryDirectory directory, BuildIdentity? identity = null) =>
+        Options(directory.Path, directory.Combine("main"), directory.Combine("pr")) with
+        {
+            TelemetryRoot = directory.Combine("telemetry"),
+            Identity = identity ?? Identity(),
+        };
 }
 
 /// <summary>
@@ -106,6 +126,7 @@ internal sealed class EnvironmentVariables : IDisposable
         "REMOTEBUILDTOOL_COVERAGE_HTML",
         "REMOTEBUILDTOOL_MAX_CPU",
         "REMOTEBUILDTOOL_LOGS_DIR",
+        "REMOTEBUILDTOOL_TELEMETRY_DIR",
     ];
 
     private readonly Dictionary<string, string?> _original =

@@ -1,5 +1,6 @@
 using Bitenovac.RemoteBuildTool.Planning;
 using Bitenovac.RemoteBuildTool.Releasing;
+using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Toolchains;
 
 namespace Bitenovac.RemoteBuildTool.Commands;
@@ -19,11 +20,12 @@ internal static class ReleaseCommand
 
     public static int Run(PipelineOptions options, PipelineOutput output, DateOnly date)
     {
+        using var stage = StageRecorder.Start(options, output, "release");
         var entries = PlanState.Load(options.PlanFile).For("Release");
         if (entries.Count == 0)
         {
             output.WriteFailure("the plan selected nothing for Release, so there is nothing to release.");
-            return 1;
+            return stage.Complete(1);
         }
 
         Directory.CreateDirectory(options.DropRoot);
@@ -43,11 +45,11 @@ internal static class ReleaseCommand
             foreach (var name in ToolchainOrder.Resolve(entries))
             {
                 var batch = entries.Where(entry => entry.Toolchain == name).ToList();
-                var exitCode = toolchains.For(name).Publish(options, batch, version, staging, output);
+                var exitCode = toolchains.For(name).Publish(options, batch, version, staging, output, stage);
                 if (exitCode != 0)
                 {
                     output.WriteFailure($"release {version} failed; nothing was dropped.");
-                    return exitCode;
+                    return stage.Complete(exitCode);
                 }
             }
 
@@ -60,6 +62,7 @@ internal static class ReleaseCommand
         }
 
         output.WriteLine($"Release {version} dropped to {drop}");
-        return 0;
+        stage.SetProjects(entries.Count, 0);
+        return stage.Complete(0);
     }
 }

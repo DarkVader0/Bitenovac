@@ -18,7 +18,8 @@
 # per MSBuild invocation. Age counts from the last file written into an attempt folder.
 #
 # An Official run cannot know its drop version until 'release' takes one, so it logs into
-# Official_pending_<run number> and 'seal-official' renames that folder afterwards.
+# Official_pending_<run number> and 'seal-official' renames that folder afterwards, leaving a link
+# under the old name for the telemetry that recorded it.
 
 set -euo pipefail
 
@@ -73,10 +74,16 @@ exec docker run \
                 expire "CacheRefresh_*" "${SHORT_LIVED_DAYS}"
                 expire "Official_*" "${OFFICIAL_DAYS}"
                 find . -mindepth 1 -maxdepth 1 -type d -empty -delete 2> /dev/null || true
+                find . -mindepth 1 -maxdepth 1 -xtype l -delete 2> /dev/null || true
                 ;;
 
             seal-official)
                 pending="Official_pending_$2"
+                # An attempt after the first logs through the link an earlier seal left, straight into its folder.
+                if [[ -L "${pending}" ]]; then
+                    echo "Logs already sealed as $(readlink "${pending}")"
+                    exit 0
+                fi
                 if [[ ! -d "${pending}" ]]; then
                     echo "No logs under ${pending}; nothing to seal."
                     exit 0
@@ -90,6 +97,8 @@ exec docker run \
                 mkdir -p "${target}"
                 mv "${pending}"/* "${target}"/
                 rmdir "${pending}"
+                # Telemetry recorded the pending folder before the drop had a version.
+                ln -s "${target}" "${pending}"
                 echo "Logs sealed as ${target}"
                 ;;
         esac

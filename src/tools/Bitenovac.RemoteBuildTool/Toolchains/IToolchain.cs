@@ -1,4 +1,5 @@
 using Bitenovac.RemoteBuildTool.Planning;
+using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Testing;
 
 namespace Bitenovac.RemoteBuildTool.Toolchains;
@@ -77,17 +78,18 @@ internal interface IToolchain : IDisposable
     ToolchainPreparation Prepare(
         PipelineOptions options,
         IReadOnlyDictionary<string, IReadOnlyList<EvaluatedProject>> byConfiguration,
-        PipelineOutput output);
+        PipelineOutput output,
+        StageRecorder stage);
 
     /// <summary>
-    /// Builds the specified plan entries.
+    /// Builds the specified plan entries and records each one's build time in <paramref name="stage"/>.
     /// </summary>
     /// <returns>The process exit code.</returns>
     /// <remarks>
     /// Every other selected project that <paramref name="entries"/> reference has already been
     /// built or materialized.
     /// </remarks>
-    int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, PipelineOutput output);
+    int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, PipelineOutput output, StageRecorder stage);
 
     /// <summary>
     /// Builds the specified plan entries in Release, stamped with a release version, and copies the
@@ -98,6 +100,7 @@ internal interface IToolchain : IDisposable
     /// <param name="version">The release version to stamp, for example <c>2026.10.07.001</c>.</param>
     /// <param name="dropDirectory">The directory to copy the deployable output into.</param>
     /// <param name="output">The output to report progress to.</param>
+    /// <param name="stage">The stage to record each project's time and resources in.</param>
     /// <returns>The process exit code.</returns>
     /// <remarks>
     /// <para>
@@ -116,7 +119,7 @@ internal interface IToolchain : IDisposable
     /// </item>
     /// </list>
     /// </remarks>
-    int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output);
+    int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output, StageRecorder stage);
 
     /// <summary>
     /// Runs one built test project, collecting coverage into <paramref name="resultsDirectory"/>.

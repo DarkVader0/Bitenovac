@@ -28,6 +28,11 @@ internal sealed record PipelineOutput(TextWriter Out, TextWriter Error, bool Git
         Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY") is { Length: > 0 } path ? path : null);
 
     /// <summary>
+    /// Gets the first failure written, or <see langword="null"/> while there is none.
+    /// </summary>
+    public string? FirstFailure { get; private set; }
+
+    /// <summary>
     /// Writes one line of progress.
     /// </summary>
     /// <param name="message">The line to write.</param>
@@ -48,6 +53,8 @@ internal sealed record PipelineOutput(TextWriter Out, TextWriter Error, bool Git
     /// <param name="column">The column in <paramref name="file"/>, if known.</param>
     public void WriteFailure(string message, string? file = null, int? line = null, int? column = null)
     {
+        FirstFailure ??= file is null ? message : $"{file}({line},{column}): {message}";
+
         if (!GitHubActions)
         {
             Error.WriteLine(file is null ? $"error: {message}" : $"error: {file}({line},{column}): {message}");

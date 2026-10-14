@@ -284,8 +284,8 @@ retention when it finishes.
 To read them (Ubuntu):
 
 ```bash
-sudo ls /var/lib/docker/volumes/bitenovac-logs/_data/PR_18
-sudo cat /var/lib/docker/volumes/bitenovac-logs/_data/PR_18/16473829-1/test-Debug.log
+ls /srv/bitenovac/logs/PR_18
+cat /srv/bitenovac/logs/PR_18/16473829-1/test-Debug.log
 ```
 
 On GitHub, with RemoteBuildTool 1.2.0 or later in the runner image:
@@ -328,9 +328,36 @@ resources: container used 95.10 s, CPU 88.20 s (0.92 cores of 1.00), throttled 4
 Beside each `.log` is a `.resources.csv` with the container's memory and CPU every 5 seconds:
 
 ```bash
-sudo cat /var/lib/docker/volumes/bitenovac-logs/_data/PR_18/16473829-1/build-Debug.resources.csv
-sudo grep -h "resources:" /var/lib/docker/volumes/bitenovac-logs/_data/PR_18/16473829-1/*.log
+cat /srv/bitenovac/logs/PR_18/16473829-1/build-Debug.resources.csv
+grep -h "resources:" /srv/bitenovac/logs/PR_18/16473829-1/*.log
 ```
+
+---
+
+## Telemetry
+
+With RemoteBuildTool 1.2.0 or later in the runner image, every stage of every PR, Cache refresh and
+Official run records what it did, as JSON lines on the NFS share setup creates in Ubuntu
+(`/srv/bitenovac`, mounted into jobs as the `bitenovac-telemetry` volume). The logs moved onto the
+same share, so the logs path in every record opens from anywhere that mounts it.
+
+| Table | One row per | Holds |
+|---|---|---|
+| `build` | build: one run attempt | queue, pool, result, queue/preparation/end-to-end time, CPU and memory use, cache hits, failed tests, first error |
+| `stage` | RemoteBuildTool command in a job | time per phase (evaluation, restore, hashing, cache lookup and restore, build, test, coverage, publish, pack, store), CPU and memory against what the container was given, first error |
+| `target` | project a stage built, restored, tested or deployed | cache hit or miss and why, time; for tests also the test kind and counts. A cache hit's time is its restore from main. A built project has no CPU time of its own: one MSBuild process builds them all |
+| `test` | test case per run | outcome, time, error message |
+| `machine` | sample every 30 s while a stage runs | host CPU and memory, the container's CPU and memory |
+
+Files land in `<table>/date=<yyyy-MM-dd>/`, one per stage. Records are written when a stage ends,
+so a job killed by its timeout records nothing. To look at today's (Ubuntu):
+
+```bash
+ls /srv/bitenovac/telemetry/stage/date=$(date -u +%F)
+```
+
+Setup moves the logs of an earlier setup onto the share. Stop the runners first if setup says the
+logs volume is in use: `sudo systemctl stop 'actions.runner.*'`.
 
 ---
 
@@ -345,10 +372,12 @@ cd ~/bitenovac
 sudo bash runner/setup-runner.sh --uninstall --purge --token unused
 docker volume rm bitenovac-official
 docker image rm bitenovac-remotebuildtool-runner:10.0.400
+sudo rm /etc/exports.d/bitenovac.exports && sudo exportfs -ra
+sudo rm -rf /srv/bitenovac
 ```
 
-`--purge` keeps the Official drops; the `docker volume rm` deletes them. Use the SDK version from
-`global.json` in the image name.
+`--purge` keeps the Official drops and the telemetry; the `docker volume rm` deletes the drops and
+the last line the telemetry. Use the SDK version from `global.json` in the image name.
 
 **3.** Check that nothing is left:
 

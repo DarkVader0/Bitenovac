@@ -132,6 +132,37 @@ public sealed class CommandLineTests : IDisposable
     /// <summary>
     /// Points the environment variables this run reads at a temporary repository and stores.
     /// </summary>
+    [Fact]
+    public void Run_ShouldFail_WhenReportBuildIsGivenNoResult()
+    {
+        // Arrange
+        string[] arguments = ["report-build"];
+
+        // Act
+        var exitCode = CommandLine.Run(arguments, TestFactory.Silence());
+
+        // Assert
+        Assert.Equal(1, exitCode);
+    }
+
+    [Theory]
+    [InlineData("report-build", "success")]
+    [InlineData("report-build", "failure", "jobs.json")]
+    public void Run_ShouldDispatchToReportBuild_WhenAResultIsGiven(params string[] arguments)
+    {
+        // Arrange
+        using var repository = TestFactory.Directory();
+        PointAt(repository, repository.Combine("pr"));
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(arguments, output.Pipeline);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Contains("nothing to report", output.Out, StringComparison.Ordinal);
+    }
+
     private void PointAt(TemporaryDirectory repository, string prStore)
     {
         _environment.Clear();

@@ -4,6 +4,7 @@ using Bitenovac.RemoteBuildTool.Core.Graph;
 using Bitenovac.RemoteBuildTool.Core.Planning;
 using Bitenovac.RemoteBuildTool.Planning;
 using Bitenovac.RemoteBuildTool.Storage;
+using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Toolchains;
 
 namespace Bitenovac.RemoteBuildTool.Commands;
@@ -26,12 +27,13 @@ internal static class BuildCommand
 {
     public static int Run(PipelineOptions options, string configuration, PipelineOutput output)
     {
+        using var stage = StageRecorder.Start(options, output, "build", configuration);
         var plan = PlanState.Load(options.PlanFile);
         var entries = plan.For(configuration);
         if (entries.Count == 0)
         {
             output.WriteLine("Nothing selected; skipping build.");
-            return 0;
+            return stage.Complete(0);
         }
 
         using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
@@ -41,12 +43,14 @@ internal static class BuildCommand
         var stopwatch = Stopwatch.StartNew();
         (int Materialised, int Skipped, HashSet<PlanEntry> Unavailable) hits;
         using (output.Section($"Materialising cache hits from main ({configuration})"))
-            hits = MaterialiseHits(options, entries, configuration, mainStore, toolchains);
+        using (stage.Measure(StagePhase.CacheRestore))
+            hits = MaterialiseHits(options, entries, configuration, mainStore, toolchains, stage);
         var (materialised, skipped, unavailable) = hits;
         output.WriteLine($"{configuration}: materialised {materialised} cache hit(s) from main"
             + (skipped > 0 ? $", {skipped} already present" : "") + ".");
 
         var toBuild = entries.Where(entry => !entry.Hit || unavailable.Contains(entry)).ToList();
+        stage.SetProjects(entries.Count, entries.Count - toBuild.Count);
         var reasons = toBuild
             .OrderBy(entry => entry.ProjectPath, StringComparer.Ordinal)
             .Select(entry => $"  rebuild {entry.ProjectPath}: {entry.WhyCacheMiss ?? "main's entry could not be materialised"}{Environment.NewLine}");
@@ -60,16 +64,17 @@ internal static class BuildCommand
             if (batch.Count == 0)
                 continue;
 
-            var exitCode = toolchains.For(name).Build(options, batch, configuration, output);
+            var exitCode = toolchains.For(name).Build(options, batch, configuration, output, stage);
             if (exitCode != 0)
             {
                 output.AppendSummary($"### {configuration} build\n\n**Build failed** after {Seconds(stopwatch.Elapsed)}; the errors are annotated above.\n");
-                return exitCode;
+                return stage.Complete(exitCode);
             }
         }
 
         int staged;
         using (output.Section($"Staging rebuilt projects ({configuration})"))
+        using (stage.Measure(StagePhase.Store))
             staged = StageMisses(entries, configuration, prStore, toolchains);
 
         foreach (var entry in entries)
@@ -77,18 +82,20 @@ internal static class BuildCommand
 
         output.WriteLine($"{configuration}: build complete, staged {staged} rebuilt project(s).");
         output.AppendSummary($"### {configuration} build\n\n{materialised + skipped} cache hit(s) reused, {toBuild.Count} project(s) rebuilt in {Seconds(stopwatch.Elapsed)}.\n");
-        return 0;
+        return stage.Complete(0);
     }
 
     private static string Seconds(TimeSpan elapsed) =>
         string.Create(CultureInfo.InvariantCulture, $"{elapsed.TotalSeconds:0.0} s");
 
+    // A hit's time is the time to restore it from main; it was not built.
     private static (int Materialised, int Skipped, HashSet<PlanEntry> Unavailable) MaterialiseHits(
         PipelineOptions options,
         IReadOnlyList<PlanEntry> entries,
         string configuration,
         LocalVolumeArtifactStore mainStore,
-        ToolchainRegistry toolchains)
+        ToolchainRegistry toolchains,
+        StageRecorder stage)
     {
         var materialised = 0;
         var skipped = 0;
@@ -96,6 +103,7 @@ internal static class BuildCommand
 
         foreach (var entry in entries.Where(entry => entry.Hit))
         {
+            var started = Stopwatch.GetTimestamp();
             var project = new ProjectId(entry.ProjectPath);
             var projectDirectory = Path.GetDirectoryName(entry.FullPath)!;
             var outputDirectories = toolchains.For(entry.Toolchain).OutputDirectories;
@@ -103,18 +111,30 @@ internal static class BuildCommand
             if (MaterialisedMarker.Matches(options.RepositoryRoot, project, configuration, entry.FullHash, Path.Combine(projectDirectory, outputDirectories[0])))
             {
                 skipped++;
-                continue;
             }
-
-            if (!mainStore.TryGet(project, configuration, projectDirectory, out _, [.. outputDirectories.Select(directory => directory + "/")]))
+            else if (mainStore.TryGet(project, configuration, projectDirectory, out _, [.. outputDirectories.Select(directory => directory + "/")]))
+            {
+                foreach (var directory in outputDirectories)
+                    Touch(Path.Combine(projectDirectory, directory));
+                materialised++;
+            }
+            else
             {
                 unavailable.Add(entry);
                 continue;
             }
 
-            foreach (var directory in outputDirectories)
-                Touch(Path.Combine(projectDirectory, directory));
-            materialised++;
+            stage.AddTarget(new TargetInfo
+            {
+                Project = entry.ProjectPath,
+                Toolchain = entry.Toolchain,
+                Kind = "build",
+                CacheOutcome = "hit",
+                OwnHash = entry.OwnHash,
+                FullHash = entry.FullHash,
+                DurationMS = (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds,
+                Succeeded = true,
+            });
         }
 
         return (materialised, skipped, unavailable);

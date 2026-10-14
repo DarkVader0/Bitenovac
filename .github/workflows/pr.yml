@@ -10,6 +10,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
 
 env:
   DOTNET_NOLOGO: "true"
@@ -81,12 +82,25 @@ jobs:
 
   cleanup:
     name: Cleanup
-    needs: [debug-test, release-test]
+    needs: [plan, debug-build, debug-test, release-build, release-test]
     if: always()
     runs-on: [self-hosted, linux, x64, bitenovac]
     timeout-minutes: 1
     steps:
       - uses: actions/checkout@v7
+
+      - name: Fetch job timings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts
+          curl -fsS -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}/jobs?per_page=100" \
+            -o artifacts/jobs.json || echo "Job timings unavailable; the build is reported without them."
+
+      - name: Report build
+        continue-on-error: true
+        run: bash runner/in-container.sh report-build "${{ (contains(needs.*.result, 'failure') && 'failure') || (contains(needs.*.result, 'cancelled') && 'cancelled') || 'success' }}" artifacts/jobs.json
 
       - name: Drop this run's volumes
         run: docker volume rm -f "${REMOTEBUILDTOOL_PR_VOLUME}"

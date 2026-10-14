@@ -26,6 +26,8 @@ internal static class CommandLine
                 "promote" => PromoteCommand.Run(options, output),
                 "release" => ReleaseCommand.Run(options, output),
                 "graph" => GraphCommand.Run(options, output),
+                "report-build" when args.Length >= 2 => ReportBuildCommand.Run(options, output, args[1], args.Length >= 3 ? args[2] : null),
+                "report-build" => Fail(output, "A result is required, such as 'success' or 'failure'."),
                 "--help" or "-h" => Usage(output),
                 _ => Fail(output, $"Unknown command '{args[0]}'."),
             };
@@ -72,6 +74,8 @@ internal static class CommandLine
               remotebuildtool release           Build every project in Release under the next release
                                                 version and drop its deployable output
               remotebuildtool graph             Print the graph with each target's hashes
+              remotebuildtool report-build <Result> [<jobs.json>]
+                                                Sum up this build's stages into its BuildInfo record
 
             Environment:
               REMOTEBUILDTOOL_REPO_ROOT       Repository root (default: current directory)
@@ -81,5 +85,6 @@ internal static class CommandLine
               REMOTEBUILDTOOL_CACHELESS       true/1 to ignore main and rebuild everything (PR runs only;
                                  never promotes)
               REMOTEBUILDTOOL_COVERAGE_HTML   0 to skip the HTML coverage report (default: on locally, off in CI)
+              REMOTEBUILDTOOL_TELEMETRY_DIR   Telemetry share; every command writes its records there (default: none)
             """);
 }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using Bitenovac.RemoteBuildTool.Core.Coverage;
 using Bitenovac.RemoteBuildTool.Core.Graph;
@@ -5,6 +6,7 @@ using Bitenovac.RemoteBuildTool.Core.Planning;
 using Bitenovac.RemoteBuildTool.Planning;
 using Bitenovac.RemoteBuildTool.Reporting;
 using Bitenovac.RemoteBuildTool.Storage;
+using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Testing;
 using Bitenovac.RemoteBuildTool.Toolchains;
 
@@ -27,26 +29,30 @@ internal static class TestCommand
 
     public static int Run(PipelineOptions options, string configuration, PipelineOutput output)
     {
+        using var stage = StageRecorder.Start(options, output, "test", configuration);
         var plan = PlanState.Load(options.PlanFile);
         var entries = plan.For(configuration);
         if (entries.Count == 0)
         {
             output.WriteLine("Nothing selected; nothing to test.");
-            return 0;
+            return stage.Complete(0);
         }
 
         using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
         var prStore = new LocalVolumeArtifactStore(options.PrStoreRoot);
         var mainStore = new LocalVolumeArtifactStore(options.MainStoreRoot);
 
-        if (!MaterialiseBuildOutputs(output, options, entries, configuration, prStore, mainStore, toolchains))
-            return 1;
+        bool materialised;
+        using (stage.Measure(StagePhase.CacheRestore))
+            materialised = MaterialiseBuildOutputs(output, options, entries, configuration, prStore, mainStore, toolchains);
+        if (!materialised)
+            return stage.Complete(1);
 
         var testEntries = entries.Where(entry => entry.IsTestProject).ToList();
         if (testEntries.Count == 0)
         {
             output.WriteLine("No selected test projects; nothing to run.");
-            return 0;
+            return stage.Complete(0);
         }
 
         var coverageDirectory = options.CoverageDirectory(configuration);
@@ -65,10 +71,21 @@ internal static class TestCommand
             {
                 var name = Path.GetFileNameWithoutExtension(entry.ProjectPath);
 
-                if (entry.Hit && entry.CacheTestResults && ReuseCachedResult(new ProjectId(entry.ProjectPath), configuration, name, mainStore, coverageDirectory))
+                var started = Stopwatch.GetTimestamp();
+                bool reused;
+                using (stage.Measure(StagePhase.CacheRestore))
+                    reused = entry.Hit && entry.CacheTestResults && ReuseCachedResult(new ProjectId(entry.ProjectPath), configuration, name, mainStore, coverageDirectory);
+
+                if (reused)
                 {
                     output.WriteLine($"--- {name} (reused)");
                     summary.Reused(name);
+                    stage.AddTarget(TestTarget(entry, name) with
+                    {
+                        CacheOutcome = "reused",
+                        DurationMS = (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds,
+                        Succeeded = true,
+                    });
                     continue;
                 }
 
@@ -78,22 +95,30 @@ internal static class TestCommand
             var jobs = toRun
                 .Select(run => new TestJob(run.Name, () => toolchains.For(run.Entry.Toolchain).RunTests(run.Entry, configuration, run.Name, coverageDirectory)))
                 .ToList();
-            var results = TestSuite.RunAll(jobs, coverageDirectory, PipelineOptions.MaxParallelism(), (job, result) =>
+            IReadOnlyList<TestRunResult> results;
+            using (stage.Measure(StagePhase.Test))
             {
-                Report(output, job, result);
-                summary.Ran(job.Name, result);
-            });
+                results = TestSuite.RunAll(jobs, coverageDirectory, PipelineOptions.MaxParallelism(), (job, result) =>
+                {
+                    Report(output, job, result);
+                    summary.Ran(job.Name, result);
+                });
+            }
 
             for (var index = 0; index < toRun.Count; index++)
             {
                 var (entry, name) = toRun[index];
                 var result = results[index];
+                Record(stage, entry, name, result);
 
                 switch (result.Outcome)
                 {
                     case TestRunOutcome.Passed:
                         if (entry.CacheTestResults)
-                            StageTestResult(new ProjectId(entry.ProjectPath), configuration, name, coverageDirectory, entry, prStore);
+                        {
+                            using (stage.Measure(StagePhase.Store))
+                                StageTestResult(new ProjectId(entry.ProjectPath), configuration, name, coverageDirectory, entry, prStore);
+                        }
                         break;
                     case TestRunOutcome.NoTestsRan:
                         noTestsRan.Add(name);
@@ -105,6 +130,7 @@ internal static class TestCommand
             }
         }
 
+        stage.SetProjects(testEntries.Count, testEntries.Count - toRun.Count);
         output.AppendSummary(summary.ToMarkdown());
 
         if (noTestsRan.Count > 0)
@@ -114,20 +140,66 @@ internal static class TestCommand
         {
             foreach (var project in failed)
                 output.WriteFailure($"{project} has failing tests.");
-            return 1;
+            return stage.Complete(1);
         }
 
         output.WriteLine($"All selected tests passed ({configuration}).");
 
         if (configuration != "Debug")
-            return 0;
+            return stage.Complete(0);
 
-        var gateExitCode = RunCoverageGate(entries, coverageDirectory, options, output);
+        int gateExitCode;
+        using (stage.Measure(StagePhase.Coverage))
+            gateExitCode = RunCoverageGate(entries, coverageDirectory, options, output);
         if (gateExitCode != 0)
             output.WriteFailure("a gated project is below its coverage policy; the lines above name it.");
 
         output.AppendSummary(gateExitCode == 0 ? "Coverage gate passed.\n" : "**Coverage gate failed.**\n");
-        return gateExitCode;
+        return stage.Complete(gateExitCode);
+    }
+
+    private static TargetInfo TestTarget(PlanEntry entry, string name) => new()
+    {
+        Project = entry.ProjectPath,
+        Toolchain = entry.Toolchain,
+        Kind = "test",
+        TestKind = StageRecorder.TestKindOf(name),
+        CacheOutcome = "miss",
+        WhyCacheMiss = entry.Hit ? null : entry.WhyCacheMiss,
+        OwnHash = entry.OwnHash,
+        FullHash = entry.FullHash,
+    };
+
+    // A test project that ran is a miss even when its build was a hit: its results were not reused.
+    private static void Record(StageRecorder stage, PlanEntry entry, string name, TestRunResult result)
+    {
+        var cases = result.ReportPath is { } report ? TrxReader.Read(report) : [];
+        var reported = result.ReportPath is not null;
+
+        stage.AddTests(cases.Select(test => new TestInfo
+        {
+            Project = entry.ProjectPath,
+            TestName = test.Name,
+            Outcome = test.Outcome,
+            DurationMS = test.Duration is { } duration ? (long)duration.TotalMilliseconds : null,
+            ErrorMessage = test.ErrorMessage,
+        }));
+
+        if (result.Usage is { } usage)
+            stage.AddProcess(usage);
+
+        stage.AddTarget(TestTarget(entry, name) with
+        {
+            DurationMS = result.Usage is { } elapsed ? (long)elapsed.Elapsed.TotalMilliseconds : null,
+            CpuTimeMS = result.Usage?.CpuTime is { } cpu ? (long)cpu.TotalMilliseconds : null,
+            PeakMemoryBytes = result.Usage?.PeakMemoryBytes,
+            Succeeded = result.Outcome != TestRunOutcome.Failed,
+            ExitCode = result.ExitCode,
+            TestsTotal = reported ? cases.Count : null,
+            TestsPassed = reported ? cases.Count(test => test.Outcome == "Passed") : null,
+            TestsFailed = reported ? cases.Count(test => test.Outcome is "Failed" or "Error" or "Timeout" or "Aborted") : null,
+            TestsSkipped = reported ? cases.Count(test => test.Outcome == "NotExecuted") : null,
+        });
     }
 
     // A project that passed is folded away; one that failed stays open, as it is what the reader
@@ -229,7 +301,8 @@ internal static class TestCommand
         {
             var testsDirectory = Path.Combine(staging, "tests");
             Directory.CreateDirectory(testsDirectory);
-            foreach (var file in Directory.EnumerateFiles(coverageDirectory, $"{name}*"))
+            // The TRX report belongs to this run's telemetry, not to the result a later run reuses.
+            foreach (var file in Directory.EnumerateFiles(coverageDirectory, $"{name}*").Where(file => !file.EndsWith(".trx", StringComparison.OrdinalIgnoreCase)))
                 File.Copy(file, Path.Combine(testsDirectory, Path.GetFileName(file)), overwrite: true);
 
             prStore.AddFiles(project, configuration, new StoredTargetHash(entry.OwnHash, entry.FullHash), staging);

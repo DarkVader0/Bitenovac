@@ -1,4 +1,5 @@
 using Bitenovac.RemoteBuildTool.MsBuild;
+using Bitenovac.RemoteBuildTool.Telemetry;
 
 namespace Bitenovac.RemoteBuildTool;
 
@@ -13,7 +14,9 @@ internal sealed record PipelineOptions(
     string DropRoot,
     bool Cacheless,
     bool CoverageHtml,
-    string? LogsRoot = null)
+    string? LogsRoot = null,
+    string? TelemetryRoot = null,
+    BuildIdentity? Identity = null)
 {
     public static readonly string[] Configurations = ["Debug", "Release"];
 
@@ -42,7 +45,12 @@ internal sealed record PipelineOptions(
             ? logs
             : null;
 
-        return new PipelineOptions(repositoryRoot, mainStoreRoot, prStoreRoot, dropRoot, cacheless, coverageHtml, logsRoot);
+        var telemetryRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_TELEMETRY_DIR") is { Length: > 0 } telemetry
+            ? telemetry
+            : null;
+
+        return new PipelineOptions(repositoryRoot, mainStoreRoot, prStoreRoot, dropRoot, cacheless, coverageHtml, logsRoot, telemetryRoot,
+            BuildIdentity.FromEnvironment(Environment.GetEnvironmentVariable));
     }
 
     public string PlanFile => Path.Combine(PrStoreRoot, "plan.json");
@@ -68,11 +76,11 @@ internal sealed record PipelineOptions(
     /// </summary>
     /// <param name="name">The name of the invocation, unique within the run; for example <c>build-Debug</c>.</param>
     /// <returns>
-    /// The binary log of <see cref="BinaryLogPath"/>, and <c>errors/&lt;name&gt;.log</c> in this run's
-    /// own volume for the errors alone.
+    /// The binary log of <see cref="BinaryLogPath"/>, and <c>msbuild/&lt;name&gt;.errors.log</c> and
+    /// <c>msbuild/&lt;name&gt;.performance.log</c> in this run's own volume for its errors and timings.
     /// </returns>
     public MsBuildLogs MsBuildLogs(string name) =>
-        new(BinaryLogPath(name), Path.Combine(PrStoreRoot, "errors", $"{name}.log"));
+        new(BinaryLogPath(name), Path.Combine(PrStoreRoot, "msbuild", $"{name}.errors.log"), Path.Combine(PrStoreRoot, "msbuild", $"{name}.performance.log"));
 
     /// <summary>
     /// Returns the number of processes and MSBuild nodes that one job may run at once.

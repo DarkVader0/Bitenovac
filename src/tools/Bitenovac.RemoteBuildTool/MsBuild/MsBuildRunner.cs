@@ -104,6 +104,9 @@ internal static class MsBuildRunner
         File.Delete(logs.ErrorLogPath);
         arguments.Add("-fileLogger1");
         arguments.Add($"-fileLoggerParameters1:LogFile={logs.ErrorLogPath};ErrorsOnly");
+        File.Delete(logs.PerformanceLogPath);
+        arguments.Add("-fileLogger2");
+        arguments.Add($"-fileLoggerParameters2:LogFile={logs.PerformanceLogPath};PerformanceSummary;Verbosity=quiet");
 
         if (logs.BinaryLogPath is null)
             return;
@@ -118,4 +121,5 @@ internal static class MsBuildRunner
 /// </summary>
 /// <param name="BinaryLogPath">The binary log, or <see langword="null"/> for none.</param>
 /// <param name="ErrorLogPath">The file that receives only the invocation's errors.</param>
-internal sealed record MsBuildLogs(string? BinaryLogPath, string ErrorLogPath);
+/// <param name="PerformanceLogPath">The file that receives only the time each project and target took.</param>
+internal sealed record MsBuildLogs(string? BinaryLogPath, string ErrorLogPath, string PerformanceLogPath);

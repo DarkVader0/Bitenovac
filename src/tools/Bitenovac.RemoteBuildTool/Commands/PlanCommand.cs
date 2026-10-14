@@ -4,6 +4,7 @@ using Bitenovac.RemoteBuildTool.Hashing;
 using Bitenovac.RemoteBuildTool.Planning;
 using Bitenovac.RemoteBuildTool.Reporting;
 using Bitenovac.RemoteBuildTool.Storage;
+using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Toolchains;
 
 namespace Bitenovac.RemoteBuildTool.Commands;
@@ -20,6 +21,7 @@ internal static class PlanCommand
 {
     public static int Run(PipelineOptions options, PipelineOutput output)
     {
+        using var stage = StageRecorder.Start(options, output, "plan");
         using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
 
         output.WriteLine("==> Discovering projects");
@@ -32,7 +34,7 @@ internal static class PlanCommand
         if (total == 0)
         {
             output.WriteFailure("no projects found in the repository.");
-            return 1;
+            return stage.Complete(1);
         }
 
         output.WriteLine($"Found {total} project(s): {string.Join(", ", discovered.Select(found => $"{found.Toolchain.Name} {found.RelativePaths.Count}"))}.");
@@ -45,15 +47,16 @@ internal static class PlanCommand
         {
             Dictionary<string, IReadOnlyList<EvaluatedProject>> byConfiguration;
             using (output.Section($"Evaluating {relativePaths.Count} {toolchain.Name} project(s)"))
+            using (stage.Measure(StagePhase.Evaluation))
             {
                 byConfiguration = PipelineOptions.Configurations.ToDictionary(
                     configuration => configuration,
                     configuration => toolchain.Evaluate(relativePaths, configuration));
             }
 
-            var prepared = toolchain.Prepare(options, byConfiguration, output);
+            var prepared = toolchain.Prepare(options, byConfiguration, output, stage);
             if (!prepared.Succeeded)
-                return prepared.ExitCode;
+                return stage.Complete(prepared.ExitCode);
 
             foreach (var (configuration, projects) in prepared.ByConfiguration)
             {
@@ -72,7 +75,7 @@ internal static class PlanCommand
         {
             foreach (var configuration in PipelineOptions.Configurations)
             {
-                var entries = PlanConfiguration(configuration, evaluated[configuration], mainStore, options.Cacheless);
+                var entries = PlanConfiguration(configuration, evaluated[configuration], mainStore, options.Cacheless, stage);
                 planState.ByConfiguration[configuration] = entries;
 
                 var hits = entries.Count(entry => entry.Hit);
@@ -88,14 +91,17 @@ internal static class PlanCommand
 
         planState.Save(options.PlanFile);
         output.WriteLine($"Plan written to {options.PlanFile}");
-        return 0;
+        var planned = planState.ByConfiguration.Values.SelectMany(entries => entries).ToList();
+        stage.SetProjects(planned.Count, planned.Count(entry => entry.Hit));
+        return stage.Complete(0);
     }
 
     private static List<PlanEntry> PlanConfiguration(
         string configuration,
         IReadOnlyDictionary<ProjectId, EvaluatedProject> evaluated,
         LocalVolumeArtifactStore mainStore,
-        bool cacheless)
+        bool cacheless,
+        StageRecorder stage)
     {
         var ids = evaluated.Keys.ToList();
         var edges = evaluated.Values.SelectMany(project => project.ProjectReferences.Select(reference => new ProjectEdge(project.Id, reference)));
@@ -104,14 +110,19 @@ internal static class PlanCommand
         var ownHashInputs = evaluated.ToDictionary(entry => entry.Key, entry => entry.Value.OwnHashInputs);
 
         var stored = new Dictionary<ProjectId, StoredTargetHash>();
-        foreach (var id in ids)
+        using (stage.Measure(StagePhase.CacheLookup))
         {
-            if (mainStore.TryGetHash(id, configuration, out var hash))
-                stored[id] = hash;
+            foreach (var id in ids)
+            {
+                if (mainStore.TryGetHash(id, configuration, out var hash))
+                    stored[id] = hash;
+            }
         }
 
         var forced = cacheless ? ids.ToHashSet() : null;
-        var decisions = CachePlanBuilder.Build(graph, ownHashInputs, stored, forced, [FingerprintFormat.Entry]);
+        IReadOnlyDictionary<ProjectId, TargetDecision> decisions;
+        using (stage.Measure(StagePhase.Hashing))
+            decisions = CachePlanBuilder.Build(graph, ownHashInputs, stored, forced, [FingerprintFormat.Entry]);
 
         return ids.Select(id =>
         {
