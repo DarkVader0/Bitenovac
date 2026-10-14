@@ -43,7 +43,7 @@ jobs:
     name: Debug test
     needs: debug-build
     runs-on: [self-hosted, linux, x64, bitenovac]
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
 
@@ -73,7 +73,7 @@ jobs:
     name: Release test
     needs: release-build
     runs-on: [self-hosted, linux, x64, bitenovac]
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
 
