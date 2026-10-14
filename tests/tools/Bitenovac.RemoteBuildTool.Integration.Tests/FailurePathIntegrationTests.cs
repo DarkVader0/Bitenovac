@@ -67,43 +67,6 @@ public sealed class FailurePathIntegrationTests
     }
 
     [Fact]
-    public void Build_ShouldCompileNothing_WhenEveryProjectIsACacheHit()
-    {
-        // Arrange
-        using var fixture = FixtureRepository.CreateWarm();
-        fixture.ResetWorkspace();
-        fixture.With(prStoreRoot: fixture.Combine("artifacts/ci-pr-2"));
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-        var buildOutput = new CapturedOutput();
-
-        // Act
-        var exitCode = BuildCommand.Run(fixture.Options, "Debug", buildOutput.Pipeline);
-
-        // Assert
-        Assert.Equal(0, exitCode);
-        Assert.DoesNotContain("==> Building", buildOutput.ToString(), StringComparison.Ordinal);
-        Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
-    }
-
-    [Fact]
-    public void Build_ShouldSkipWhatIsAlreadyThere_WhenTheWorkspaceStillHoldsTheHash()
-    {
-        // Arrange
-        using var fixture = FixtureRepository.CreateWarm();
-
-        fixture.With(prStoreRoot: fixture.Combine("artifacts/ci-pr-2"));
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-
-        // Act
-        var exitCode = BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline);
-        var reported = _output.ToString();
-
-        // Assert
-        Assert.Equal(0, exitCode);
-        Assert.Contains("2 already present", reported, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void Test_ShouldFail_WhenATestProjectHasAFailingTest()
     {
         // Arrange

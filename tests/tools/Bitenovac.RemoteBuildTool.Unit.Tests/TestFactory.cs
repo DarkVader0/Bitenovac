@@ -166,8 +166,13 @@ internal sealed class TemporaryDirectory : IDisposable
 
     public void Dispose()
     {
-        if (System.IO.Directory.Exists(Path))
-            System.IO.Directory.Delete(Path, recursive: true);
+        if (!System.IO.Directory.Exists(Path))
+            return;
+
+        foreach (var file in System.IO.Directory.EnumerateFiles(Path, "*", SearchOption.AllDirectories))
+            File.SetAttributes(file, FileAttributes.Normal);
+
+        System.IO.Directory.Delete(Path, recursive: true);
     }
 }
 

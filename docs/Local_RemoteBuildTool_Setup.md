@@ -8,8 +8,8 @@ What you end up with:
 - the pinned RemoteBuildTool release already installed in the runner image
 - the build cache filled from `master`, and kept filled by every merged pull request
 - the **RemoteBuildTool service**, always running beside the runners: it promotes what merged pull
-  requests built into the cache, records every build, compacts telemetry, prunes old logs and
-  audits the cache. No workflow does any of that.
+  requests built into the cache, rebuilds the cache from scratch every night, records every build,
+  compacts telemetry and prunes old logs. No workflow does any of that.
 
 Ubuntu commands go in the **Ubuntu** terminal. Windows commands go in **PowerShell**.
 
@@ -81,11 +81,13 @@ sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --api-token <SERVICE TOK
 Takes a few minutes. It must end with:
 
 ```
-Promoted 42 entries into main.
-  ok    main is warm
   ok    remotebuildtool-service is running; follow it with: sudo bash runner/service.sh logs
 ==> Ready
 ```
+
+The service then finds the cache empty and fills it straight away: it builds and tests `master`
+from scratch, which takes as long as a pull request that changes everything. Its log ends that with
+`rebuild of <commit>: success`. Pull requests run meanwhile; they just build more.
 
 **4. Check it** (Ubuntu)
 
@@ -120,26 +122,25 @@ of it, which is exactly what `master` holds once it merges, so what it built is 
 
 ## The RemoteBuildTool service
 
-One container, `remotebuildtool-service`, restarted whenever it stops. Every 15 seconds it starts
-whatever is due:
+One container, `remotebuildtool-service`, restarted whenever it stops. Each piece of its work is a
+.NET hosted service with its own timer, so a long rebuild never holds up a promotion:
 
 | Work | When | What |
 |---|---|---|
 | Promotion | every minute | for each pull request merged into `master`, promotes what its build staged into main: the merge queue's build of the merge commit, otherwise the pull request's own last successful build. Then deletes staged builds older than 24 hours |
 | Build records | every 2 minutes | a `build` telemetry row for every workflow run GitHub finished, with its queue and preparation time |
 | Housekeeping | daily, 03:30 UTC | compacts the telemetry of earlier days and deletes logs past their retention |
-| Cache audit | daily, 01:00 UTC | rebuilds `master` in Debug from scratch and compares it with the cache |
+| Rebuild | daily, 01:00 UTC, and at once when main is empty | builds and tests `master` in Debug and Release from scratch and switches main to it; see [Nightly rebuild](#nightly-rebuild) |
+
+A failure is logged and the work runs again on its next turn; it never stops the service.
 
 **How the cache fills.** Every PR and merge queue run keeps its artifact store in the
 `bitenovac-staging` volume (on the share at `/srv/bitenovac/staging`), one folder per run attempt.
 Nothing in it reaches main until GitHub reports the pull request merged; then promotion copies only
 the projects the run built, so it costs as much as the change, not the repository. A pull request
 merged more than 24 hours after its build has nothing left to promote; its projects build again in
-the next pull request that needs them, and that one fills main once merged. Nothing ever builds
-`master` just to fill the cache.
-
-The audit runs in the background and its logs land in the logs share under `CacheAudit_<commit>`,
-its telemetry under queue `Cache audit`.
+the next pull request that needs them, and that one fills main once merged. Besides that, only the
+nightly rebuild writes main.
 
 **Its settings come from two places:**
 
@@ -155,18 +156,19 @@ its telemetry under queue `Cache audit`.
   "pollSeconds": 60,
   "buildReportSeconds": 120,
   "housekeeping": "03:30:00",
-  "cacheAudit": "01:00:00",
-  "cacheAuditConfiguration": "Debug",
-  "logRetentionDays": { "PR_": 30, "CacheAudit_": 30, "Official_": 365 }
+  "rebuild": "01:00:00",
+  "logRetentionDays": { "PR_": 30, "Rebuild_": 30, "Official_": 365 }
 }
 ```
 
-`"cacheAudit": null` turns the audit off. Stop, start and follow it (Ubuntu):
+`"rebuild": null` turns the nightly rebuild off; an empty main is still rebuilt. Stop, start and
+follow it, or empty main so it is rebuilt now (Ubuntu):
 
 ```bash
 sudo bash runner/service.sh stop
 sudo bash runner/service.sh start
 sudo bash runner/service.sh logs
+sudo bash runner/service.sh rebuild
 ```
 
 ---
@@ -195,13 +197,16 @@ git pull
 sudo bash runner/build-image.sh
 ```
 
-It restarts the service on the new image. A new RemoteBuildTool release keeps the cache: only a
-project's inputs decide whether it is rebuilt. When a release changes the fingerprint rules (the
-release notes say so, and `FingerprintFormat.Version` in the source goes up), or after a
-`global.json` or Dockerfile change, every project misses once; refill the cache with
-`sudo bash runner/seed-cache.sh` (see [Fill the cache again](#fill-the-cache-again)). Set
-`REMOTEBUILDTOOL_SOURCE` before `build-image.sh` to install from a feed
-other than nuget.org.
+It restarts the service on the new image. Every fingerprint includes the RemoteBuildTool version,
+so a new release starts from an empty cache rather than trusting what an older one built; so does
+a `global.json` or Dockerfile change. Until the nightly rebuild, pull requests build everything they
+touch. To refill the cache now instead (Ubuntu):
+
+```bash
+sudo bash runner/service.sh rebuild
+```
+
+Set `REMOTEBUILDTOOL_SOURCE` before `build-image.sh` to install from a feed other than nuget.org.
 
 ### First time only: let the deploy workflow publish
 
@@ -291,38 +296,39 @@ bash deploy/web.sh /tmp/site [2026.10.11.001]
 
 ---
 
-## Fill the cache again
+## Nightly rebuild
 
-Merged pull requests keep the cache filled. After setup on a new machine, or once a release changes
-the fingerprint rules, fill it from `master` by hand (Ubuntu):
+Every night at 01:00 UTC, and as soon as the service starts with main empty, the service builds
+`master` from scratch: plan with the cache off, then build and test Debug and Release. When every
+step passes, main is switched to it:
+
+1. Each project's rebuilt output replaces main's entry for it.
+2. Every other entry main held, for projects that are gone or older fingerprints, is deleted, and
+   so is every file no entry uses any more.
+3. Pull requests merged while the rebuild ran are promoted again, so the switch never takes their
+   output back out.
+
+A rebuild that fails, such as on a failing test on `master`, leaves main as it was. Its logs are in
+the logs share under `Rebuild_<commit>` (`tool-restore.log`, `plan.log`, `build-Debug.log`, ...,
+`switch.log`), its telemetry under queue `Rebuild`.
+
+Before each entry is replaced, the switch compares it with the rebuild, file for file in `bin/`,
+and records a row per project in the `cache_comparison` telemetry table:
+
+| Outcome | Main held | Means |
+|---|---|---|
+| `match` | the same fingerprint, the same output | the cache was right |
+| `mismatch` | the same fingerprint, other output | the fingerprint misses an input that changes the output; `DifferingFiles` names the files |
+| `changed` | another fingerprint | the project changed since main got it; nothing to compare |
+| `new` | nothing | nothing to compare |
+
+A mismatch does not fail the rebuild: main is switched to the fresh output either way. To find
+them (Ubuntu):
 
 ```bash
-cd ~/bitenovac
-git switch master
-git pull
-sudo bash runner/seed-cache.sh
+bash runner/telemetry.sh query "FROM cache_mismatches"
+bash runner/telemetry.sh query "FROM cache_comparison_outcomes"
 ```
-
-It must end with `Promoted 42 entries into main.`
-
----
-
-## Cache audit
-
-Every night at 01:00 UTC the service checks that the cache can be trusted. It plans `master` with
-the cache off, rebuilds every project in Debug from scratch, and compares each rebuild with main's
-entry under the same fingerprint, file for file in `bin/`. They must be identical. A mismatch fails
-the audit and names the project and files: its fingerprint misses an input, so a pull request could
-have been handed stale output as a cache hit. The service log and the audit's build record show it:
-
-```bash
-sudo bash runner/service.sh logs
-bash runner/telemetry.sh query "FROM build WHERE Queue = 'Cache audit' ORDER BY EndTime DESC LIMIT 5"
-```
-
-The audit's `audit-Debug.log` in its logs folder lists every project as `match`, `MISMATCH` or
-`skip`. A project main holds under another fingerprint, as when the pull request that last changed
-it merged without a fresh build, is skipped rather than compared.
 
 ---
 
@@ -336,7 +342,7 @@ from scratch, with no tests and no cache, and drops what can be deployed into th
 2026.10.07.001/
     packages/          one .nupkg per library and .NET tool
     apps/              one published folder per app
-    build-graph.json   the build graph, as beside every build's logs
+    build-graph.json   the build graph, as beside every build's logs, with the run's logs path
 ```
 
 The number is the date (UTC) and a counter for that day, so a second build on the same day is
@@ -356,15 +362,18 @@ sudo ls /var/lib/docker/volumes/bitenovac-official/_data
 
 ## Logs
 
-Every PR, merge queue run, Official and cache audit keeps its logs in the `bitenovac-logs` volume, one
-folder per pull request or commit and one folder per run attempt inside it:
+Every PR, merge queue run, Official and nightly rebuild keeps its logs in the `bitenovac-logs`
+volume, one folder per pull request, run or commit and one folder per run attempt inside it:
 
 ```
-PR_18/16473829-1/                                        kept 30 days
-CacheAudit_8f3c2a1b9d0e/cacheaudit-8f3c2a1b9d0e-...      kept 30 days
-Official_2026.10.11.001/...                              kept 1 year
-Official_failed_57/...                                   kept 1 year; a release that dropped nothing
+PR_18/16473829-1/                                    kept 30 days
+Rebuild_8f3c2a1b9d0e/rebuild-8f3c2a1b9d0e-...        kept 30 days
+Official_212/16480001-1/                             kept 1 year
 ```
+
+An Official run's folder is named by its run number; the drop version it made is in its
+`release.log`, in its `build` and `stage` telemetry (`DropVersion`), and the drop's
+`build-graph.json` names the logs folder back.
 
 Each attempt folder holds the full output of every stage (`plan.log`, `build-Debug.log`,
 `test-Debug.log`, `release.log`, ...) and an MSBuild binary log per restore, build, publish and
@@ -373,16 +382,14 @@ retention every night; `logRetentionDays` in `remotebuildtool.json` sets it.
 
 Beside them is `build-graph.json`, the build graph as `plan` saw it: every project of each
 configuration with its references, its fingerprints, whether it was a cache hit and why not, and
-every input of its fingerprint. Official drops carry one too. To see how the graph changed between
-two builds (Ubuntu):
+every input of its fingerprint. Official drops carry one too. It is plain JSON, so DuckDB in the
+runner image reads it directly; for example, every project of one build with what it references
+(Ubuntu):
 
 ```bash
-docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint remotebuildtool bitenovac-remotebuildtool-runner:10.0.400 \
-    compare-graphs /logs/PR_18/16473829-1/build-graph.json /logs/PR_19/16474120-1/build-graph.json
+docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint duckdb bitenovac-remotebuildtool-runner:10.0.400 \
+    -c "SELECT unnest(Configurations.Debug, recursive := true) FROM read_json('/logs/PR_18/16473829-1/build-graph.json')"
 ```
-
-It lists projects that came or went, references that changed, and which inputs of each project's
-fingerprint changed: a source file, a property set in a repository file, a package.
 
 To read them (Ubuntu):
 
@@ -440,7 +447,7 @@ grep -h "resources:" /srv/bitenovac/logs/PR_18/16473829-1/*.log
 ## Telemetry
 
 With RemoteBuildTool 1.2.0 or later in the runner image, every stage of every PR, merge queue run,
-Official and cache audit records what it did, as JSON lines on the NFS share setup creates in Ubuntu
+Official and nightly rebuild records what it did, as JSON lines on the NFS share setup creates in Ubuntu
 (`/srv/bitenovac`, mounted into jobs as the `bitenovac-telemetry` volume). The logs moved onto the
 same share, so the logs path in every record opens from anywhere that mounts it.
 
@@ -451,6 +458,7 @@ same share, so the logs path in every record opens from anywhere that mounts it.
 | `target` | project a stage built, restored, tested or deployed | cache hit or miss and why, time; for tests also the test kind and counts. A cache hit's time is its restore from main. A built project has no CPU time of its own: one MSBuild process builds them all |
 | `test` | test case per run | outcome, time, error message |
 | `machine` | sample every 30 s while a stage runs | host CPU and memory, the container's CPU and memory |
+| `cache_comparison` | project the nightly rebuild switched main to | the outcome against what main held (`match`, `mismatch`, `changed`, `new`), both fingerprints, the files that differed |
 
 Files land in `<table>/date=<yyyy-MM-dd>/`, one per stage. Records are written when a stage ends,
 so a job killed by its timeout records nothing.
@@ -484,9 +492,11 @@ Ready-made queries, from `queries.sql` in RemoteBuildTool:
 | `machine_load` | host CPU and memory per machine and hour |
 | `build_stages('<build id>')` | one build's stages in order, with their logs path |
 | `build_targets('<build id>')` | what each stage of one build did with each project |
+| `cache_mismatches` | projects whose rebuild differed from main under the same fingerprint, newest first |
+| `cache_comparison_outcomes` | each rebuild's matches, mismatches, changed and new projects per configuration |
 
 A GitHub build's id is the run id and attempt, as in `16473829-1`; the run's URL ends in the run id.
-The service's audits are `cacheaudit-<commit>-<time>`. To drill
+The service's rebuilds are `rebuild-<commit>-<time>`. To drill
 from a slow day into its slowest PR build:
 
 ```sql

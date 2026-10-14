@@ -19,9 +19,9 @@ internal sealed record ServiceState
     public DateOnly? HousekeptOn { get; set; }
 
     /// <summary>
-    /// Gets or sets the day, in UTC, the service last audited the cache.
+    /// Gets or sets the day, in UTC, the service last rebuilt main.
     /// </summary>
-    public DateOnly? AuditedOn { get; set; }
+    public DateOnly? RebuiltOn { get; set; }
 
     /// <summary>
     /// Gets or sets the builds the service has recorded from GitHub's completed runs, newest last; only

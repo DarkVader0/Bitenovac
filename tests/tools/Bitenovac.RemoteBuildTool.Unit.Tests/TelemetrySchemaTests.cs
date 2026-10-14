@@ -13,6 +13,7 @@ public sealed partial class TelemetrySchemaTests
         { "target", typeof(TargetInfo) },
         { "test", typeof(TestInfo) },
         { "machine", typeof(MachineSample) },
+        { "cache_comparison", typeof(CacheComparisonInfo) },
     };
 
     [Theory]
@@ -41,6 +42,7 @@ public sealed partial class TelemetrySchemaTests
             var t when t == typeof(double) => "DOUBLE",
             var t when t == typeof(bool) => "BOOLEAN",
             var t when t == typeof(DateTimeOffset) => "TIMESTAMPTZ",
+            var t when t == typeof(IReadOnlyList<string>) => "VARCHAR[]",
             var t => $"unmapped {t.Name}",
         };
 

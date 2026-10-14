@@ -26,6 +26,7 @@ internal static class TelemetryWriter
     public const string TargetTable = "target";
     public const string TestTable = "test";
     public const string MachineTable = "machine";
+    public const string CacheComparisonTable = "cache_comparison";
 
     /// <summary>
     /// Writes <paramref name="records"/> as one file of the table, if there are any.

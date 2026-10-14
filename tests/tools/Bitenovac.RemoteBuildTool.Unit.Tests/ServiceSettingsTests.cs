@@ -112,8 +112,7 @@ public sealed class ServiceSettingsTests
         Assert.Equal(60, settings.PollSeconds);
         Assert.Equal(120, settings.BuildReportSeconds);
         Assert.Equal(new TimeOnly(3, 30), settings.Housekeeping);
-        Assert.Equal(new TimeOnly(1, 0), settings.CacheAudit);
-        Assert.Equal("Debug", settings.CacheAuditConfiguration);
+        Assert.Equal(new TimeOnly(1, 0), settings.Rebuild);
         Assert.Equal(365, settings.LogRetentionDays["Official_"]);
     }
 
@@ -128,8 +127,7 @@ public sealed class ServiceSettingsTests
               "pollSeconds": 30,
               "buildReportSeconds": 300,
               "housekeeping": "04:15:00",
-              "cacheAudit": null,
-              "cacheAuditConfiguration": "Release",
+              "rebuild": null,
               "logRetentionDays": { "PR_": 7 }
             }
             """);
@@ -142,8 +140,7 @@ public sealed class ServiceSettingsTests
         Assert.Equal(30, settings.PollSeconds);
         Assert.Equal(300, settings.BuildReportSeconds);
         Assert.Equal(new TimeOnly(4, 15), settings.Housekeeping);
-        Assert.Null(settings.CacheAudit);
-        Assert.Equal("Release", settings.CacheAuditConfiguration);
+        Assert.Null(settings.Rebuild);
         Assert.Equal(7, Assert.Single(settings.LogRetentionDays).Value);
     }
 
@@ -175,7 +172,7 @@ public sealed class ServiceSettingsTests
         {
             PromotedPullRequests = [5, 6],
             HousekeptOn = new DateOnly(2026, 10, 14),
-            AuditedOn = new DateOnly(2026, 10, 13),
+            RebuiltOn = new DateOnly(2026, 10, 13),
             ReportedBuilds = ["1-1", "2-1"],
         };
 
@@ -187,7 +184,7 @@ public sealed class ServiceSettingsTests
         // Assert
         Assert.Equal(state.PromotedPullRequests, read.PromotedPullRequests);
         Assert.Equal(state.HousekeptOn, read.HousekeptOn);
-        Assert.Equal(state.AuditedOn, read.AuditedOn);
+        Assert.Equal(state.RebuiltOn, read.RebuiltOn);
         Assert.Equal(state.ReportedBuilds, read.ReportedBuilds);
     }
 

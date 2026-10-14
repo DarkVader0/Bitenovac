@@ -1,5 +1,5 @@
--- Ready-made queries over the telemetry views build, stage, target, test and machine. Each is a
--- view, or a table macro where it takes an argument:
+-- Ready-made queries over the telemetry views build, stage, target, test, machine and
+-- cache_comparison. Each is a view, or a table macro where it takes an argument:
 --
 --   FROM build_percentiles WHERE Queue = 'PR';
 --   FROM build_stages('16473829-1');
@@ -154,3 +154,25 @@ SELECT Stage, Project, Kind, TestKind, CacheOutcome, WhyCacheMiss, DurationMS, C
 FROM target
 WHERE BuildId = id
 ORDER BY Stage, DurationMS DESC NULLS LAST;
+
+-- Projects whose clean rebuild differed from what main held under the same fingerprint: each one's
+-- fingerprint misses an input that changes its output. Newest first.
+CREATE VIEW cache_mismatches AS
+SELECT Time, BuildId, Sha, Configuration, Project, FullHash, DifferingFiles, LogsPath
+FROM cache_comparison
+WHERE Outcome = 'mismatch'
+ORDER BY Time DESC;
+
+-- How each daily rebuild compared with main, per configuration.
+CREATE VIEW cache_comparison_outcomes AS
+SELECT
+    BuildId,
+    min(Time) AS Time,
+    Configuration,
+    count(*) FILTER (WHERE Outcome = 'match') AS Matches,
+    count(*) FILTER (WHERE Outcome = 'mismatch') AS Mismatches,
+    count(*) FILTER (WHERE Outcome = 'changed') AS Changed,
+    count(*) FILTER (WHERE Outcome = 'new') AS New
+FROM cache_comparison
+GROUP BY BuildId, Configuration
+ORDER BY Time DESC, Configuration;

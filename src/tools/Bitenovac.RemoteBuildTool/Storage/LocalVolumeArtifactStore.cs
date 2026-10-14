@@ -313,6 +313,54 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
     }
 
     /// <summary>
+    /// Deletes every project and configuration not in <paramref name="keep"/>, and every entry of
+    /// those kept but their live one.
+    /// </summary>
+    /// <param name="keep">The projects and configurations to keep.</param>
+    /// <returns>The number of entries deleted.</returns>
+    /// <remarks>Blobs are left in place; <see cref="Prune"/> deletes those no entry references any more.</remarks>
+    public int Retain(IEnumerable<(ProjectId Project, string Configuration)> keep)
+    {
+        ArgumentNullException.ThrowIfNull(keep);
+
+        var kept = keep.Select(target => Path.GetFullPath(TargetDirectory(target.Project, target.Configuration))).ToHashSet(StringComparer.Ordinal);
+        var deleted = 0;
+
+        foreach (var current in Directory.EnumerateFiles(_root, CurrentFileName, SearchOption.AllDirectories).ToList())
+        {
+            var target = Path.GetFullPath(Path.GetDirectoryName(current)!);
+            var entries = Path.Combine(target, "entries");
+            var live = File.ReadAllText(current).Trim();
+            var stale = Directory.Exists(entries)
+                ? Directory.GetDirectories(entries).Where(entry => !kept.Contains(target) || Path.GetFileName(entry) != live).ToList()
+                : [];
+
+            deleted += stale.Count;
+            if (kept.Contains(target))
+            {
+                foreach (var entry in stale)
+                    Directory.Delete(entry, recursive: true);
+            }
+            else
+            {
+                Directory.Delete(target, recursive: true);
+            }
+        }
+
+        var blobsRoot = Path.Combine(_root, BlobsDirectoryName);
+        foreach (var directory in Directory.EnumerateDirectories(_root, "*", SearchOption.AllDirectories)
+            .Where(directory => !directory.StartsWith(blobsRoot, StringComparison.Ordinal))
+            .OrderByDescending(directory => directory.Length)
+            .ToList())
+        {
+            if (!Directory.EnumerateFileSystemEntries(directory).Any())
+                Directory.Delete(directory);
+        }
+
+        return deleted;
+    }
+
+    /// <summary>
     /// Deletes every blob that no stored manifest references.
     /// </summary>
     /// <returns>The number of blobs deleted.</returns>

@@ -1,5 +1,7 @@
-using System.Runtime.InteropServices;
 using Bitenovac.RemoteBuildTool.Service;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 
 namespace Bitenovac.RemoteBuildTool.Commands;
 
@@ -7,9 +9,8 @@ namespace Bitenovac.RemoteBuildTool.Commands;
 /// Provides the <c>serve</c> command, which runs the service until it is stopped.
 /// </summary>
 /// <remarks>
-/// The service fills main from merged pull requests, records every build, compacts telemetry,
-/// prunes logs and audits the cache; see <see cref="ServiceLoop"/>. It stops on SIGTERM or Ctrl+C,
-/// cancelling a running build.
+/// The service's work runs as hosted services; see <see cref="ServiceComposition"/>. It stops on
+/// SIGTERM or Ctrl+C, cancelling a running rebuild.
 /// </remarks>
 internal static class ServeCommand
 {
@@ -18,34 +19,29 @@ internal static class ServeCommand
     /// </summary>
     public const string DefaultSettingsPath = "/etc/remotebuildtool/config.json";
 
-    private static readonly TimeSpan Tick = TimeSpan.FromSeconds(15);
-
     /// <summary>
     /// Runs the service.
     /// </summary>
-    /// <param name="output">Where the service reports what it does.</param>
+    /// <param name="output">Where the service reports starting and stopping.</param>
     /// <param name="settingsPath">The host settings file.</param>
     /// <returns>0 once stopped.</returns>
     /// <exception cref="InvalidOperationException">The host settings are missing or invalid.</exception>
     public static int Run(PipelineOutput output, string settingsPath)
     {
         var host = HostSettings.Load(settingsPath);
-        using var http = GitHubClient.CreateHttpClient(host.GitHubApiUrl, host.GitHubToken);
-        using var stop = new CancellationTokenSource();
-        using var terminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, context =>
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
+        builder.Logging.AddSimpleConsole(console =>
         {
-            context.Cancel = true;
-            stop.Cancel();
+            console.SingleLine = true;
+            console.UseUtcTimestamp = true;
+            console.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+            console.ColorBehavior = LoggerColorBehavior.Disabled;
         });
-        using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, context =>
-        {
-            context.Cancel = true;
-            stop.Cancel();
-        });
+        builder.Services.AddRemoteBuildToolService(host, ToolCommand.Self, TimeProvider.System);
 
-        var loop = new ServiceLoop(host, new GitHubClient(http, host.Repository), ToolCommand.Self, output, TimeProvider.System);
+        using var service = builder.Build();
         output.WriteLine($"Serving {host.Repository} as {host.EffectiveMachine} in pool {host.Pool}.");
-        loop.RunAsync(Tick, stop.Token).GetAwaiter().GetResult();
+        service.Run();
         output.WriteLine("Stopped.");
         return 0;
     }

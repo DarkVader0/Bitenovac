@@ -22,7 +22,6 @@
 #                      machine's CPUs divided by --instances.
 #   --memory SIZE      Memory each agent's job containers may use, in docker's notation (6g).
 #                      Unlimited by default.
-#   --no-seed          Skip filling main's artifact store from this checkout (see seed-cache.sh).
 #   --api-token TOKEN  GitHub token the RemoteBuildTool service reads the repository and its
 #                      workflow runs with: a fine-grained token with read access to Contents and
 #                      Actions. Without it the service is not installed, and nothing fills main.
@@ -114,7 +113,6 @@ instances=1
 cpus=""
 memory=""
 api_token=""
-seed=true
 uninstall=false
 purge=false
 
@@ -129,7 +127,6 @@ while [[ $# -gt 0 ]]; do
         --cpus)           cpus="${2:-}";           shift 2 ;;
         --memory)         memory="${2:-}";         shift 2 ;;
         --api-token)      api_token="${2:-}";      shift 2 ;;
-        --no-seed)        seed=false;              shift ;;
         --uninstall)      uninstall=true;          shift ;;
         --purge)          purge=true;              shift ;;
         -h|--help)        sed -n '2,/^$/p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'; exit 0 ;;
@@ -394,22 +391,10 @@ done
 
 rm -f /tmp/actions-runner.tar.gz
 
-# -------------------------------------------------------------------------------------- seed ----
-
-if [[ "${seed}" == true ]]; then
-    log "Seeding main's artifact store from this checkout"
-    if REMOTEBUILDTOOL_MAX_CPU="${cpu_share}" REMOTEBUILDTOOL_CPUS="${cpu_share}" REMOTEBUILDTOOL_MEMORY="${memory}" \
-        bash "${REPO_ROOT}/runner/seed-cache.sh" --user "${run_as}"; then
-        ok "main is warm"
-    else
-        warn "seeding failed; the runners work, but the first pull request builds everything"
-    fi
-fi
-
 # ----------------------------------------------------------------------------------- service ----
 
-# Started after seeding, so the two never write main at once. From here on main fills from merged
-# pull requests alone, which the service promotes.
+# The service is main's only writer. It finds main empty and rebuilds the branch from scratch
+# into it straight away, then keeps it filled from merged pull requests and a rebuild every night.
 if [[ -n "${api_token}" ]]; then
     log "RemoteBuildTool service"
 
@@ -455,7 +440,7 @@ JSON
     bash "${REPO_ROOT}/runner/service.sh" start > /dev/null
     ok "remotebuildtool-service is running; follow it with: sudo bash runner/service.sh logs"
 else
-    warn "no --api-token: the RemoteBuildTool service is not installed, so nothing fills main after seeding"
+    warn "no --api-token: the RemoteBuildTool service is not installed, so nothing fills main"
 fi
 
 # ------------------------------------------------------------------------------------- ready ----

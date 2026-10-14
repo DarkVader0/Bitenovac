@@ -1,4 +1,3 @@
-using Bitenovac.RemoteBuildTool.Commands;
 using Bitenovac.RemoteBuildTool.Telemetry;
 
 namespace Bitenovac.RemoteBuildTool.Service;
@@ -22,7 +21,8 @@ namespace Bitenovac.RemoteBuildTool.Service;
 /// </remarks>
 /// <param name="github">The GitHub API.</param>
 /// <param name="host">The machine's settings.</param>
-internal sealed class PullRequestPromoter(GitHubClient github, HostSettings host)
+/// <param name="writer">Writes main, one write at a time.</param>
+internal sealed class PullRequestPromoter(GitHubClient github, HostSettings host, MainStoreWriter writer)
 {
     private const int RememberedPullRequests = 5000;
 
@@ -55,9 +55,7 @@ internal sealed class PullRequestPromoter(GitHubClient github, HostSettings host
             }
             else
             {
-                using var output = new StringWriter();
-                PromoteCommand.Run(Options(store.Value.Run, store.Value.Directory, pull), new PipelineOutput(output, output));
-                var summary = output.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault();
+                var summary = await writer.PromoteAsync(Options(store.Value.Run, store.Value.Directory, pull), cancellationToken);
                 report($"PR #{pull.Number} merged; run {store.Value.Run.BuildId}: {summary}");
             }
 

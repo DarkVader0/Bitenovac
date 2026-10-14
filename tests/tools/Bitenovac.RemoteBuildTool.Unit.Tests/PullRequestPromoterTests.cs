@@ -28,7 +28,7 @@ public sealed class PullRequestPromoterTests
         var reports = new List<string>();
 
         // Act
-        var handled = await new PullRequestPromoter(new GitHubClient(http, "owner/repo"), Host(directory))
+        var handled = await new PullRequestPromoter(new GitHubClient(http, "owner/repo"), Host(directory), new MainStoreWriter(TimeProvider.System))
             .PromoteAsync("master", [], Now, reports.Add, TestContext.Current.CancellationToken);
 
         // Assert
@@ -54,7 +54,7 @@ public sealed class PullRequestPromoterTests
         var reports = new List<string>();
 
         // Act
-        var handled = await new PullRequestPromoter(new GitHubClient(http, "owner/repo"), Host(directory))
+        var handled = await new PullRequestPromoter(new GitHubClient(http, "owner/repo"), Host(directory), new MainStoreWriter(TimeProvider.System))
             .PromoteAsync("master", [], Now, reports.Add, TestContext.Current.CancellationToken);
 
         // Assert
@@ -81,7 +81,7 @@ public sealed class PullRequestPromoterTests
         remembered.Add(2);
 
         // Act
-        var handled = await new PullRequestPromoter(new GitHubClient(http, "owner/repo"), Host(directory))
+        var handled = await new PullRequestPromoter(new GitHubClient(http, "owner/repo"), Host(directory), new MainStoreWriter(TimeProvider.System))
             .PromoteAsync("master", remembered, Now, _ => { }, TestContext.Current.CancellationToken);
 
         // Assert

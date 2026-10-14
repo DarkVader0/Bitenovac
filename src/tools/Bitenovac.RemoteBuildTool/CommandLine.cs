@@ -24,7 +24,6 @@ internal static class CommandLine
                 "build" => WithConfiguration(args, output, configuration => BuildCommand.Run(options, configuration, output)),
                 "test" => WithConfiguration(args, output, configuration => TestCommand.Run(options, configuration, output)),
                 "promote" => PromoteCommand.Run(options, output),
-                "audit" => WithConfiguration(args, output, configuration => AuditCommand.Run(options, configuration, output)),
                 "release" => ReleaseCommand.Run(options, output),
                 "graph" => GraphCommand.Run(options, output),
                 "serve" => ServeCommand.Run(output, Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_CONFIG") is { Length: > 0 } settings ? settings : ServeCommand.DefaultSettingsPath),
@@ -71,12 +70,11 @@ internal static class CommandLine
               remotebuildtool build <Config>    Materialise hits, compile misses
               remotebuildtool test <Config>     Restore or run tests, gate coverage on Debug
               remotebuildtool promote           Copy this run's qualifying entries into main
-              remotebuildtool audit <Config>    Compare a cacheless rebuild with main's entries under the same fingerprints
               remotebuildtool release           Build every project in Release under the next release
                                                 version and drop its deployable output
               remotebuildtool graph             Print the graph with each target's hashes
               remotebuildtool serve             Run the service: fill main from merged pull requests, record
-                                                builds, compact telemetry, prune logs, audit the cache
+                                                builds, compact telemetry, prune logs, rebuild main daily
 
             Environment:
               REMOTEBUILDTOOL_REPO_ROOT       Repository root (default: current directory)

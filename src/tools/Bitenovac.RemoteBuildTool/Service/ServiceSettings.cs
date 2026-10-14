@@ -132,7 +132,7 @@ internal sealed record RepositorySettings
     public const string FileName = "remotebuildtool.json";
 
     /// <summary>
-    /// Gets or sets the branch whose merged pull requests fill main and whose head the audit rebuilds.
+    /// Gets or sets the branch whose merged pull requests fill main and whose head the daily rebuild builds.
     /// </summary>
     public string Branch { get; set; } = "master";
 
@@ -152,14 +152,10 @@ internal sealed record RepositorySettings
     public TimeOnly Housekeeping { get; set; } = new(3, 30);
 
     /// <summary>
-    /// Gets or sets the time of day, in UTC, to audit the cache, or <see langword="null"/> never to.
+    /// Gets or sets the time of day, in UTC, to rebuild <see cref="Branch"/> from scratch and switch main
+    /// to it, or <see langword="null"/> never to; an empty main is rebuilt whatever the time.
     /// </summary>
-    public TimeOnly? CacheAudit { get; set; } = new(1, 0);
-
-    /// <summary>
-    /// Gets or sets the configuration the cache audit rebuilds.
-    /// </summary>
-    public string CacheAuditConfiguration { get; set; } = "Debug";
+    public TimeOnly? Rebuild { get; set; } = new(1, 0);
 
     /// <summary>
     /// Gets or sets how many days to keep the logs of each kind of build, by the prefix of its folder.
@@ -167,7 +163,7 @@ internal sealed record RepositorySettings
     public IReadOnlyDictionary<string, int> LogRetentionDays { get; set; } = new Dictionary<string, int>(StringComparer.Ordinal)
     {
         ["PR_"] = 30,
-        ["CacheAudit_"] = 30,
+        ["Rebuild_"] = 30,
         ["Official_"] = 365,
     };
 

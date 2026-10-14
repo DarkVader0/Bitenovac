@@ -2,12 +2,13 @@
 #
 # Runs the RemoteBuildTool service on this machine: one container, restarted whenever it stops,
 # that fills main from merged pull requests, records every build, compacts telemetry, prunes logs
-# and audits the cache. See "remotebuildtool serve".
+# and rebuilds main every night. See "remotebuildtool serve".
 #
 # Usage:
 #   sudo bash runner/service.sh start     (Re)create the container from the current runner image
 #   sudo bash runner/service.sh stop      Stop and remove it; a running build is cancelled
 #   sudo bash runner/service.sh logs      Follow what it does
+#   sudo bash runner/service.sh rebuild   Empty main and restart, so the service rebuilds it now
 #
 # runner/setup-runner.sh writes the settings it reads, /etc/remotebuildtool/config.json, and
 # .env beside it with the account and limits to run under. runner/build-image.sh restarts it, so
@@ -23,8 +24,8 @@ fail() { printf '\nerror: %s\n' "$*" >&2; exit 1; }
 
 command="${1:-}"
 case "${command}" in
-    start | stop | logs) ;;
-    *) fail "Unknown command '${command}'. Use: start | stop | logs" ;;
+    start | stop | logs | rebuild) ;;
+    *) fail "Unknown command '${command}'. Use: start | stop | logs | rebuild" ;;
 esac
 
 if [[ "${command}" == stop ]]; then
@@ -52,6 +53,11 @@ docker image inspect "${IMAGE}" > /dev/null 2>&1 \
     || fail "The image ${IMAGE} is missing. Run runner/build-image.sh on this machine."
 
 docker rm --force "${CONTAINER}" > /dev/null 2>&1 || true
+
+if [[ "${command}" == rebuild ]]; then
+    docker run --rm --user 0 --volume "${MAIN_VOLUME}:/mnt/main" --entrypoint find "${IMAGE}" /mnt/main -mindepth 1 -delete
+    echo "Emptied ${MAIN_VOLUME}; the service rebuilds it as it starts."
+fi
 
 run_args=(
     --detach

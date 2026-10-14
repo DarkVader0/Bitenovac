@@ -4,56 +4,6 @@ using Bitenovac.RemoteBuildTool.Telemetry;
 namespace Bitenovac.RemoteBuildTool.Service;
 
 /// <summary>
-/// Specifies a build the service runs itself, on a commit of the branch main follows.
-/// </summary>
-/// <param name="Kind">Names the build's logs folder and id, as in <c>CacheAudit</c>.</param>
-/// <param name="Queue">The queue its telemetry records, as in <c>Cache audit</c>.</param>
-/// <param name="Cacheless">Whether to ignore main and build every project.</param>
-/// <param name="Steps">The RemoteBuildTool commands to run in order; the first that fails ends the build.</param>
-internal sealed record ServiceBuildKind(string Kind, string Queue, bool Cacheless, IReadOnlyList<IReadOnlyList<string>> Steps)
-{
-    /// <summary>
-    /// Rebuilds one configuration of a commit from scratch and compares it with main.
-    /// </summary>
-    /// <param name="configuration">The configuration.</param>
-    /// <returns>The kind of build.</returns>
-    public static ServiceBuildKind CacheAudit(string configuration) => new("CacheAudit", "Cache audit", Cacheless: true,
-    [
-        ["plan"],
-        ["build", configuration],
-        ["audit", configuration],
-    ]);
-}
-
-/// <summary>
-/// Represents how the service starts RemoteBuildTool commands: its own executable, as the
-/// service itself was started.
-/// </summary>
-/// <param name="FileName">The program.</param>
-/// <param name="PrefixArguments">Arguments before the command, such as the assembly <c>dotnet</c> runs.</param>
-internal sealed record ToolCommand(string FileName, IReadOnlyList<string> PrefixArguments)
-{
-    /// <summary>
-    /// Gets the command line that started this process.
-    /// </summary>
-    public static ToolCommand Self { get; } = For(Environment.ProcessPath, typeof(ToolCommand).Assembly.Location);
-
-    /// <summary>
-    /// Returns how to start the tool again, given how this process was started.
-    /// </summary>
-    /// <param name="processPath">The program this process runs, if known.</param>
-    /// <param name="assemblyPath">The tool's assembly.</param>
-    /// <returns>
-    /// The program itself when it is the tool's own executable; otherwise <c>dotnet</c> with the
-    /// tool's assembly, as when <c>dotnet</c> started the assembly.
-    /// </returns>
-    public static ToolCommand For(string? processPath, string assemblyPath) =>
-        processPath is not null && !Path.GetFileNameWithoutExtension(processPath).Equals("dotnet", StringComparison.OrdinalIgnoreCase)
-            ? new ToolCommand(processPath, [])
-            : new ToolCommand("dotnet", [assemblyPath]);
-}
-
-/// <summary>
 /// Provides a method for running one <see cref="ServiceBuildKind"/> on one commit.
 /// </summary>
 /// <param name="host">The machine's settings: stores, shares, pool.</param>
@@ -87,7 +37,15 @@ internal sealed class ServiceBuild(HostSettings host, ToolCommand tool)
             workspace.CheckOut(sha);
             var environment = Environment(workspace.Directory, store, logsDirectory, identity, kind.Cacheless);
 
-            foreach (var step in kind.Steps)
+            // The coverage merge in 'test' runs the repository's own reportgenerator.
+            if (File.Exists(Path.Combine(workspace.Directory, ".config", "dotnet-tools.json"))
+                && await ChildProcess.RunAsync("dotnet", ["tool", "restore"], workspace.Directory, environment,
+                    Path.Combine(logsDirectory, "tool-restore.log"), cancellationToken) != 0)
+            {
+                result = "failure";
+            }
+
+            foreach (var step in kind.Steps.TakeWhile(_ => result == "success"))
             {
                 var exitCode = await ChildProcess.RunAsync(
                     tool.FileName,
@@ -98,10 +56,17 @@ internal sealed class ServiceBuild(HostSettings host, ToolCommand tool)
                     cancellationToken);
 
                 if (exitCode != 0)
-                {
                     result = "failure";
-                    break;
-                }
+            }
+
+            if (result == "success" && kind.Finish is { } finish)
+            {
+                Directory.CreateDirectory(logsDirectory);
+                await using var log = new StreamWriter(Path.Combine(logsDirectory, "switch.log"), append: true) { AutoFlush = true };
+                var options = new PipelineOptions(
+                    workspace.Directory, host.MainStore, store, store, kind.Cacheless, CoverageHtml: false, logsDirectory, host.TelemetryRoot, identity);
+                if (await finish(options, new PipelineOutput(log, log), cancellationToken) != 0)
+                    result = "failure";
             }
         }
         catch (OperationCanceledException)

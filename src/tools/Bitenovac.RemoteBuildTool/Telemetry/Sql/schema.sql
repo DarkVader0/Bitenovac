@@ -142,3 +142,22 @@ CREATE TABLE schema_machine (
     ContainerMemoryBytes BIGINT,
     ContainerMemoryLimitBytes BIGINT
 );
+
+CREATE TABLE schema_cache_comparison (
+    SchemaVersion INTEGER,
+    BuildId VARCHAR,
+    Queue VARCHAR,
+    Pool VARCHAR,
+    Machine VARCHAR,
+    Sha VARCHAR,
+    Configuration VARCHAR,
+    Project VARCHAR,
+    Toolchain VARCHAR,
+    OwnHash VARCHAR,
+    FullHash VARCHAR,
+    CachedFullHash VARCHAR,
+    Outcome VARCHAR,
+    DifferingFiles VARCHAR[],
+    Time TIMESTAMPTZ,
+    LogsPath VARCHAR
+);

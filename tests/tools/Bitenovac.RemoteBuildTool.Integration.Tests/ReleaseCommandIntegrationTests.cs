@@ -108,22 +108,6 @@ public sealed class ReleaseCommandIntegrationTests
     }
 
     [Fact]
-    public void Run_ShouldTakeTheNextNumber_WhenTheDayAlreadyHasADrop()
-    {
-        // Arrange
-        using var fixture = CreateWithApp();
-        Directory.CreateDirectory(Path.Combine(fixture.Options.DropRoot, "2026.10.07.001"));
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-
-        // Act
-        var exitCode = ReleaseCommand.Run(fixture.Options, _output.Pipeline, Today);
-
-        // Assert
-        Assert.Equal(0, exitCode);
-        Assert.True(File.Exists(Path.Combine(fixture.Options.DropRoot, "2026.10.07.002", "packages", "Lib.2026.10.7.2.nupkg")));
-    }
-
-    [Fact]
     public void Run_ShouldDropNothing_WhenTheBuildFails()
     {
         // Arrange

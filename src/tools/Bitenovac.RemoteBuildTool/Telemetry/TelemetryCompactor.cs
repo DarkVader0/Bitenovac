@@ -37,6 +37,7 @@ internal static class TelemetryCompactor
         TelemetryWriter.TargetTable,
         TelemetryWriter.TestTable,
         TelemetryWriter.MachineTable,
+        TelemetryWriter.CacheComparisonTable,
     ];
 
     /// <summary>

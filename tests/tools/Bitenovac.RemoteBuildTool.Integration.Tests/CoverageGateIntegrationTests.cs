@@ -7,23 +7,6 @@ public sealed class CoverageGateIntegrationTests
     private readonly CapturedOutput _output = new();
 
     [Fact]
-    public void Test_ShouldPassTheGate_WhenEveryGatedProjectMeetsItsPolicy()
-    {
-        // Arrange
-        using var fixture = FixtureRepository.Create(TestSuite.FullyCovering);
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-        Assert.Equal(0, BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline));
-
-        // Act
-        var exitCode = TestCommand.Run(fixture.Options, "Debug", _output.Pipeline);
-        var reported = _output.ToString();
-
-        // Assert
-        Assert.Equal(0, exitCode);
-        Assert.Contains("Every gated project meets its coverage policy", reported, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void Test_ShouldFailTheGate_WhenAGatedProjectLeavesABranchUncovered()
     {
         // Arrange

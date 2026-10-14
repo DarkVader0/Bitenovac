@@ -50,19 +50,14 @@ if ! docker volume inspect "${STAGING_VOLUME}" > /dev/null 2>&1; then
     docker run --rm --user 0 --entrypoint chown --volume "${STAGING_VOLUME}:/mnt/staging" "${IMAGE}" "$(id -u):$(id -g)" /mnt/staging
 fi
 
-# main is read-only everywhere except 'promote': a PR run must not be able to write to it no
-# matter what RemoteBuildTool does. Only runner/seed-cache.sh calls 'promote' here, after every other
-# stage passed; otherwise main fills from merged pull requests, which the service promotes.
-main_mount="${MAIN_VOLUME}:/mnt/main:ro"
-[[ "${1}" == "promote" ]] && main_mount="${MAIN_VOLUME}:/mnt/main"
-
+# main is read-only in every job: only the RemoteBuildTool service writes it.
 run_args=(
     --rm
     --init
     --user "$(id -u):$(id -g)"
     --volume "${REPO_ROOT}:/repo"
     --volume "${NUGET_VOLUME}:/cache"
-    --volume "${main_mount}"
+    --volume "${MAIN_VOLUME}:/mnt/main:ro"
     --volume "${STAGING_VOLUME}:/mnt/staging"
     --volume "${LOGS_VOLUME}:/mnt/logs"
     --workdir /repo

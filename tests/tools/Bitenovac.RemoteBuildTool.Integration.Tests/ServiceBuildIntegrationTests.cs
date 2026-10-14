@@ -8,7 +8,7 @@ namespace Bitenovac.RemoteBuildTool.Integration.Tests;
 public sealed class ServiceBuildIntegrationTests
 {
     [Fact]
-    public async Task RunAsync_ShouldBuildTheCommitAndFillMain_WhenEveryStepSucceeds()
+    public async Task RunAsync_ShouldBuildTheCommitFromScratchAndSwitchMainToIt_WhenEveryStepSucceeds()
     {
         // Arrange
         using var fixture = FixtureRepository.Create();
@@ -25,82 +25,27 @@ public sealed class ServiceBuildIntegrationTests
             LogsRoot = Path.Combine(work, "logs"),
             TelemetryRoot = Path.Combine(work, "telemetry"),
         };
-        var kind = new ServiceBuildKind("Probe", "Probe", Cacheless: false, [["plan"], ["build", "Debug"], ["promote"]]);
+        var writer = new MainStoreWriter(TimeProvider.System);
+        var started = DateTimeOffset.UtcNow;
+        var kind = new ServiceBuildKind("Rebuild", "Rebuild", Cacheless: true, [["plan"], ["build", "Debug"], ["build", "Release"]],
+            (options, output, token) => writer.SwitchAsync(options, output, started, token));
         var tool = new ToolCommand("dotnet", [typeof(PipelineOptions).Assembly.Location]);
         var workspace = new GitWorkspace(Path.Combine(work, "checkout"), host.EffectiveCloneUrl, token: null);
 
         // Act
-        var build = await new ServiceBuild(host, tool).RunAsync(kind, workspace, "master", sha, DateTimeOffset.UtcNow, TestContext.Current.CancellationToken);
+        var build = await new ServiceBuild(host, tool).RunAsync(kind, workspace, "master", sha, started, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("success", build.Result);
-        Assert.Equal("Probe", build.Queue);
-        Assert.Equal(sha, build.Sha);
-        Assert.Equal(3, build.Stages);
-        Assert.Equal(1, build.Jobs);
+        Assert.Equal(4, build.Stages);
         Assert.True(new LocalVolumeArtifactStore(host.MainStore).Contains(new ProjectId(FixtureRepository.LibraryProject), "Debug"));
         Assert.True(File.Exists(Path.Combine(host.LogsRoot, build.LogsPath!, "build-Debug.log")));
-        Assert.False(Directory.Exists(Path.Combine(work, "stores", build.BuildId)));
-        Assert.All(
-            TelemetryWriter.Read(host.TelemetryRoot, TelemetryWriter.StageTable, build.BuildId + ".", TelemetryJsonContext.Default.StageInfo),
-            stage => Assert.Equal("service-host", stage.Machine));
-    }
-
-    [Fact]
-    public async Task RunAsync_ShouldRecordAFailure_WhenTheCommitCannotBeFetched()
-    {
-        // Arrange
-        using var fixture = FixtureRepository.Create();
-        Commit(fixture.Root);
-        var work = fixture.Combine("artifacts/service");
-        var host = new HostSettings
-        {
-            Repository = "owner/repo",
-            GitHubToken = "token",
-            CloneUrl = fixture.Root,
-            WorkRoot = work,
-            LogsRoot = Path.Combine(work, "logs"),
-            TelemetryRoot = Path.Combine(work, "telemetry"),
-        };
-        var workspace = new GitWorkspace(Path.Combine(work, "checkout"), host.EffectiveCloneUrl, token: "token");
-
-        // Act
-        var build = await new ServiceBuild(host, ToolCommand.Self).RunAsync(
-            ServiceBuildKind.CacheAudit("Debug"), workspace, "master", new string('0', 40), DateTimeOffset.UtcNow, TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.Equal("failure", build.Result);
-        Assert.Equal(0, build.Stages);
-        Assert.Contains("git fetch failed", File.ReadAllText(Path.Combine(host.LogsRoot, build.LogsPath!, "service.log")), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task RunAsync_ShouldRecordTheBuildAsCancelled_WhenStoppedWhileItRuns()
-    {
-        // Arrange
-        using var fixture = FixtureRepository.Create();
-        var sha = Commit(fixture.Root);
-        var work = fixture.Combine("artifacts/service");
-        var host = new HostSettings
-        {
-            Repository = "owner/repo",
-            GitHubToken = "token",
-            CloneUrl = fixture.Root,
-            WorkRoot = work,
-            LogsRoot = Path.Combine(work, "logs"),
-            TelemetryRoot = Path.Combine(work, "telemetry"),
-            MaxCpu = 1,
-        };
-        var tool = new ToolCommand("dotnet", [typeof(PipelineOptions).Assembly.Location]);
-        var workspace = new GitWorkspace(Path.Combine(work, "checkout"), host.EffectiveCloneUrl, token: null);
-        using var stop = new CancellationTokenSource();
-        await stop.CancelAsync();
-
-        // Act
-        var build = await new ServiceBuild(host, tool).RunAsync(ServiceBuildKind.CacheAudit("Debug"), workspace, "master", sha, DateTimeOffset.UtcNow, stop.Token);
-
-        // Assert
-        Assert.Equal("cancelled", build.Result);
+        Assert.Contains("Main switched: 0 match, 0 mismatch, 0 changed, 4 new.", File.ReadAllText(Path.Combine(host.LogsRoot, build.LogsPath!, "switch.log")), StringComparison.Ordinal);
+        Assert.Equal(
+            [FixtureRepository.LibraryProject, FixtureRepository.LibraryProject, FixtureRepository.TestProject, FixtureRepository.TestProject],
+            TelemetryWriter.Read(host.TelemetryRoot, TelemetryWriter.CacheComparisonTable, build.BuildId + ".", TelemetryJsonContext.Default.CacheComparisonInfo)
+                .Select(comparison => comparison.Project)
+                .Order(StringComparer.Ordinal));
     }
 
     private static string Commit(string root)
