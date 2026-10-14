@@ -68,10 +68,7 @@ public sealed class FailurePathIntegrationTests
     public void Build_ShouldCompileNothing_WhenEveryProjectIsACacheHit()
     {
         // Arrange
-        using var fixture = FixtureRepository.Create();
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-        Assert.Equal(0, BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline));
-        Assert.Equal(0, PromoteCommand.Run(fixture.Options, _output.Pipeline));
+        using var fixture = FixtureRepository.CreateWarm();
         fixture.ResetWorkspace();
         fixture.With(prStoreRoot: fixture.Combine("artifacts/ci-pr-2"));
         Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
@@ -90,10 +87,7 @@ public sealed class FailurePathIntegrationTests
     public void Build_ShouldSkipWhatIsAlreadyThere_WhenTheWorkspaceStillHoldsTheHash()
     {
         // Arrange
-        using var fixture = FixtureRepository.Create();
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-        Assert.Equal(0, BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline));
-        Assert.Equal(0, PromoteCommand.Run(fixture.Options, _output.Pipeline));
+        using var fixture = FixtureRepository.CreateWarm();
 
         fixture.With(prStoreRoot: fixture.Combine("artifacts/ci-pr-2"));
         Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));

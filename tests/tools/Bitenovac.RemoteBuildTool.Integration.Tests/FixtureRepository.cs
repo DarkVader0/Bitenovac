@@ -71,8 +71,8 @@ internal sealed class FixtureRepository : IDisposable
     /// <remarks>
     /// Besides the usual library and tests it carries the probes the fingerprint tests change: a
     /// property every project sees, one only test projects see, an item definition, a target, and a
-    /// property in the library's own project file. A copy is only fit for planning: plan restores
-    /// again at the new path, and main keys what it stores by repository-relative paths.
+    /// property in the library's own project file. A copy has to plan before it builds: plan
+    /// restores again at the new path, and main keys what it stores by repository-relative paths.
     /// </remarks>
     public static FixtureRepository CreateWarm()
     {
