@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Bitenovac.RemoteBuildTool.Toolchains;
 
 namespace Bitenovac.RemoteBuildTool.Hashing;
 
@@ -12,6 +13,26 @@ namespace Bitenovac.RemoteBuildTool.Hashing;
 /// </remarks>
 internal static class PackageClosureReader
 {
+    /// <summary>
+    /// Returns a copy of the specified project whose package entries in its own-hash inputs are
+    /// replaced with the resolved package closure read from disk.
+    /// </summary>
+    /// <remarks>
+    /// The project is not evaluated again, so this method can be called after a restore. Evaluating
+    /// the same project a second time for the same configuration throws.
+    /// </remarks>
+    /// <param name="project">The evaluated project.</param>
+    /// <returns>The project with the package closure its restore resolved.</returns>
+    public static EvaluatedProject Refresh(EvaluatedProject project)
+    {
+        var refreshedInputs = project.OwnHashInputs
+            .Where(entry => !entry.StartsWith("package:", StringComparison.Ordinal))
+            .Concat(Read(project.FullPath))
+            .ToList();
+
+        return project with { OwnHashInputs = refreshedInputs };
+    }
+
     /// <summary>
     /// Reads the resolved package closure of the specified project.
     /// </summary>

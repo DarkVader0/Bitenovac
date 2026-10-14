@@ -75,6 +75,11 @@ public sealed class RemoteBuildToolPipelineTests
 
         Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
         Assert.Contains("materialised 2 cache hit(s) from main", reported, StringComparison.Ordinal);
+        if (!OperatingSystem.IsWindows())
+        {
+            var apphost = fixture.Combine($"tests/Lib.Tests/bin/Debug/{FixtureRepository.TargetFramework}/Lib.Tests");
+            Assert.Equal(UnixFileMode.UserExecute, File.GetUnixFileMode(apphost) & UnixFileMode.UserExecute);
+        }
 
         Assert.Contains("(reused)", reported, StringComparison.Ordinal);
         Assert.Equal(firstRunReports, CoverageReportNames(fixture));
@@ -94,10 +99,7 @@ public sealed class RemoteBuildToolPipelineTests
     public void Plan_ShouldMissTheEditedProjectAndEverythingAboveIt_WhenASourceFileChanges()
     {
         // Arrange
-        using var fixture = FixtureRepository.Create();
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-        Assert.Equal(0, BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline));
-        Assert.Equal(0, PromoteCommand.Run(fixture.Options, _output.Pipeline));
+        using var fixture = FixtureRepository.CreateWarm();
 
         fixture.Write("src/Lib/Calculator.cs", """
             namespace Lib;
@@ -141,10 +143,7 @@ public sealed class RemoteBuildToolPipelineTests
     public void Plan_ShouldForceEveryProjectToAMiss_WhenTheRunIsCacheless()
     {
         // Arrange
-        using var fixture = FixtureRepository.Create();
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-        Assert.Equal(0, BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline));
-        Assert.Equal(0, PromoteCommand.Run(fixture.Options, _output.Pipeline));
+        using var fixture = FixtureRepository.CreateWarm();
         fixture.With(cacheless: true, prStoreRoot: fixture.Combine("artifacts/ci-pr-2"));
 
         // Act

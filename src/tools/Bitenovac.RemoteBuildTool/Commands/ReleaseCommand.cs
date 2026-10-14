@@ -1,5 +1,6 @@
 using Bitenovac.RemoteBuildTool.Planning;
 using Bitenovac.RemoteBuildTool.Releasing;
+using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Toolchains;
 
 namespace Bitenovac.RemoteBuildTool.Commands;
@@ -19,11 +20,19 @@ internal static class ReleaseCommand
 
     public static int Run(PipelineOptions options, PipelineOutput output, DateOnly date)
     {
-        var entries = PlanState.Load(options.PlanFile).For("Release");
+        using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
+        return Run(options, output, date, toolchains);
+    }
+
+    public static int Run(PipelineOptions options, PipelineOutput output, DateOnly date, ToolchainRegistry toolchains)
+    {
+        using var stage = StageRecorder.Start(options, output, "release");
+        var plan = PlanState.Load(options.PlanFile);
+        var entries = plan.For("Release");
         if (entries.Count == 0)
         {
-            output.WriteError("error: the plan selected nothing for Release, so there is nothing to release.");
-            return 1;
+            output.WriteFailure("the plan selected nothing for Release, so there is nothing to release.");
+            return stage.Complete(1);
         }
 
         Directory.CreateDirectory(options.DropRoot);
@@ -33,7 +42,6 @@ internal static class ReleaseCommand
 
         output.WriteLine($"==> Release {version}");
 
-        using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
         try
         {
             if (Directory.Exists(staging))
@@ -43,14 +51,15 @@ internal static class ReleaseCommand
             foreach (var name in ToolchainOrder.Resolve(entries))
             {
                 var batch = entries.Where(entry => entry.Toolchain == name).ToList();
-                var exitCode = toolchains.For(name).Publish(options, batch, version, staging, output);
+                var exitCode = toolchains.For(name).Publish(options, batch, version, staging, output, stage);
                 if (exitCode != 0)
                 {
-                    output.WriteError($"error: release {version} failed; nothing was dropped.");
-                    return exitCode;
+                    output.WriteFailure($"release {version} failed; nothing was dropped.");
+                    return stage.Complete(exitCode);
                 }
             }
 
+            BuildGraphFile.Write(staging, options.Identity ?? BuildIdentity.FromEnvironment(_ => null), plan.ByConfiguration);
             Directory.Move(staging, drop);
         }
         finally
@@ -60,6 +69,8 @@ internal static class ReleaseCommand
         }
 
         output.WriteLine($"Release {version} dropped to {drop}");
-        return 0;
+        stage.SetDropVersion(version);
+        stage.SetProjects(entries.Count, 0);
+        return stage.Complete(0);
     }
 }

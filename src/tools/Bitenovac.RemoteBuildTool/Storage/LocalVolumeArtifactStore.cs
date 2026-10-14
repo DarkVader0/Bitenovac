@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Bitenovac.RemoteBuildTool.Core.Graph;
@@ -20,7 +21,7 @@ namespace Bitenovac.RemoteBuildTool.Storage;
 /// <code>
 /// &lt;root&gt;/blobs/&lt;ab&gt;/&lt;sha256 of content&gt;          one copy of each distinct file
 /// &lt;root&gt;/&lt;project path&gt;/&lt;Configuration&gt;/
-///     entries/&lt;fullHash&gt;/manifest.json          relative path -> blob, plus both hashes
+///     entries/&lt;fullHash&gt;/manifest.json          relative path -> blob and execute bit, plus both hashes
 ///     current                                     names the live entry
 /// </code>
 /// <para>
@@ -30,12 +31,18 @@ namespace Bitenovac.RemoteBuildTool.Storage;
 /// reader that resolves <c>current</c> before the rename sees the complete previous entry, never a
 /// partially written one.
 /// </para>
+/// <para>
+/// Blobs hold content only. Where the file system keeps Unix file modes, a file's execute bit is
+/// recorded in the manifest and given back when the file is copied out, so an apphost stays
+/// runnable.
+/// </para>
 /// </remarks>
 public sealed class LocalVolumeArtifactStore : IArtifactStore
 {
     private const string CurrentFileName = "current";
     private const string ManifestFileName = "manifest.json";
     private const string BlobsDirectoryName = "blobs";
+    private const UnixFileMode ExecuteBits = UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
 
     private readonly string _root;
 
@@ -48,11 +55,29 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
     /// <paramref name="root"/> is <see langword="null"/>, empty or white space.
     /// </exception>
     public LocalVolumeArtifactStore(string root)
+        : this(root, keepsFileModes: !OperatingSystem.IsWindows())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LocalVolumeArtifactStore"/> class rooted at the
+    /// specified directory, creating the directory if it does not exist.
+    /// </summary>
+    /// <param name="root">The directory this store reads and writes.</param>
+    /// <param name="keepsFileModes">Whether the file system keeps Unix file modes; Windows does not.</param>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="root"/> is <see langword="null"/>, empty or white space.
+    /// </exception>
+    internal LocalVolumeArtifactStore(string root, bool keepsFileModes)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
         _root = Path.GetFullPath(root);
+        KeepsFileModes = keepsFileModes;
         Directory.CreateDirectory(_root);
     }
+
+    [UnsupportedOSPlatformGuard("windows")]
+    private bool KeepsFileModes { get; }
 
     /// <inheritdoc/>
     public bool Contains(ProjectId project, string configuration) =>
@@ -119,8 +144,37 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
             var destination = Path.Combine(destinationDirectory, file.Path.Replace('/', Path.DirectorySeparatorChar));
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             File.Copy(blob, destination, overwrite: true);
+            if (KeepsFileModes && file.Executable)
+                File.SetUnixFileMode(destination, File.GetUnixFileMode(destination) | ExecuteBits);
         }
 
+        return true;
+    }
+
+    /// <summary>
+    /// Reads the content digest of every file of the entry for the specified project and
+    /// configuration, without copying any.
+    /// </summary>
+    /// <param name="project">The project to look up.</param>
+    /// <param name="configuration">The build configuration.</param>
+    /// <param name="hash">
+    /// When this method returns, contains the hashes the entry was stored under, if it was found;
+    /// otherwise, the default value.
+    /// </param>
+    /// <param name="files">
+    /// When this method returns, contains each file's digest by its path within the entry, if the
+    /// entry was found; otherwise, an empty dictionary.
+    /// </param>
+    /// <returns><see langword="true"/> if the entry was found; otherwise, <see langword="false"/>.</returns>
+    public bool TryGetFileDigests(ProjectId project, string configuration, out StoredTargetHash hash, out IReadOnlyDictionary<string, string> files)
+    {
+        if (!TryReadManifest(project, configuration, out var manifest, out hash))
+        {
+            files = new Dictionary<string, string>();
+            return false;
+        }
+
+        files = manifest.Files.ToDictionary(file => file.Path, file => file.Blob, StringComparer.Ordinal);
         return true;
     }
 
@@ -183,7 +237,7 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
         ArgumentNullException.ThrowIfNull(files);
 
         var manifest = files
-            .Select(file => new ManifestFile(file.Path, WriteBlob(file.SourceFile)))
+            .Select(file => new ManifestFile(file.Path, WriteBlob(file.SourceFile), IsExecutable(file.SourceFile)))
             .OrderBy(file => file.Path, StringComparer.Ordinal)
             .ToList();
 
@@ -256,7 +310,7 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
         foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
         {
             var relative = Path.GetRelativePath(sourceDirectory, file).Replace('\\', '/');
-            files[relative] = new ManifestFile(relative, WriteBlob(file));
+            files[relative] = new ManifestFile(relative, WriteBlob(file), IsExecutable(file));
         }
 
         var merged = files.Values.OrderBy(file => file.Path, StringComparer.Ordinal).ToList();
@@ -283,6 +337,49 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
             if (Directory.Exists(staging))
                 Directory.Delete(staging, recursive: true);
         }
+    }
+
+    /// <summary>
+    /// Deletes every project and configuration not in <paramref name="keep"/>, and every entry of
+    /// those kept but their live one.
+    /// </summary>
+    /// <param name="keep">The projects and configurations to keep.</param>
+    /// <returns>The number of entries deleted.</returns>
+    /// <remarks>Blobs are left in place; <see cref="Prune"/> deletes those no entry references any more.</remarks>
+    public int Retain(IEnumerable<(ProjectId Project, string Configuration)> keep)
+    {
+        ArgumentNullException.ThrowIfNull(keep);
+
+        var kept = keep.Select(target => Path.GetFullPath(TargetDirectory(target.Project, target.Configuration))).ToHashSet(StringComparer.Ordinal);
+        var deleted = 0;
+
+        foreach (var current in Directory.EnumerateFiles(_root, CurrentFileName, SearchOption.AllDirectories).ToList())
+        {
+            var target = Path.GetFullPath(Path.GetDirectoryName(current)!);
+            var entries = Path.Combine(target, "entries");
+            var live = File.ReadAllText(current).Trim();
+            var stale = Directory.GetDirectories(entries).Where(entry => !kept.Contains(target) || Path.GetFileName(entry) != live).ToList();
+
+            deleted += stale.Count;
+            if (kept.Contains(target))
+            {
+                foreach (var entry in stale)
+                    Directory.Delete(entry, recursive: true);
+            }
+            else
+            {
+                Directory.Delete(target, recursive: true);
+            }
+        }
+
+        var blobsRoot = Path.Combine(_root, BlobsDirectoryName);
+        foreach (var directory in Directory.GetDirectories(_root))
+        {
+            if (directory != blobsRoot)
+                DeleteEmptyDirectories(directory);
+        }
+
+        return deleted;
     }
 
     /// <summary>
@@ -321,6 +418,10 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
 
     private const long InMemoryHashLimit = 8 * 1024 * 1024;
 
+    private bool IsExecutable(string file) =>
+        KeepsFileModes && (File.GetUnixFileMode(file) & UnixFileMode.UserExecute) != 0;
+
+    // A blob is written fresh rather than copied, so it never takes on its source's mode.
     private string WriteBlob(string sourceFile)
     {
         var length = new FileInfo(sourceFile).Length;
@@ -331,7 +432,12 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
             using (var stream = File.OpenRead(sourceFile))
                 streamedDigest = Convert.ToHexStringLower(SHA256.HashData(stream));
 
-            return StoreBlob(streamedDigest, blobPath => File.Copy(sourceFile, blobPath, overwrite: true));
+            return StoreBlob(streamedDigest, blobPath =>
+            {
+                using var source = File.OpenRead(sourceFile);
+                using var blob = File.Create(blobPath);
+                source.CopyTo(blob);
+            });
         }
 
         var content = File.ReadAllBytes(sourceFile);
@@ -350,15 +456,8 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
         var temporary = blobPath + $".tmp-{Guid.NewGuid():N}";
         write(temporary);
 
-        try
-        {
-            File.Move(temporary, blobPath, overwrite: false);
-        }
-        catch (IOException) when (File.Exists(blobPath))
-        {
-            File.Delete(temporary);
-        }
-
+        // A blob is named by its content, so one another writer stored meanwhile holds the same bytes.
+        File.Move(temporary, blobPath, overwrite: true);
         return digest;
     }
 
@@ -392,6 +491,16 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
         return true;
     }
 
+    // Children first, so a directory their removal leaves empty goes too.
+    private static void DeleteEmptyDirectories(string directory)
+    {
+        foreach (var child in Directory.GetDirectories(directory))
+            DeleteEmptyDirectories(child);
+
+        if (!Directory.EnumerateFileSystemEntries(directory).Any())
+            Directory.Delete(directory);
+    }
+
     private static Manifest? ReadManifestFile(string path)
     {
         if (!File.Exists(path))
@@ -417,5 +526,5 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
 
     private sealed record Manifest(string OwnHash, string FullHash, List<ManifestFile> Files);
 
-    private sealed record ManifestFile(string Path, string Blob);
+    private sealed record ManifestFile(string Path, string Blob, bool Executable);
 }

@@ -10,5 +10,7 @@ internal sealed class CapturedOutput
 
     public PipelineOutput Pipeline => new(_out, _error);
 
+    public string Errors => _error.ToString();
+
     public override string ToString() => _out.ToString();
 }

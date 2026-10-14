@@ -36,22 +36,17 @@ public sealed class SharedHashInputsTests
     }
 
     [Fact]
-    public void Read_ShouldEnterNuGetConfigAsItsContentHash_WhenItExists()
+    public void Read_ShouldLeaveNuGetConfigOut_WhenItExists()
     {
         // Arrange
         using var repository = TestFactory.Directory();
-        const string content = "<configuration/>";
-        TestFactory.WriteFile(repository.Path, "nuget.config", content);
-        var digest = Hash(content);
+        TestFactory.WriteFile(repository.Path, "nuget.config", "<configuration/>");
 
         // Act
         var shared = SharedHashInputs.Read(repository.Path);
 
         // Assert
-        Assert.Contains(
-            shared.CommonEntries,
-            entry => entry.StartsWith("repo-file:nuget.config=", StringComparison.OrdinalIgnoreCase)
-                && entry.EndsWith(digest, StringComparison.Ordinal));
+        Assert.Empty(shared.CommonEntries);
     }
 
     [Fact]

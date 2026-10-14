@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using Bitenovac.RemoteBuildTool.Core.Graph;
 using Bitenovac.RemoteBuildTool.Planning;
 using Bitenovac.RemoteBuildTool.Storage;
+using Bitenovac.RemoteBuildTool.Telemetry;
 
 namespace Bitenovac.RemoteBuildTool.Commands;
 
@@ -16,10 +18,12 @@ internal static class PromoteCommand
 {
     public static int Run(PipelineOptions options, PipelineOutput output)
     {
+        using var stage = StageRecorder.Start(options, output, "promote");
         var plan = PlanState.Load(options.PlanFile);
         var mainStore = new LocalVolumeArtifactStore(options.MainStoreRoot);
         var prStore = new LocalVolumeArtifactStore(options.PrStoreRoot);
 
+        var started = Stopwatch.GetTimestamp();
         var promoted = 0;
         foreach (var configuration in PipelineOptions.Configurations)
         {
@@ -45,6 +49,7 @@ internal static class PromoteCommand
                 output.WriteLine($"Pruned {removed} unreferenced blob(s).");
         }
 
-        return 0;
+        stage.Add(StagePhase.Store, Stopwatch.GetElapsedTime(started));
+        return stage.Complete(0);
     }
 }

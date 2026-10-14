@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Bitenovac.RemoteBuildTool.Core.Graph;
 using Bitenovac.RemoteBuildTool.Core.Planning;
 using Bitenovac.RemoteBuildTool.Storage;
@@ -636,6 +637,78 @@ public sealed class LocalVolumeArtifactStoreTests
         // Assert
         Assert.Equal(1, removed);
         Assert.Single(Directory.EnumerateFiles(Path.Combine(root, "blobs"), "*", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public void Prune_ShouldTreatItsBlobsAsUnreferenced_WhenAManifestCannotBeRead()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var root = directory.Combine("store");
+        var store = new LocalVolumeArtifactStore(root);
+        store.Put(Project, "Debug", Source(directory, "bin/A.dll", "content"), Hash);
+        File.WriteAllText(Directory.EnumerateFiles(root, "manifest.json", SearchOption.AllDirectories).Single(), "not json");
+
+        // Act
+        var removed = store.Prune();
+
+        // Assert
+        Assert.Equal(1, removed);
+    }
+
+    [Fact]
+    [UnsupportedOSPlatform("windows")]
+    public void TryGet_ShouldGiveTheExecuteBitBack_WhenTheStoredFileHadIt()
+    {
+        // Arrange
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows keeps no Unix file modes.");
+        using var directory = TestFactory.Directory();
+        var source = Built(directory);
+        var store = new LocalVolumeArtifactStore(directory.Combine("store"));
+        store.Put(Project, "Debug", source, Hash);
+        var destination = directory.Combine("out");
+
+        // Act
+        store.TryGet(Project, "Debug", destination, out _);
+
+        // Assert
+        Assert.Equal(Executable, File.GetUnixFileMode(Path.Combine(destination, "bin", "A")) & Executable);
+        Assert.Equal(UnixFileMode.None, File.GetUnixFileMode(Path.Combine(destination, "bin", "A.dll")) & Executable);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [UnsupportedOSPlatform("windows")]
+    public void TryGet_ShouldGiveNoExecuteBit_WhenEitherSideKeepsNoFileModes(bool writerKeepsModes, bool readerKeepsModes)
+    {
+        // Arrange
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows keeps no Unix file modes.");
+        using var directory = TestFactory.Directory();
+        var source = Built(directory);
+        new LocalVolumeArtifactStore(directory.Combine("store"), writerKeepsModes).Put(Project, "Debug", source, Hash);
+        var destination = directory.Combine("out");
+
+        // Act
+        new LocalVolumeArtifactStore(directory.Combine("store"), readerKeepsModes).TryGet(Project, "Debug", destination, out _);
+
+        // Assert
+        Assert.Equal(UnixFileMode.None, File.GetUnixFileMode(Path.Combine(destination, "bin", "A")) & Executable);
+    }
+
+    private static UnixFileMode Executable => UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
+
+    /// <summary>
+    /// Creates a build output holding an apphost with its execute bits and an assembly without.
+    /// </summary>
+    [UnsupportedOSPlatform("windows")]
+    private static string Built(TemporaryDirectory directory)
+    {
+        var source = directory.Combine("built");
+        var apphost = TestFactory.WriteFile(source, "bin/A", "apphost");
+        File.SetUnixFileMode(apphost, File.GetUnixFileMode(apphost) | Executable);
+        TestFactory.WriteFile(source, "bin/A.dll", "assembly");
+        return source;
     }
 
     /// <summary>

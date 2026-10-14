@@ -1,0 +1,12 @@
+{
+  "branch": "master",
+  "pollSeconds": 60,
+  "buildReportSeconds": 120,
+  "housekeeping": "03:30:00",
+  "rebuild": "01:00:00",
+  "logRetentionDays": {
+    "PR_": 30,
+    "Rebuild_": 30,
+    "Official_": 365
+  }
+}

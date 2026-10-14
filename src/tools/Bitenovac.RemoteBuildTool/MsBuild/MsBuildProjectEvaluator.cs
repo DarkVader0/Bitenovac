@@ -44,24 +44,6 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
         return results;
     }
 
-    /// <summary>
-    /// Returns a copy of the specified project whose package entries in its own-hash inputs are
-    /// replaced with the resolved package closure read from disk.
-    /// </summary>
-    /// <remarks>
-    /// The project is not evaluated again, so this method can be called after a restore. Evaluating
-    /// the same project a second time for the same configuration throws.
-    /// </remarks>
-    public static EvaluatedProject RefreshPackageClosure(EvaluatedProject project)
-    {
-        var refreshedInputs = project.OwnHashInputs
-            .Where(entry => !entry.StartsWith("package:", StringComparison.Ordinal))
-            .Concat(PackageClosureReader.Read(project.FullPath))
-            .ToList();
-
-        return project with { OwnHashInputs = refreshedInputs };
-    }
-
     private EvaluatedProject Evaluate(string relativePath, string configuration)
     {
         var fullPath = Path.Combine(_repositoryRoot, relativePath);
@@ -99,8 +81,7 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
         foreach (var item in project.GetItems("RemoteBuildToolHashInput"))
             ownHashInputs.Add($"declared:{item.EvaluatedInclude}");
 
-        foreach (var importPath in RepositoryImports(project))
-            ownHashInputs.Add($"import:{importPath}={HashFile(Path.Combine(_repositoryRoot, importPath))}");
+        ownHashInputs.AddRange(RepositoryContributions.Entries(project, _repositoryRoot));
 
         foreach (var editorConfigEntry in EditorConfigEntries(Path.GetDirectoryName(fullPath)!))
             ownHashInputs.Add(editorConfigEntry);
@@ -142,19 +123,6 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
             destination.Add($"source:{relative}={HashFile(fullPath)}");
         }
     }
-
-    private IEnumerable<string> RepositoryImports(Project project) =>
-        project.Imports
-            .Select(import => import.ImportedProject.FullPath)
-            .Where(path => path.StartsWith(_repositoryRoot, StringComparison.OrdinalIgnoreCase))
-            .Select(path => Path.GetRelativePath(_repositoryRoot, path).Replace('\\', '/'))
-            .Where(relative => !IsCoveredByPackageClosure(relative))
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(path => path, StringComparer.Ordinal);
-
-    private static bool IsCoveredByPackageClosure(string relativePath) =>
-        Path.GetFileName(relativePath).Equals("Directory.Packages.props", StringComparison.OrdinalIgnoreCase)
-        || relativePath.Split('/').Contains("obj", StringComparer.OrdinalIgnoreCase);
 
     private IEnumerable<string> EditorConfigEntries(string startDirectory)
     {

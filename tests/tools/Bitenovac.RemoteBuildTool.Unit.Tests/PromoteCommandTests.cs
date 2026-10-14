@@ -111,6 +111,28 @@ public sealed class PromoteCommandTests
     }
 
     [Fact]
+    public void Run_ShouldPruneBlobsNoEntryReferences_WhenItPromotesSomething()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        var mainStore = new LocalVolumeArtifactStore(options.MainStoreRoot);
+        mainStore.Put(TestFactory.Id("src/Gone/Gone.csproj"), "Debug", StagedFiles(directory, "gone"), new StoredTargetHash("own-0", "full-0"));
+        mainStore.Retain([]);
+        var project = TestFactory.Id("src/A/A.csproj");
+        new LocalVolumeArtifactStore(options.PrStoreRoot).Put(project, "Debug", StagedFiles(directory, "new"), new StoredTargetHash("own", "full"));
+        TestFactory.Plan("Debug", TestFactory.Entry(project.Value, ownHash: "own", fullHash: "full")).Save(options.PlanFile);
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = PromoteCommand.Run(options, output.Pipeline);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Contains("Pruned 1 unreferenced blob(s).", output.Out, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Run_ShouldPromoteBothConfigurations_WhenThePlanCoversEach()
     {
         // Arrange

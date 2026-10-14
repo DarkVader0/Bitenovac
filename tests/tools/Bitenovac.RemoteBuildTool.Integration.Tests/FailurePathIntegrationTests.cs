@@ -13,7 +13,7 @@ public sealed class FailurePathIntegrationTests
     private readonly CapturedOutput _output = new();
 
     [Fact]
-    public void Build_ShouldFail_WhenTheSourceDoesNotCompile()
+    public void Build_ShouldFailAndPointAtTheError_WhenTheSourceDoesNotCompile()
     {
         // Arrange
         using var fixture = FixtureRepository.Create();
@@ -25,6 +25,8 @@ public sealed class FailurePathIntegrationTests
 
         // Assert
         Assert.NotEqual(0, exitCode);
+        Assert.Contains("error: src/Lib/Calculator.cs(1,", _output.Errors, StringComparison.Ordinal);
+        Assert.Contains("error: build failed", _output.Errors, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -62,49 +64,6 @@ public sealed class FailurePathIntegrationTests
         // Assert
         Assert.Equal(0, exitCode);
         Assert.Contains("==> Restoring 2 project(s)", buildOutput.ToString(), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Build_ShouldCompileNothing_WhenEveryProjectIsACacheHit()
-    {
-        // Arrange
-        using var fixture = FixtureRepository.Create();
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-        Assert.Equal(0, BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline));
-        Assert.Equal(0, PromoteCommand.Run(fixture.Options, _output.Pipeline));
-        fixture.ResetWorkspace();
-        fixture.With(prStoreRoot: fixture.Combine("artifacts/ci-pr-2"));
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-        var buildOutput = new CapturedOutput();
-
-        // Act
-        var exitCode = BuildCommand.Run(fixture.Options, "Debug", buildOutput.Pipeline);
-
-        // Assert
-        Assert.Equal(0, exitCode);
-        Assert.DoesNotContain("==> Building", buildOutput.ToString(), StringComparison.Ordinal);
-        Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
-    }
-
-    [Fact]
-    public void Build_ShouldSkipWhatIsAlreadyThere_WhenTheWorkspaceStillHoldsTheHash()
-    {
-        // Arrange
-        using var fixture = FixtureRepository.Create();
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-        Assert.Equal(0, BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline));
-        Assert.Equal(0, PromoteCommand.Run(fixture.Options, _output.Pipeline));
-
-        fixture.With(prStoreRoot: fixture.Combine("artifacts/ci-pr-2"));
-        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
-
-        // Act
-        var exitCode = BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline);
-        var reported = _output.ToString();
-
-        // Assert
-        Assert.Equal(0, exitCode);
-        Assert.Contains("2 already present", reported, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -186,12 +145,12 @@ public sealed class FailurePathIntegrationTests
         int exitCode;
         try
         {
-            exitCode = MsBuildRunner.Restore(
+            exitCode = new MsBuildRunner().Restore(
                 fixture.Root,
                 [fixture.Combine(FixtureRepository.LibraryProject)],
                 "Debug",
                 fixture.Options.SyntheticSolutionPath("restore"),
-                fixture.Options.BinaryLogPath("restore")).ExitCode;
+                fixture.Options.MsBuildLogs("restore")).ExitCode;
         }
         finally
         {

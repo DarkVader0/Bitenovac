@@ -16,7 +16,7 @@ public sealed class TestSuiteTests
         };
 
         // Act
-        var results = TestSuite.RunAll(jobs, "results", maxParallelism: 3, TextWriter.Null);
+        var results = TestSuite.RunAll(jobs, "results", maxParallelism: 3, (_, _) => { });
 
         // Assert
         Assert.Equal([TestRunOutcome.Passed, TestRunOutcome.Failed, TestRunOutcome.NoTestsRan], results.Select(result => result.Outcome));
@@ -33,7 +33,7 @@ public sealed class TestSuiteTests
         };
 
         // Act
-        var results = TestSuite.RunAll(jobs, "results", maxParallelism: 1, TextWriter.Null);
+        var results = TestSuite.RunAll(jobs, "results", maxParallelism: 1, (_, _) => { });
 
         // Assert
         Assert.Equal(TestRunOutcome.Failed, results[0].Outcome);
@@ -44,20 +44,21 @@ public sealed class TestSuiteTests
     }
 
     [Fact]
-    public void RunAll_ShouldWriteEachJobsOutputUnderItsName_WhenJobsFinish()
+    public void RunAll_ShouldHandOverEachJobWithItsResult_WhenJobsFinish()
     {
         // Arrange
         var jobs = new List<TestJob>
         {
-            new("A.Tests", () => TestFactory.Result(TestRunOutcome.Passed, "first line" + Environment.NewLine)),
+            new("A.Tests", () => TestFactory.Result(TestRunOutcome.Passed, "first line")),
+            new("B.Tests", () => TestFactory.Result(TestRunOutcome.Failed, "second line")),
         };
-        using var output = new StringWriter();
+        var completed = new List<(string Name, string Output)>();
 
         // Act
-        TestSuite.RunAll(jobs, "results", maxParallelism: 1, output);
+        TestSuite.RunAll(jobs, "results", maxParallelism: 1, (job, result) => completed.Add((job.Name, result.Output)));
 
         // Assert
-        Assert.Equal($"--- A.Tests{Environment.NewLine}first line{Environment.NewLine}", output.ToString());
+        Assert.Equal([("A.Tests", "first line"), ("B.Tests", "second line")], completed);
     }
 
     [Fact]
@@ -67,27 +68,9 @@ public sealed class TestSuiteTests
         var jobs = new List<TestJob>();
 
         // Act
-        var results = TestSuite.RunAll(jobs, "results", maxParallelism: 1, TextWriter.Null);
+        var results = TestSuite.RunAll(jobs, "results", maxParallelism: 1, (_, _) => { });
 
         // Assert
         Assert.Empty(results);
-    }
-
-    [Fact]
-    public void RunAll_ShouldWriteWhatTheTestProcessUsed_WhenItWasMeasured()
-    {
-        // Arrange
-        var usage = new ResourceUsage(TimeSpan.FromSeconds(2), CpuTime: null, PeakMemoryBytes: null);
-        var jobs = new List<TestJob>
-        {
-            new("A.Tests", () => TestFactory.Result(TestRunOutcome.Passed) with { Usage = usage }),
-        };
-        using var output = new StringWriter();
-
-        // Act
-        TestSuite.RunAll(jobs, "results", maxParallelism: 1, output);
-
-        // Assert
-        Assert.Equal($"--- A.Tests{Environment.NewLine}resources: test A.Tests used 2.0 s{Environment.NewLine}", output.ToString());
     }
 }

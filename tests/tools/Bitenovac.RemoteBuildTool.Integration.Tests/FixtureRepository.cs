@@ -1,5 +1,7 @@
 using System.Xml.Linq;
+using Bitenovac.RemoteBuildTool.Commands;
 using Bitenovac.RemoteBuildTool.Core.Processes;
+using Bitenovac.RemoteBuildTool.Telemetry;
 
 namespace Bitenovac.RemoteBuildTool.Integration.Tests;
 
@@ -65,6 +67,90 @@ internal sealed class FixtureRepository : IDisposable
     }
 
     /// <summary>
+    /// Creates a fixture whose Debug build is already in main, copied from one built once per test run.
+    /// </summary>
+    /// <remarks>
+    /// Besides the usual library and tests it carries the probes the fingerprint tests change: a
+    /// property every project sees, one only test projects see, an item definition, a target, and a
+    /// property in the library's own project file. A copy has to plan before it builds: plan
+    /// restores again at the new path, and main keys what it stores by repository-relative paths.
+    /// </remarks>
+    public static FixtureRepository CreateWarm()
+    {
+        var root = Directory.CreateTempSubdirectory("bitenovac-remotebuildtool-fixture-").FullName;
+        CopyDirectory(WarmTemplate.Value, root);
+        return new FixtureRepository(root);
+    }
+
+    /// <summary>
+    /// Replaces the only occurrence of <paramref name="oldText"/> in one of the fixture's files.
+    /// </summary>
+    public void Replace(string relativePath, string oldText, string newText)
+    {
+        var path = Combine(relativePath);
+        var content = File.ReadAllText(path);
+        if (!content.Contains(oldText, StringComparison.Ordinal))
+            throw new InvalidOperationException($"'{oldText}' is not in {relativePath}.");
+
+        File.WriteAllText(path, content.Replace(oldText, newText, StringComparison.Ordinal));
+    }
+
+    private static readonly Lazy<string> WarmTemplate = new(BuildWarmTemplate);
+
+    private static string BuildWarmTemplate()
+    {
+        var template = Create();
+        template.Replace("Directory.Build.props", "</Project>", """
+                <PropertyGroup>
+                    <FixtureSharedSetting>1</FixtureSharedSetting>
+                </PropertyGroup>
+
+                <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+                    <FixtureTestSetting>1</FixtureTestSetting>
+                </PropertyGroup>
+
+                <ItemDefinitionGroup>
+                    <Compile>
+                        <FixtureMetadata>1</FixtureMetadata>
+                    </Compile>
+                </ItemDefinitionGroup>
+            </Project>
+            """);
+        template.Write("Directory.Build.targets", """
+            <Project>
+                <Target Name="FixtureProbe"/>
+            </Project>
+            """);
+        template.Replace(LibraryProject, "<ItemGroup>", """
+            <PropertyGroup>
+                    <Description>1</Description>
+                </PropertyGroup>
+
+                <ItemGroup>
+            """);
+
+        var output = new CapturedOutput();
+        if (PlanCommand.Run(template.Options, output.Pipeline) != 0
+            || BuildCommand.Run(template.Options, "Debug", output.Pipeline) != 0
+            || PromoteCommand.Run(template.Options, output.Pipeline) != 0)
+        {
+            throw new InvalidOperationException($"Could not warm the fixture:{Environment.NewLine}{output}");
+        }
+
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => template.Dispose();
+        return template.Root;
+    }
+
+    private static void CopyDirectory(string source, string destination)
+    {
+        foreach (var directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
+            Directory.CreateDirectory(Path.Combine(destination, Path.GetRelativePath(source, directory)));
+
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+            File.Copy(file, Path.Combine(destination, Path.GetRelativePath(source, file)));
+    }
+
+    /// <summary>
     /// Removes every build output and materialization marker, as in a fresh checkout of the same commit.
     /// </summary>
     public void ResetWorkspace()
@@ -89,7 +175,7 @@ internal sealed class FixtureRepository : IDisposable
     /// <summary>
     /// Replaces the specified options of this fixture and returns it.
     /// </summary>
-    public FixtureRepository With(bool? cacheless = null, string? prStoreRoot = null, bool? coverageHtml = null, string? logsRoot = null)
+    public FixtureRepository With(bool? cacheless = null, string? prStoreRoot = null, bool? coverageHtml = null, string? logsRoot = null, string? telemetryRoot = null, BuildIdentity? identity = null)
     {
         Options = Options with
         {
@@ -97,6 +183,8 @@ internal sealed class FixtureRepository : IDisposable
             PrStoreRoot = prStoreRoot ?? Options.PrStoreRoot,
             CoverageHtml = coverageHtml ?? Options.CoverageHtml,
             LogsRoot = logsRoot ?? Options.LogsRoot,
+            TelemetryRoot = telemetryRoot ?? Options.TelemetryRoot,
+            Identity = identity ?? Options.Identity,
         };
 
         return this;
@@ -122,6 +210,9 @@ internal sealed class FixtureRepository : IDisposable
     {
         try
         {
+            foreach (var file in Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories))
+                File.SetAttributes(file, FileAttributes.Normal);
+
             Directory.Delete(Root, recursive: true);
         }
         catch (IOException)
@@ -165,6 +256,14 @@ internal sealed class FixtureRepository : IDisposable
                     <RemoteBuildToolHashInput Include="fixture-schema=1"/>
                 </ItemGroup>
             </Project>
+            """);
+
+        Write("Directory.Packages.props", "<Project/>");
+        Write(".editorconfig", """
+            root = true
+
+            [*.cs]
+            indent_style = space
             """);
     }
 

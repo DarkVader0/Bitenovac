@@ -28,6 +28,7 @@ internal enum TestRunOutcome
 
 /// <summary>
 /// Represents the result of running one test project: its outcome, where its coverage report was
-/// written, what it printed, and what its test process used (<see langword="null"/> when it never started).
+/// written, what it printed, what its test process used (<see langword="null"/> when it never started),
+/// and its TRX report, if it wrote one.
 /// </summary>
-internal sealed record TestRunResult(TestRunOutcome Outcome, int ExitCode, string ResultsDirectory, string Output, ResourceUsage? Usage = null);
+internal sealed record TestRunResult(TestRunOutcome Outcome, int ExitCode, string ResultsDirectory, string Output, ResourceUsage? Usage = null, string? ReportPath = null);

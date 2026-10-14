@@ -1,5 +1,8 @@
 using Bitenovac.RemoteBuildTool.Core.Graph;
 using Bitenovac.RemoteBuildTool.Planning;
+using Bitenovac.RemoteBuildTool.Telemetry;
+using Bitenovac.RemoteBuildTool.Testing;
+using Bitenovac.RemoteBuildTool.Toolchains;
 using Bitenovac.RemoteBuildTool.Toolchains.DotNet;
 
 namespace Bitenovac.RemoteBuildTool.Unit.Tests;
@@ -83,6 +86,25 @@ internal static class TestFactory
 
     public static PlanState Plan(string configuration, params PlanEntry[] entries) =>
         new(new Dictionary<string, List<PlanEntry>> { [configuration] = [.. entries] });
+
+    public static BuildIdentity Identity(string buildId = "100-1", string machine = "host-1") =>
+        new(buildId, "PR", "docker", machine, "plan", "owner/repo", "refs/pull/7/merge", "abc123", 7, "PR_7/100-1");
+
+    public static MachineCounters Counters(
+        long hostBusy = 0,
+        long hostTotal = 0,
+        double containerCpuSeconds = 0,
+        long containerPeak = 0,
+        long containerLimit = 0,
+        double cpuLimit = 1) =>
+        new(hostBusy, hostTotal, 8L << 30, 6L << 30, TimeSpan.FromSeconds(containerCpuSeconds), containerPeak / 2, containerPeak, containerLimit, cpuLimit);
+
+    public static PipelineOptions TelemetryOptions(TemporaryDirectory directory, BuildIdentity? identity = null) =>
+        Options(directory.Path, directory.Combine("main"), directory.Combine("pr")) with
+        {
+            TelemetryRoot = directory.Combine("telemetry"),
+            Identity = identity ?? Identity(),
+        };
 }
 
 /// <summary>
@@ -106,6 +128,8 @@ internal sealed class EnvironmentVariables : IDisposable
         "REMOTEBUILDTOOL_COVERAGE_HTML",
         "REMOTEBUILDTOOL_MAX_CPU",
         "REMOTEBUILDTOOL_LOGS_DIR",
+        "REMOTEBUILDTOOL_TELEMETRY_DIR",
+        "REMOTEBUILDTOOL_CONFIG",
     ];
 
     private readonly Dictionary<string, string?> _original =
@@ -144,8 +168,13 @@ internal sealed class TemporaryDirectory : IDisposable
 
     public void Dispose()
     {
-        if (System.IO.Directory.Exists(Path))
-            System.IO.Directory.Delete(Path, recursive: true);
+        if (!System.IO.Directory.Exists(Path))
+            return;
+
+        foreach (var file in System.IO.Directory.EnumerateFiles(Path, "*", SearchOption.AllDirectories))
+            File.SetAttributes(file, FileAttributes.Normal);
+
+        System.IO.Directory.Delete(Path, recursive: true);
     }
 }
 
@@ -162,4 +191,59 @@ internal sealed class CapturedOutput
     public string Out => _out.ToString();
 
     public string Error => _error.ToString();
+}
+
+/// <summary>
+/// Represents a toolchain named like the .NET one that builds, publishes and tests nothing, and
+/// reports what each call was told to.
+/// </summary>
+internal sealed class FakeToolchain : IToolchain
+{
+    public int BuildExitCode { get; init; }
+
+    public int PublishExitCode { get; init; }
+
+    /// <summary>
+    /// Gets the result of running a test project, given its entry and the results directory.
+    /// </summary>
+    public Func<PlanEntry, string, TestRunResult> Tests { get; init; } =
+        (_, directory) => new TestRunResult(TestRunOutcome.Passed, 0, directory, "");
+
+    public List<string> Built { get; } = [];
+
+    public string Name => DotNetToolchain.ToolchainName;
+
+    public IReadOnlyList<string> OutputDirectories => ["bin", "obj"];
+
+    public IReadOnlyList<string> Discover() => [];
+
+    public IReadOnlyList<EvaluatedProject> Evaluate(IReadOnlyList<string> relativePaths, string configuration) => [];
+
+    public ToolchainPreparation Prepare(
+        PipelineOptions options,
+        IReadOnlyDictionary<string, IReadOnlyList<EvaluatedProject>> byConfiguration,
+        PipelineOutput output,
+        StageRecorder stage) =>
+        throw new NotSupportedException();
+
+    public int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, PipelineOutput output, StageRecorder stage)
+    {
+        Built.AddRange(entries.Select(entry => entry.ProjectPath));
+        return BuildExitCode;
+    }
+
+    public int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output, StageRecorder stage)
+    {
+        File.WriteAllText(Path.Combine(dropDirectory, "published.txt"), version);
+        return PublishExitCode;
+    }
+
+    public TestRunResult RunTests(PlanEntry entry, string configuration, string resultsFilePrefix, string resultsDirectory) =>
+        Tests(entry, resultsDirectory);
+
+    public ToolchainRegistry Registry() => new([this]);
+
+    public void Dispose()
+    {
+    }
 }

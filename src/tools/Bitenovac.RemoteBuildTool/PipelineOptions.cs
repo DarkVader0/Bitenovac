@@ -1,3 +1,6 @@
+using Bitenovac.RemoteBuildTool.MsBuild;
+using Bitenovac.RemoteBuildTool.Telemetry;
+
 namespace Bitenovac.RemoteBuildTool;
 
 /// <summary>
@@ -11,36 +14,34 @@ internal sealed record PipelineOptions(
     string DropRoot,
     bool Cacheless,
     bool CoverageHtml,
-    string? LogsRoot = null)
+    string? LogsRoot = null,
+    string? TelemetryRoot = null,
+    BuildIdentity? Identity = null)
 {
     public static readonly string[] Configurations = ["Debug", "Release"];
 
-    public static PipelineOptions FromEnvironment()
+    public static PipelineOptions FromEnvironment() => FromEnvironment(Environment.GetEnvironmentVariable);
+
+    /// <summary>
+    /// Reads the options from <c>REMOTEBUILDTOOL_*</c> variables; an empty one counts as unset.
+    /// </summary>
+    /// <param name="read">Returns a variable's value, or <see langword="null"/> when it is unset.</param>
+    /// <returns>The options.</returns>
+    public static PipelineOptions FromEnvironment(Func<string, string?> read)
     {
-        var repositoryRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_REPO_ROOT") is { Length: > 0 } repo
-            ? repo
-            : Directory.GetCurrentDirectory();
+        string? Value(string name) => read(name) is { Length: > 0 } value ? value : null;
 
-        var mainStoreRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_MAIN_STORE") is { Length: > 0 } main
-            ? main
-            : Path.Combine(repositoryRoot, "artifacts", "ci-main");
-
-        var prStoreRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_PR_STORE") is { Length: > 0 } pr
-            ? pr
-            : Path.Combine(repositoryRoot, "artifacts", "ci-pr");
-
-        var dropRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_DROP_ROOT") is { Length: > 0 } drop
-            ? drop
-            : Path.Combine(repositoryRoot, "artifacts", "official");
-
-        var cacheless = IsTrue(Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_CACHELESS"));
-        var coverageHtml = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_COVERAGE_HTML") != "0";
-
-        var logsRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_LOGS_DIR") is { Length: > 0 } logs
-            ? logs
-            : null;
-
-        return new PipelineOptions(repositoryRoot, mainStoreRoot, prStoreRoot, dropRoot, cacheless, coverageHtml, logsRoot);
+        var repositoryRoot = Value("REMOTEBUILDTOOL_REPO_ROOT") ?? Directory.GetCurrentDirectory();
+        return new PipelineOptions(
+            repositoryRoot,
+            Value("REMOTEBUILDTOOL_MAIN_STORE") ?? Path.Combine(repositoryRoot, "artifacts", "ci-main"),
+            Value("REMOTEBUILDTOOL_PR_STORE") ?? Path.Combine(repositoryRoot, "artifacts", "ci-pr"),
+            Value("REMOTEBUILDTOOL_DROP_ROOT") ?? Path.Combine(repositoryRoot, "artifacts", "official"),
+            IsTrue(read("REMOTEBUILDTOOL_CACHELESS")),
+            read("REMOTEBUILDTOOL_COVERAGE_HTML") != "0",
+            Value("REMOTEBUILDTOOL_LOGS_DIR"),
+            Value("REMOTEBUILDTOOL_TELEMETRY_DIR"),
+            BuildIdentity.FromEnvironment(read));
     }
 
     public string PlanFile => Path.Combine(PrStoreRoot, "plan.json");
@@ -60,6 +61,17 @@ internal sealed record PipelineOptions(
     /// </returns>
     public string? BinaryLogPath(string name) =>
         LogsRoot is null ? null : Path.Combine(LogsRoot, $"{name}.binlog");
+
+    /// <summary>
+    /// Returns where one MSBuild invocation writes its logs.
+    /// </summary>
+    /// <param name="name">The name of the invocation, unique within the run; for example <c>build-Debug</c>.</param>
+    /// <returns>
+    /// The binary log of <see cref="BinaryLogPath"/>, and <c>msbuild/&lt;name&gt;.errors.log</c> and
+    /// <c>msbuild/&lt;name&gt;.performance.log</c> in this run's own volume for its errors and timings.
+    /// </returns>
+    public MsBuildLogs MsBuildLogs(string name) =>
+        new(BinaryLogPath(name), Path.Combine(PrStoreRoot, "msbuild", $"{name}.errors.log"), Path.Combine(PrStoreRoot, "msbuild", $"{name}.performance.log"));
 
     /// <summary>
     /// Returns the number of processes and MSBuild nodes that one job may run at once.

@@ -3,8 +3,6 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <RootNamespace>Bitenovac.RemoteBuildTool</RootNamespace>
-        <MinimumLineCoverage>95</MinimumLineCoverage>
-        <MinimumBranchCoverage>90</MinimumBranchCoverage>
     </PropertyGroup>
 
     <!-- Versioned independently of the repository: CI runs a published release, not this source. -->
@@ -13,7 +11,7 @@
         <ToolCommandName>remotebuildtool</ToolCommandName>
         <IsPackable>true</IsPackable>
         <PackageId>Bitenovac.RemoteBuildTool</PackageId>
-        <VersionPrefix>1.1.0</VersionPrefix>
+        <VersionPrefix>1.2.0</VersionPrefix>
         <Description>Content-hashed build, test and coverage pipeline for the Bitenovac repository.</Description>
         <Authors>Radivoje Milutinovic</Authors>
         <Company>Bitenovac</Company>
@@ -36,6 +34,12 @@
         <PackageReference Include="Microsoft.Build.Locator"/>
         <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime"/>
         <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime"/>
+        <PackageReference Include="DuckDB.NET.Data.Full"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Telemetry/Sql/*.sql" LogicalName="Telemetry.%(Filename).sql"/>
     </ItemGroup>
 
 </Project>

@@ -21,9 +21,9 @@ readonly NUGET_VOLUME="${REMOTEBUILDTOOL_NUGET_VOLUME:-bitenovac-runner-nuget}"
 readonly MAIN_VOLUME="${REMOTEBUILDTOOL_MAIN_VOLUME:-bitenovac-main}"
 readonly LOGS_VOLUME="${REMOTEBUILDTOOL_LOGS_VOLUME:-bitenovac-logs}"
 readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-bitenovac-official}"
-# Keyed on the run id, not the PR number, so a re-run of the same PR gets a clean volume instead
-# of reading stale state a cancelled attempt left behind.
-readonly PR_VOLUME="${REMOTEBUILDTOOL_PR_VOLUME:-bitenovac-pr-${GITHUB_RUN_ID:-local}}"
+readonly TELEMETRY_VOLUME="${REMOTEBUILDTOOL_TELEMETRY_VOLUME:-bitenovac-telemetry}"
+readonly STAGING_VOLUME="${REMOTEBUILDTOOL_STAGING_VOLUME:-bitenovac-staging}"
+readonly RUN_STORE="${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
 
 cd "${REPO_ROOT}"
 
@@ -31,7 +31,7 @@ fail() { printf '\nerror: %s\n' "$*" >&2; exit 1; }
 
 [[ $# -gt 0 ]] || fail "No command given. Pass a Bitenovac.RemoteBuildTool command, for example: test Debug"
 
-# The run's folder in the logs volume, set by the workflow; see runner/logs.sh for the layout. The
+# The run's folder in the logs volume, set by the workflow, as in PR_18/16473829-1. The
 # pattern keeps a crafted value from escaping the volume.
 [[ -z "${REMOTEBUILDTOOL_LOG_RUN:-}" || "${REMOTEBUILDTOOL_LOG_RUN}" =~ ^[A-Za-z]+_[A-Za-z0-9_]+/[0-9]+-[0-9]+$ ]] \
     || fail "REMOTEBUILDTOOL_LOG_RUN '${REMOTEBUILDTOOL_LOG_RUN}' is not <Kind>_<number>/<run id>-<attempt>."
@@ -44,20 +44,21 @@ readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"
 docker image inspect "${IMAGE}" > /dev/null 2>&1 \
     || fail "The image ${IMAGE} is missing. Run runner/build-image.sh on this machine; it builds the image from global.json."
 
-# main is read-only everywhere except 'promote': a PR run must not be able to write to it no
-# matter what RemoteBuildTool does, and the only thing that ever calls 'promote' is a Cache refresh
-# run that already passed every other stage — see .github/workflows/cache-refresh.yml.
-main_mount="${MAIN_VOLUME}:/mnt/main:ro"
-[[ "${1}" == "promote" ]] && main_mount="${MAIN_VOLUME}:/mnt/main"
+# Setup puts it on the NFS share; until it has, a local volume owned by the job's account serves.
+if ! docker volume inspect "${STAGING_VOLUME}" > /dev/null 2>&1; then
+    docker volume create "${STAGING_VOLUME}" > /dev/null
+    docker run --rm --user 0 --entrypoint chown --volume "${STAGING_VOLUME}:/mnt/staging" "${IMAGE}" "$(id -u):$(id -g)" /mnt/staging
+fi
 
+# main is read-only in every job: only the RemoteBuildTool service writes it.
 run_args=(
     --rm
     --init
     --user "$(id -u):$(id -g)"
     --volume "${REPO_ROOT}:/repo"
     --volume "${NUGET_VOLUME}:/cache"
-    --volume "${main_mount}"
-    --volume "${PR_VOLUME}:/mnt/pr"
+    --volume "${MAIN_VOLUME}:/mnt/main:ro"
+    --volume "${STAGING_VOLUME}:/mnt/staging"
     --volume "${LOGS_VOLUME}:/mnt/logs"
     --workdir /repo
     # Running as a non-root user leaves no writable home, so both are pointed somewhere writable
@@ -74,7 +75,7 @@ run_args=(
     --env TESTINGPLATFORM_TELEMETRY_OPTOUT=1
     --env REMOTEBUILDTOOL_REPO_ROOT=/repo
     --env REMOTEBUILDTOOL_MAIN_STORE=/mnt/main
-    --env REMOTEBUILDTOOL_PR_STORE=/mnt/pr
+    --env "REMOTEBUILDTOOL_PR_STORE=/mnt/staging/${RUN_STORE}"
     --env REMOTEBUILDTOOL_DROP_ROOT=/mnt/official
 )
 
@@ -87,11 +88,27 @@ run_args=(
 [[ -n "${REMOTEBUILDTOOL_MEMORY:-}" ]] && run_args+=(--memory "${REMOTEBUILDTOOL_MEMORY}" --memory-swap "${REMOTEBUILDTOOL_MEMORY}")
 
 # Passed through when set.
-for variable in GITHUB_ACTIONS GITHUB_RUN_ID REMOTEBUILDTOOL_MAX_CPU REMOTEBUILDTOOL_CACHELESS REMOTEBUILDTOOL_COVERAGE_HTML; do
+for variable in GITHUB_ACTIONS GITHUB_RUN_ID GITHUB_RUN_ATTEMPT GITHUB_WORKFLOW GITHUB_JOB GITHUB_REPOSITORY GITHUB_REF GITHUB_SHA \
+    REMOTEBUILDTOOL_MAX_CPU REMOTEBUILDTOOL_CACHELESS REMOTEBUILDTOOL_COVERAGE_HTML REMOTEBUILDTOOL_POOL REMOTEBUILDTOOL_LOG_RUN; do
     [[ -n "${!variable:-}" ]] && run_args+=(--env "${variable}=${!variable}")
 done
 
 [[ -n "${REMOTEBUILDTOOL_LOG_RUN:-}" ]] && run_args+=(--env "REMOTEBUILDTOOL_LOGS_DIR=/mnt/logs/${REMOTEBUILDTOOL_LOG_RUN}")
+
+# Telemetry records name the runner, not the throwaway container the command runs in.
+run_args+=(--env "REMOTEBUILDTOOL_MACHINE=${RUNNER_NAME:-$(hostname)}")
+
+# Every command writes its telemetry to the share when this machine has one (see
+# runner/setup-runner.sh); a machine set up before it simply records nothing.
+if docker volume inspect "${TELEMETRY_VOLUME}" > /dev/null 2>&1; then
+    run_args+=(--volume "${TELEMETRY_VOLUME}:/mnt/telemetry" --env REMOTEBUILDTOOL_TELEMETRY_DIR=/mnt/telemetry)
+fi
+
+# The step's run summary is a file the runner reads once the step ends; mounted on its own so the
+# command can append to it and nothing else of the runner's directory is visible.
+if [[ -n "${GITHUB_STEP_SUMMARY:-}" && -f "${GITHUB_STEP_SUMMARY}" ]]; then
+    run_args+=(--volume "${GITHUB_STEP_SUMMARY}:/mnt/step-summary.md" --env GITHUB_STEP_SUMMARY=/mnt/step-summary.md)
+fi
 
 exec docker run "${run_args[@]}" --entrypoint bash "${IMAGE}" -c '
     set -euo pipefail

@@ -26,6 +26,7 @@ internal static class CommandLine
                 "promote" => PromoteCommand.Run(options, output),
                 "release" => ReleaseCommand.Run(options, output),
                 "graph" => GraphCommand.Run(options, output),
+                "serve" => ServeCommand.Run(output, Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_CONFIG") is { Length: > 0 } settings ? settings : ServeCommand.DefaultSettingsPath),
                 "--help" or "-h" => Usage(output),
                 _ => Fail(output, $"Unknown command '{args[0]}'."),
             };
@@ -56,7 +57,7 @@ internal static class CommandLine
 
     private static int Fail(PipelineOutput output, string message)
     {
-        output.WriteError($"error: {message}");
+        output.WriteFailure(message);
         return 1;
     }
 
@@ -72,6 +73,8 @@ internal static class CommandLine
               remotebuildtool release           Build every project in Release under the next release
                                                 version and drop its deployable output
               remotebuildtool graph             Print the graph with each target's hashes
+              remotebuildtool serve             Run the service: fill main from merged pull requests, record
+                                                builds, compact telemetry, prune logs, rebuild main daily
 
             Environment:
               REMOTEBUILDTOOL_REPO_ROOT       Repository root (default: current directory)
@@ -81,5 +84,7 @@ internal static class CommandLine
               REMOTEBUILDTOOL_CACHELESS       true/1 to ignore main and rebuild everything (PR runs only;
                                  never promotes)
               REMOTEBUILDTOOL_COVERAGE_HTML   0 to skip the HTML coverage report (default: on locally, off in CI)
+              REMOTEBUILDTOOL_TELEMETRY_DIR   Telemetry share; every command writes its records there (default: none)
+              REMOTEBUILDTOOL_CONFIG          The service's host settings (default: /etc/remotebuildtool/config.json)
             """);
 }

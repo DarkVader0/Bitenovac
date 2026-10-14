@@ -12,22 +12,20 @@ namespace Bitenovac.RemoteBuildTool.Testing;
 /// </remarks>
 internal static class TestRunner
 {
-    private const UnixFileMode ExecuteBits = UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
-
-    public static TestRunResult Run(string executablePath, string projectName, string resultsDirectory)
+    /// <summary>
+    /// Runs one test project with coverage and, when <paramref name="report"/> names one, a TRX
+    /// report named after the project.
+    /// </summary>
+    /// <param name="executablePath">The test project's executable.</param>
+    /// <param name="projectName">The project's name, which prefixes its coverage and names its report.</param>
+    /// <param name="resultsDirectory">Where coverage and the report go.</param>
+    /// <param name="report">Which TRX report the project can write.</param>
+    /// <returns>The result.</returns>
+    public static TestRunResult Run(string executablePath, string projectName, string resultsDirectory, TestReport report = TestReport.None)
     {
         Directory.CreateDirectory(resultsDirectory);
-        EnsureExecutable(executablePath);
 
-        var (exitCode, output, usage) = ProcessRunner.RunCaptured(
-            executablePath,
-            [
-                "--coverlet",
-                "--coverlet-output-format", "cobertura",
-                "--coverlet-file-prefix", projectName,
-                "--results-directory", resultsDirectory,
-            ],
-            Path.GetDirectoryName(executablePath)!);
+        var (exitCode, output, usage) = ProcessRunner.RunCaptured(executablePath, Arguments(projectName, resultsDirectory, report), Path.GetDirectoryName(executablePath)!);
 
         var outcome = exitCode switch
         {
@@ -36,18 +34,51 @@ internal static class TestRunner
             _ => TestRunOutcome.Failed,
         };
 
-        return new TestRunResult(outcome, exitCode, resultsDirectory, output, usage);
+        return new TestRunResult(outcome, exitCode, resultsDirectory, output, usage, ReportPath(projectName, resultsDirectory, report));
     }
 
-    // The artifact store keeps content, not file modes, so an apphost materialised from it comes
-    // back without its execute bit.
-    private static void EnsureExecutable(string path)
+    /// <summary>
+    /// Returns the arguments that run a test project with coverage and the report it can write.
+    /// </summary>
+    /// <param name="projectName">The project's name, which prefixes its coverage and names its report.</param>
+    /// <param name="resultsDirectory">Where coverage and the report go.</param>
+    /// <param name="report">Which TRX report the project can write.</param>
+    /// <returns>The arguments.</returns>
+    public static IReadOnlyList<string> Arguments(string projectName, string resultsDirectory, TestReport report)
     {
-        if (OperatingSystem.IsWindows())
-            return;
+        List<string> arguments =
+        [
+            "--coverlet",
+            "--coverlet-output-format", "cobertura",
+            "--coverlet-file-prefix", projectName,
+            "--results-directory", resultsDirectory,
+        ];
 
-        var mode = File.GetUnixFileMode(path);
-        if ((mode & ExecuteBits) != ExecuteBits)
-            File.SetUnixFileMode(path, mode | ExecuteBits);
+        switch (report)
+        {
+            case TestReport.Trx:
+                arguments.AddRange("--report-trx", "--report-trx-filename", ReportFile(projectName));
+                break;
+            case TestReport.XunitTrx:
+                arguments.AddRange("--report-xunit-trx", "--report-xunit-trx-filename", ReportFile(projectName));
+                break;
+        }
+
+        return arguments;
     }
+
+    /// <summary>
+    /// Returns the report a run wrote, if it was asked for one and wrote it.
+    /// </summary>
+    /// <param name="projectName">The project's name, which names its report.</param>
+    /// <param name="resultsDirectory">Where the report goes.</param>
+    /// <param name="report">Which TRX report the project can write.</param>
+    /// <returns>The report's path, or <see langword="null"/>.</returns>
+    public static string? ReportPath(string projectName, string resultsDirectory, TestReport report)
+    {
+        var path = Path.Combine(resultsDirectory, ReportFile(projectName));
+        return report != TestReport.None && File.Exists(path) ? path : null;
+    }
+
+    private static string ReportFile(string projectName) => $"{projectName}.trx";
 }

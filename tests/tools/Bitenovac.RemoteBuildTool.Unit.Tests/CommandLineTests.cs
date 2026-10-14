@@ -1,3 +1,5 @@
+using Bitenovac.RemoteBuildTool.Commands;
+
 namespace Bitenovac.RemoteBuildTool.Unit.Tests;
 
 [Collection(EnvironmentVariables.Collection)]
@@ -99,6 +101,40 @@ public sealed class CommandLineTests : IDisposable
     }
 
     [Fact]
+    public void Run_ShouldDispatchToRelease_WhenThePlanSelectsNothingForRelease()
+    {
+        // Arrange
+        using var repository = TestFactory.Directory();
+        var prStore = repository.Combine("pr");
+        PointAt(repository, prStore);
+        TestFactory.Plan("Debug").Save(Path.Combine(prStore, "plan.json"));
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["release"], output.Pipeline);
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Contains("nothing to release", output.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Run_ShouldDispatchToGraph_WhenTheRepositoryHoldsNoProjects()
+    {
+        // Arrange
+        using var repository = TestFactory.Directory();
+        PointAt(repository, repository.Combine("pr"));
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["graph"], output.Pipeline);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Contains("=== Release ===", output.Out, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Run_ShouldDispatchToPlan_WhenTheRepositoryHoldsNoProjects()
     {
         // Arrange
@@ -127,6 +163,42 @@ public sealed class CommandLineTests : IDisposable
         Assert.Equal(1, exitCode);
         Assert.StartsWith("error: No plan found at", output.Error);
         Assert.DoesNotContain("InvalidOperationException", output.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Run_ShouldFailNamingTheSettings_WhenServeFindsNoHostSettings()
+    {
+        // Arrange
+        using var repository = TestFactory.Directory();
+        PointAt(repository, repository.Combine("pr"));
+        _environment.Set("REMOTEBUILDTOOL_CONFIG", repository.Combine("config.json"));
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["serve"], output.Pipeline);
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Contains($"No service settings at {repository.Combine("config.json")}", output.Error, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Run_ShouldServeFromTheDefaultSettings_WhenNoSettingsFileIsNamed(string? settings)
+    {
+        // Arrange
+        using var repository = TestFactory.Directory();
+        PointAt(repository, repository.Combine("pr"));
+        _environment.Set("REMOTEBUILDTOOL_CONFIG", settings);
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["serve"], output.Pipeline);
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Contains($"No service settings at {ServeCommand.DefaultSettingsPath}", output.Error, StringComparison.Ordinal);
     }
 
     /// <summary>

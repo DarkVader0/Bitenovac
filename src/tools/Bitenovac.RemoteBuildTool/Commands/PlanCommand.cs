@@ -2,7 +2,9 @@ using Bitenovac.RemoteBuildTool.Core.Graph;
 using Bitenovac.RemoteBuildTool.Core.Planning;
 using Bitenovac.RemoteBuildTool.Hashing;
 using Bitenovac.RemoteBuildTool.Planning;
+using Bitenovac.RemoteBuildTool.Reporting;
 using Bitenovac.RemoteBuildTool.Storage;
+using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Toolchains;
 
 namespace Bitenovac.RemoteBuildTool.Commands;
@@ -19,6 +21,7 @@ internal static class PlanCommand
 {
     public static int Run(PipelineOptions options, PipelineOutput output)
     {
+        using var stage = StageRecorder.Start(options, output, "plan");
         using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
 
         output.WriteLine("==> Discovering projects");
@@ -30,8 +33,8 @@ internal static class PlanCommand
         var total = discovered.Sum(found => found.RelativePaths.Count);
         if (total == 0)
         {
-            output.WriteError("error: no projects found in the repository.");
-            return 1;
+            output.WriteFailure("no projects found in the repository.");
+            return stage.Complete(1);
         }
 
         output.WriteLine($"Found {total} project(s): {string.Join(", ", discovered.Select(found => $"{found.Toolchain.Name} {found.RelativePaths.Count}"))}.");
@@ -42,13 +45,18 @@ internal static class PlanCommand
 
         foreach (var (toolchain, relativePaths) in discovered)
         {
-            var byConfiguration = PipelineOptions.Configurations.ToDictionary(
-                configuration => configuration,
-                configuration => toolchain.Evaluate(relativePaths, configuration));
+            Dictionary<string, IReadOnlyList<EvaluatedProject>> byConfiguration;
+            using (output.Section($"Evaluating {relativePaths.Count} {toolchain.Name} project(s)"))
+            using (stage.Measure(StagePhase.Evaluation))
+            {
+                byConfiguration = PipelineOptions.Configurations.ToDictionary(
+                    configuration => configuration,
+                    configuration => toolchain.Evaluate(relativePaths, configuration));
+            }
 
-            var prepared = toolchain.Prepare(options, byConfiguration, output);
+            var prepared = toolchain.Prepare(options, byConfiguration, output, stage);
             if (!prepared.Succeeded)
-                return prepared.ExitCode;
+                return stage.Complete(prepared.ExitCode);
 
             foreach (var (configuration, projects) in prepared.ByConfiguration)
             {
@@ -60,33 +68,42 @@ internal static class PlanCommand
         foreach (var projects in evaluated.Values)
             ToolchainOrder.Resolve([.. projects.Values.Select(project => (project.Id, project.Toolchain, project.ProjectReferences))]);
 
-        var remoteBuildToolHash = RemoteBuildToolVersion.Compute(AppContext.BaseDirectory);
         var mainStore = new LocalVolumeArtifactStore(options.MainStoreRoot);
         var planState = new PlanState([]);
 
-        foreach (var configuration in PipelineOptions.Configurations)
+        using (output.Section("Hashing and looking up main"))
         {
-            var entries = PlanConfiguration(configuration, evaluated[configuration], mainStore, remoteBuildToolHash, options.Cacheless);
-            planState.ByConfiguration[configuration] = entries;
+            foreach (var configuration in PipelineOptions.Configurations)
+            {
+                var entries = PlanConfiguration(configuration, evaluated[configuration], mainStore, options.Cacheless, stage);
+                planState.ByConfiguration[configuration] = entries;
 
-            var hits = entries.Count(entry => entry.Hit);
-            output.WriteLine($"{configuration}: {entries.Count} project(s), {hits} cache hit(s), {entries.Count - hits} to build.");
-
-            foreach (var entry in entries.Where(entry => !entry.Hit).OrderBy(entry => entry.ProjectPath, StringComparer.Ordinal))
-                output.WriteLine($"  miss {entry.ProjectPath}: {entry.WhyCacheMiss}");
+                var hits = entries.Count(entry => entry.Hit);
+                var misses = entries
+                    .Where(entry => !entry.Hit)
+                    .OrderBy(entry => entry.ProjectPath, StringComparer.Ordinal)
+                    .Select(entry => $"  miss {entry.ProjectPath}: {entry.WhyCacheMiss}{Environment.NewLine}");
+                output.WriteGroup($"{configuration}: {entries.Count} project(s), {hits} cache hit(s), {entries.Count - hits} to build.", string.Concat(misses));
+            }
         }
 
+        output.AppendSummary(PlanSummary.ToMarkdown(planState.ByConfiguration));
+
         planState.Save(options.PlanFile);
+        if (options.LogsRoot is { } logs)
+            BuildGraphFile.Write(logs, options.Identity ?? BuildIdentity.FromEnvironment(_ => null), planState.ByConfiguration);
         output.WriteLine($"Plan written to {options.PlanFile}");
-        return 0;
+        var planned = planState.ByConfiguration.Values.SelectMany(entries => entries).ToList();
+        stage.SetProjects(planned.Count, planned.Count(entry => entry.Hit));
+        return stage.Complete(0);
     }
 
     private static List<PlanEntry> PlanConfiguration(
         string configuration,
         IReadOnlyDictionary<ProjectId, EvaluatedProject> evaluated,
         LocalVolumeArtifactStore mainStore,
-        string remoteBuildToolHash,
-        bool cacheless)
+        bool cacheless,
+        StageRecorder stage)
     {
         var ids = evaluated.Keys.ToList();
         var edges = evaluated.Values.SelectMany(project => project.ProjectReferences.Select(reference => new ProjectEdge(project.Id, reference)));
@@ -95,14 +112,19 @@ internal static class PlanCommand
         var ownHashInputs = evaluated.ToDictionary(entry => entry.Key, entry => entry.Value.OwnHashInputs);
 
         var stored = new Dictionary<ProjectId, StoredTargetHash>();
-        foreach (var id in ids)
+        using (stage.Measure(StagePhase.CacheLookup))
         {
-            if (mainStore.TryGetHash(id, configuration, out var hash))
-                stored[id] = hash;
+            foreach (var id in ids)
+            {
+                if (mainStore.TryGetHash(id, configuration, out var hash))
+                    stored[id] = hash;
+            }
         }
 
         var forced = cacheless ? ids.ToHashSet() : null;
-        var decisions = CachePlanBuilder.Build(graph, ownHashInputs, stored, forced, [$"remotebuildtool:{remoteBuildToolHash}"]);
+        IReadOnlyDictionary<ProjectId, TargetDecision> decisions;
+        using (stage.Measure(StagePhase.Hashing))
+            decisions = CachePlanBuilder.Build(graph, ownHashInputs, stored, forced, [ToolVersion.Entry]);
 
         return ids.Select(id =>
         {
