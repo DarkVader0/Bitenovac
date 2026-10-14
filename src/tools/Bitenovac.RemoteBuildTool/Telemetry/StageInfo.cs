@@ -44,4 +44,5 @@ internal sealed record StageInfo
     public long? MemoryLimitBytes { get; init; }
     public double? MemoryUtilization { get; init; }
     public string? LogsPath { get; init; }
+    public string? DropVersion { get; init; }
 }

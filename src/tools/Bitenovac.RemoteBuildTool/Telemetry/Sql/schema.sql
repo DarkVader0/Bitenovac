@@ -32,7 +32,8 @@ CREATE TABLE schema_build (
     CacheMisses INTEGER,
     TestsFailed INTEGER,
     FirstError VARCHAR,
-    LogsPath VARCHAR
+    LogsPath VARCHAR,
+    DropVersion VARCHAR
 );
 
 CREATE TABLE schema_stage (
@@ -74,7 +75,8 @@ CREATE TABLE schema_stage (
     PeakMemoryBytes BIGINT,
     MemoryLimitBytes BIGINT,
     MemoryUtilization DOUBLE,
-    LogsPath VARCHAR
+    LogsPath VARCHAR,
+    DropVersion VARCHAR
 );
 
 CREATE TABLE schema_target (

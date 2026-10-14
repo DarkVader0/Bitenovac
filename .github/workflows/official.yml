@@ -15,7 +15,7 @@ permissions:
 env:
   DOTNET_NOLOGO: "true"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
-  REMOTEBUILDTOOL_LOG_RUN: Official_pending_${{ github.run_number }}/${{ github.run_id }}-${{ github.run_attempt }}
+  REMOTEBUILDTOOL_LOG_RUN: Official_${{ github.run_number }}/${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   release:
@@ -30,7 +30,3 @@ jobs:
 
       - name: Build and drop
         run: bash runner/in-container.sh release
-
-      - name: Name logs after the drop
-        if: always()
-        run: bash runner/logs.sh seal-official "${{ github.run_number }}"

@@ -31,7 +31,7 @@ fail() { printf '\nerror: %s\n' "$*" >&2; exit 1; }
 
 [[ $# -gt 0 ]] || fail "No command given. Pass a Bitenovac.RemoteBuildTool command, for example: test Debug"
 
-# The run's folder in the logs volume, set by the workflow; see runner/logs.sh for the layout. The
+# The run's folder in the logs volume, set by the workflow, as in PR_18/16473829-1. The
 # pattern keeps a crafted value from escaping the volume.
 [[ -z "${REMOTEBUILDTOOL_LOG_RUN:-}" || "${REMOTEBUILDTOOL_LOG_RUN}" =~ ^[A-Za-z]+_[A-Za-z0-9_]+/[0-9]+-[0-9]+$ ]] \
     || fail "REMOTEBUILDTOOL_LOG_RUN '${REMOTEBUILDTOOL_LOG_RUN}' is not <Kind>_<number>/<run id>-<attempt>."

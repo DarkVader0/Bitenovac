@@ -55,6 +55,7 @@ internal sealed class StageRecorder : IDisposable
     private MachineCounters _lastCounters;
     private int? _projects;
     private int? _cacheHits;
+    private string? _dropVersion;
     private bool _completed;
 
     private StageRecorder(
@@ -153,6 +154,12 @@ internal sealed class StageRecorder : IDisposable
         _projects = projects;
         _cacheHits = cacheHits;
     }
+
+    /// <summary>
+    /// Records the version the stage dropped, for a release.
+    /// </summary>
+    /// <param name="version">The drop's version, as in <c>2026.10.14.001</c>.</param>
+    public void SetDropVersion(string version) => _dropVersion = version;
 
     /// <summary>
     /// Records what the stage did with one project.
@@ -291,6 +298,7 @@ internal sealed class StageRecorder : IDisposable
             MemoryLimitBytes = memoryLimit,
             MemoryUtilization = memoryLimit > 0 ? (double)peakMemory / memoryLimit : null,
             LogsPath = _identity.LogsPath,
+            DropVersion = _dropVersion,
         };
     }
 

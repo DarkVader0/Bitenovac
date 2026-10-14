@@ -64,6 +64,7 @@ internal static class ReleaseCommand
         }
 
         output.WriteLine($"Release {version} dropped to {drop}");
+        stage.SetDropVersion(version);
         stage.SetProjects(entries.Count, 0);
         return stage.Complete(0);
     }

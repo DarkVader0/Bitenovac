@@ -37,6 +37,7 @@ internal sealed record BuildGraphNode(
 /// <param name="BuildId">The build.</param>
 /// <param name="Queue">The build's queue.</param>
 /// <param name="Sha">The commit built.</param>
+/// <param name="LogsPath">The build's folder on the logs share, as in <c>Official_212/16473829-1</c>.</param>
 /// <param name="ToolVersion">The RemoteBuildTool release that planned the build; every hash includes it.</param>
 /// <param name="Configurations">The projects of each configuration, ordered by path.</param>
 internal sealed record BuildGraphFile(
@@ -44,6 +45,7 @@ internal sealed record BuildGraphFile(
     string BuildId,
     string Queue,
     string? Sha,
+    string? LogsPath,
     string ToolVersion,
     IReadOnlyDictionary<string, IReadOnlyList<BuildGraphNode>> Configurations)
 {
@@ -66,6 +68,7 @@ internal sealed record BuildGraphFile(
             identity.BuildId,
             identity.Queue,
             identity.Sha,
+            identity.LogsPath,
             Hashing.ToolVersion.Value,
             byConfiguration.ToDictionary(
                 pair => pair.Key,

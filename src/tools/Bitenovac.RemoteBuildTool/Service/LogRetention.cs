@@ -6,7 +6,7 @@ namespace Bitenovac.RemoteBuildTool.Service;
 /// <remarks>
 /// The logs share holds a folder per pull request or build, as in <c>PR_18</c>, and in it a folder
 /// per run attempt. An attempt expires once its folder has not changed for its kind's retention;
-/// a build folder goes once it is empty, and a link once what it points at is gone.
+/// a build folder goes once it is empty.
 /// </remarks>
 internal static class LogRetention
 {
@@ -23,23 +23,8 @@ internal static class LogRetention
         if (!Directory.Exists(logsRoot))
             return deleted;
 
-        // Every entry, not only directories: on Linux a link whose folder is gone is not listed as one.
-        foreach (var entry in new DirectoryInfo(logsRoot).EnumerateFileSystemInfos())
+        foreach (var build in new DirectoryInfo(logsRoot).EnumerateDirectories())
         {
-            if (entry.LinkTarget is not null)
-            {
-                if (entry.ResolveLinkTarget(returnFinalTarget: true) is not { Exists: true })
-                {
-                    entry.Delete();
-                    deleted.Add(entry.Name);
-                }
-
-                continue;
-            }
-
-            if (entry is not DirectoryInfo build)
-                continue;
-
             var days = retentionDays
                 .Where(rule => build.Name.StartsWith(rule.Key, StringComparison.Ordinal))
                 .OrderByDescending(rule => rule.Key.Length)

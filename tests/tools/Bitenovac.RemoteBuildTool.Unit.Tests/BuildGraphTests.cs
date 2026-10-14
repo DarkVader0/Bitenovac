@@ -28,6 +28,7 @@ public sealed class BuildGraphTests
         Assert.Equal("100-1", graph.BuildId);
         Assert.Equal("PR", graph.Queue);
         Assert.Equal("abc123", graph.Sha);
+        Assert.Equal(TestFactory.Identity().LogsPath, graph.LogsPath);
         Assert.Equal(ToolVersion.Value, graph.ToolVersion);
         Assert.Equal(
             [

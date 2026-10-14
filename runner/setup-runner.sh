@@ -477,9 +477,9 @@ cat <<EOF
 
   Jobs build in throwaway containers; ${NUGET_VOLUME}, ${MAIN_VOLUME}, ${LOGS_VOLUME} and
   ${OFFICIAL_VOLUME} persist. The Official workflow drops one directory per release into
-  ${OFFICIAL_VOLUME}, named yyyy.MM.dd.NNN. Every PR, Cache refresh and Official run keeps its
+  ${OFFICIAL_VOLUME}, named yyyy.MM.dd.NNN. Every PR, Official and service rebuild keeps its
   console output and MSBuild binary logs in ${LOGS_VOLUME}, and every stage writes its telemetry
-  to ${TELEMETRY_VOLUME}; both are NFS volumes on ${SHARE_ROOT} — see runner/logs.sh and
+  to ${TELEMETRY_VOLUME}; both are NFS volumes on ${SHARE_ROOT} — see
   docs/Local_RemoteBuildTool_Setup.md.
   Every run attempt keeps its own store in ${STAGING_VOLUME} for 24 hours; the service promotes
   it into main once its pull request is merged.

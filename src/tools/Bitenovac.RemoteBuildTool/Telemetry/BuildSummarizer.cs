@@ -138,6 +138,7 @@ internal static class BuildSummarizer
             TestsFailed = tests.Count > 0 ? tests.Sum(test => test.TestsFailed ?? 0) : null,
             FirstError = stages.Where(stage => !stage.Succeeded).OrderBy(stage => stage.StartTime).Select(stage => stage.FirstError).FirstOrDefault(),
             LogsPath = identity.LogsPath ?? stages.Select(stage => stage.LogsPath).FirstOrDefault(path => path is not null),
+            DropVersion = stages.Select(stage => stage.DropVersion).FirstOrDefault(version => version is not null),
         };
     }
 }

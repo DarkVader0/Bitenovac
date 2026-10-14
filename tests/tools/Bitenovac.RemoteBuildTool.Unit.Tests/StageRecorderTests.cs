@@ -215,6 +215,22 @@ public sealed class StageRecorderTests
     }
 
     [Fact]
+    public void Complete_ShouldRecordTheDropVersion_WhenTheStageDroppedARelease()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        using var stage = StageRecorder.Start(TestFactory.TelemetryOptions(directory), TestFactory.Silence(), "release", null, NoSampling, () => TestFactory.Counters());
+        stage.SetDropVersion("2026.10.14.001");
+
+        // Act
+        stage.Complete(0);
+
+        // Assert
+        var info = Assert.Single(Read(directory, TelemetryWriter.StageTable, TelemetryJsonContext.Default.StageInfo));
+        Assert.Equal("2026.10.14.001", info.DropVersion);
+    }
+
+    [Fact]
     public void Complete_ShouldWriteNothing_WhenThereIsNoTelemetryShare()
     {
         // Arrange

@@ -36,4 +36,5 @@ internal sealed record BuildInfo
     public int? TestsFailed { get; init; }
     public string? FirstError { get; init; }
     public string? LogsPath { get; init; }
+    public string? DropVersion { get; init; }
 }

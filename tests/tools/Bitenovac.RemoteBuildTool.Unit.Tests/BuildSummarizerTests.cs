@@ -20,6 +20,7 @@ public sealed class BuildSummarizerTests
         {
             CacheHits = 8,
             CacheMisses = 14,
+            DropVersion = "2026.10.14.001",
         });
         WriteStage(root, Stage("test-Debug", "host-1", Created.AddSeconds(80), durationMS: 10_000, cpuMS: 6_000, allocatedMS: 10_000, peak: 200, memory: 0.2) with
         {
@@ -84,6 +85,7 @@ public sealed class BuildSummarizerTests
         Assert.Equal(2, build.TestsFailed);
         Assert.Equal("Lib.Tests (exit 2) has failing tests.", build.FirstError);
         Assert.Equal("PR_7/100-1", build.LogsPath);
+        Assert.Equal("2026.10.14.001", build.DropVersion);
     }
 
     [Fact]
