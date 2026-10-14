@@ -319,8 +319,9 @@ from scratch, with no tests and no cache, and drops what can be deployed into th
 
 ```
 2026.10.07.001/
-    packages/   one .nupkg per library and .NET tool
-    apps/       one published folder per app
+    packages/          one .nupkg per library and .NET tool
+    apps/              one published folder per app
+    build-graph.json   the build graph, as beside every build's logs
 ```
 
 The number is the date (UTC) and a counter for that day, so a second build on the same day is
@@ -354,6 +355,19 @@ Each attempt folder holds the full output of every stage (`plan.log`, `build-Deb
 `test-Debug.log`, `release.log`, ...) and an MSBuild binary log per restore, build, publish and
 pack (`build-Debug.binlog`, `publish-<app>.binlog`, ...). The service deletes what is past its
 retention every night; `logRetentionDays` in `remotebuildtool.json` sets it.
+
+Beside them is `build-graph.json`, the build graph as `plan` saw it: every project of each
+configuration with its references, its fingerprints, whether it was a cache hit and why not, and
+every input of its fingerprint. Official drops carry one too. To see how the graph changed between
+two builds (Ubuntu):
+
+```bash
+docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint remotebuildtool bitenovac-remotebuildtool-runner:10.0.400 \
+    compare-graphs /logs/PR_18/16473829-1/build-graph.json /logs/PR_19/16474120-1/build-graph.json
+```
+
+It lists projects that came or went, references that changed, and which inputs of each project's
+fingerprint changed: a source file, a property set in a repository file, a package.
 
 To read them (Ubuntu):
 

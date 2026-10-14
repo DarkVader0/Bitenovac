@@ -90,6 +90,8 @@ internal static class PlanCommand
         output.AppendSummary(PlanSummary.ToMarkdown(planState.ByConfiguration));
 
         planState.Save(options.PlanFile);
+        if (options.LogsRoot is { } logs)
+            BuildGraphFile.Write(logs, options.Identity ?? BuildIdentity.FromEnvironment(_ => null), planState.ByConfiguration);
         output.WriteLine($"Plan written to {options.PlanFile}");
         var planned = planState.ByConfiguration.Values.SelectMany(entries => entries).ToList();
         stage.SetProjects(planned.Count, planned.Count(entry => entry.Hit));

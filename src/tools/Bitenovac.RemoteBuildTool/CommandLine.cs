@@ -27,6 +27,8 @@ internal static class CommandLine
                 "audit" => WithConfiguration(args, output, configuration => AuditCommand.Run(options, configuration, output)),
                 "release" => ReleaseCommand.Run(options, output),
                 "graph" => GraphCommand.Run(options, output),
+                "compare-graphs" when args.Length >= 3 => CompareGraphsCommand.Run(args[1], args[2], output),
+                "compare-graphs" => Fail(output, "Two build graphs are required: the earlier build's build-graph.json and the later one's."),
                 "serve" => ServeCommand.Run(output, Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_CONFIG") is { Length: > 0 } settings ? settings : ServeCommand.DefaultSettingsPath),
                 "--help" or "-h" => Usage(output),
                 _ => Fail(output, $"Unknown command '{args[0]}'."),
@@ -75,6 +77,8 @@ internal static class CommandLine
               remotebuildtool release           Build every project in Release under the next release
                                                 version and drop its deployable output
               remotebuildtool graph             Print the graph with each target's hashes
+              remotebuildtool compare-graphs <old> <new>
+                                                Show how the build graph changed between two builds
               remotebuildtool serve             Run the service: fill main from the watched branch, record
                                                 builds, compact telemetry, prune logs, audit the cache
 

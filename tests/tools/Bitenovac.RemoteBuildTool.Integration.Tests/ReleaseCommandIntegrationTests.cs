@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Bitenovac.RemoteBuildTool.Commands;
+using Bitenovac.RemoteBuildTool.Planning;
 
 namespace Bitenovac.RemoteBuildTool.Integration.Tests;
 
@@ -85,7 +86,7 @@ public sealed class ReleaseCommandIntegrationTests
     }
 
     [Fact]
-    public void Run_ShouldWriteABinaryLogPerMsBuildInvocation_WhenTheRunKeepsLogs()
+    public void Run_ShouldWriteABinaryLogPerMsBuildInvocationAndTheBuildGraph_WhenTheRunKeepsLogs()
     {
         // Arrange
         using var fixture = CreateWithApp();
@@ -99,8 +100,11 @@ public sealed class ReleaseCommandIntegrationTests
         // Assert
         Assert.Equal(0, exitCode);
         Assert.Equal(
-            ["build-Release.binlog", "pack-Lib.binlog", "publish-App.binlog", "restore.binlog"],
+            ["build-Release.binlog", "build-graph.json", "pack-Lib.binlog", "publish-App.binlog", "restore.binlog"],
             Directory.EnumerateFiles(logs).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+        var graph = BuildGraphFile.Read(Path.Combine(fixture.Options.DropRoot, "2026.10.07.001", BuildGraphFile.FileName));
+        Assert.Equal(["Debug", "Release"], graph.Configurations.Keys.Order(StringComparer.Ordinal));
+        Assert.Contains(graph.Configurations["Release"], node => node.Project == FixtureRepository.LibraryProject && node.CacheOutcome == "miss");
     }
 
     [Fact]

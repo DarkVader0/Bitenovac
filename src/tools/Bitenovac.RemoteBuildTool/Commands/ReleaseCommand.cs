@@ -21,7 +21,8 @@ internal static class ReleaseCommand
     public static int Run(PipelineOptions options, PipelineOutput output, DateOnly date)
     {
         using var stage = StageRecorder.Start(options, output, "release");
-        var entries = PlanState.Load(options.PlanFile).For("Release");
+        var plan = PlanState.Load(options.PlanFile);
+        var entries = plan.For("Release");
         if (entries.Count == 0)
         {
             output.WriteFailure("the plan selected nothing for Release, so there is nothing to release.");
@@ -53,6 +54,7 @@ internal static class ReleaseCommand
                 }
             }
 
+            BuildGraphFile.Write(staging, options.Identity ?? BuildIdentity.FromEnvironment(_ => null), plan.ByConfiguration);
             Directory.Move(staging, drop);
         }
         finally
