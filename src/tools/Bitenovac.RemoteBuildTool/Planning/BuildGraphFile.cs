@@ -37,14 +37,14 @@ internal sealed record BuildGraphNode(
 /// <param name="BuildId">The build.</param>
 /// <param name="Queue">The build's queue.</param>
 /// <param name="Sha">The commit built.</param>
-/// <param name="FingerprintFormat">The fingerprint rules the hashes follow; hashes of different rules do not compare.</param>
+/// <param name="ToolVersion">The RemoteBuildTool release that planned the build; every hash includes it.</param>
 /// <param name="Configurations">The projects of each configuration, ordered by path.</param>
 internal sealed record BuildGraphFile(
     int SchemaVersion,
     string BuildId,
     string Queue,
     string? Sha,
-    int FingerprintFormat,
+    string ToolVersion,
     IReadOnlyDictionary<string, IReadOnlyList<BuildGraphNode>> Configurations)
 {
     /// <summary>
@@ -66,7 +66,7 @@ internal sealed record BuildGraphFile(
             identity.BuildId,
             identity.Queue,
             identity.Sha,
-            Hashing.FingerprintFormat.Version,
+            Hashing.ToolVersion.Value,
             byConfiguration.ToDictionary(
                 pair => pair.Key,
                 pair => (IReadOnlyList<BuildGraphNode>)[.. pair.Value

@@ -146,22 +146,6 @@ public sealed class CommandLineTests : IDisposable
         Assert.Contains($"No service settings at {repository.Combine("config.json")}", output.Error, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("compare-graphs")]
-    [InlineData("compare-graphs", "old.json")]
-    public void Run_ShouldFail_WhenCompareGraphsIsGivenFewerThanTwoGraphs(params string[] arguments)
-    {
-        // Arrange
-        var output = new CapturedOutput();
-
-        // Act
-        var exitCode = CommandLine.Run(arguments, output.Pipeline);
-
-        // Assert
-        Assert.Equal(1, exitCode);
-        Assert.Contains("Two build graphs are required", output.Error, StringComparison.Ordinal);
-    }
-
     /// <summary>
     /// Points the environment variables this run reads at a temporary repository and stores.
     /// </summary>

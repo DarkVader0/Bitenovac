@@ -124,7 +124,7 @@ internal static class PlanCommand
         var forced = cacheless ? ids.ToHashSet() : null;
         IReadOnlyDictionary<ProjectId, TargetDecision> decisions;
         using (stage.Measure(StagePhase.Hashing))
-            decisions = CachePlanBuilder.Build(graph, ownHashInputs, stored, forced, [FingerprintFormat.Entry]);
+            decisions = CachePlanBuilder.Build(graph, ownHashInputs, stored, forced, [ToolVersion.Entry]);
 
         return ids.Select(id =>
         {
