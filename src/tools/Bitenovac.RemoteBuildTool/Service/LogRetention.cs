@@ -23,18 +23,22 @@ internal static class LogRetention
         if (!Directory.Exists(logsRoot))
             return deleted;
 
-        foreach (var build in new DirectoryInfo(logsRoot).EnumerateDirectories())
+        // Every entry, not only directories: on Linux a link whose folder is gone is not listed as one.
+        foreach (var entry in new DirectoryInfo(logsRoot).EnumerateFileSystemInfos())
         {
-            if (build.LinkTarget is not null)
+            if (entry.LinkTarget is not null)
             {
-                if (build.ResolveLinkTarget(returnFinalTarget: true) is not { Exists: true })
+                if (entry.ResolveLinkTarget(returnFinalTarget: true) is not { Exists: true })
                 {
-                    build.Delete();
-                    deleted.Add(build.Name);
+                    entry.Delete();
+                    deleted.Add(entry.Name);
                 }
 
                 continue;
             }
+
+            if (entry is not DirectoryInfo build)
+                continue;
 
             var days = retentionDays
                 .Where(rule => build.Name.StartsWith(rule.Key, StringComparison.Ordinal))
