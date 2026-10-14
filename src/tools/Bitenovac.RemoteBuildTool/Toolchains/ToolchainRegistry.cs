@@ -1,3 +1,4 @@
+using Bitenovac.RemoteBuildTool.MsBuild;
 using Bitenovac.RemoteBuildTool.Toolchains.DotNet;
 
 namespace Bitenovac.RemoteBuildTool.Toolchains;
@@ -22,7 +23,7 @@ internal sealed class ToolchainRegistry : IDisposable
     }
 
     public static ToolchainRegistry Create(string repositoryRoot) =>
-        new([new DotNetToolchain(repositoryRoot)]);
+        new([new DotNetToolchain(repositoryRoot, new MsBuildRunner())]);
 
     public IReadOnlyList<IToolchain> All => _toolchains;
 

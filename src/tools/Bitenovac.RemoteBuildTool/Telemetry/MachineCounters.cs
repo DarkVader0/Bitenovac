@@ -118,9 +118,6 @@ internal sealed record MachineCounters(
     // "<quota> <period>" in microseconds, or "max <period>" for no limit.
     private static double? ReadCpuLimit(string path)
     {
-        if (!File.Exists(path))
-            return null;
-
         var parts = File.ReadAllText(path).Split(' ', StringSplitOptions.RemoveEmptyEntries);
         return parts.Length == 2
             && long.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var quota)

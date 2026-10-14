@@ -21,11 +21,21 @@ internal sealed record PipelineOutput(TextWriter Out, TextWriter Error, bool Git
     /// Gets an output that writes to the process console, as GitHub Actions expects it when the
     /// process runs in a workflow.
     /// </summary>
-    public static PipelineOutput Console => new(
-        System.Console.Out,
-        System.Console.Error,
-        Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true",
-        Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY") is { Length: > 0 } path ? path : null);
+    public static PipelineOutput Console => FromEnvironment(System.Console.Out, System.Console.Error, Environment.GetEnvironmentVariable);
+
+    /// <summary>
+    /// Returns an output that writes to <paramref name="out"/> and <paramref name="error"/>, as
+    /// GitHub Actions expects it when the environment says the process runs in a workflow.
+    /// </summary>
+    /// <param name="out">Where messages go.</param>
+    /// <param name="error">Where failures go.</param>
+    /// <param name="read">Returns an environment variable's value, or <see langword="null"/> when it is unset.</param>
+    /// <returns>The output.</returns>
+    public static PipelineOutput FromEnvironment(TextWriter @out, TextWriter error, Func<string, string?> read) => new(
+        @out,
+        error,
+        read("GITHUB_ACTIONS") == "true",
+        read("GITHUB_STEP_SUMMARY") is { Length: > 0 } path ? path : null);
 
     /// <summary>
     /// Gets the first failure written, or <see langword="null"/> while there is none.

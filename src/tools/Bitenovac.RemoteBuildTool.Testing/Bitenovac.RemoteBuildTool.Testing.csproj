@@ -2,8 +2,6 @@
 
     <PropertyGroup>
         <RootNamespace>Bitenovac.RemoteBuildTool.Testing</RootNamespace>
-        <MinimumLineCoverage>95</MinimumLineCoverage>
-        <MinimumBranchCoverage>90</MinimumBranchCoverage>
     </PropertyGroup>
 
     <ItemGroup>

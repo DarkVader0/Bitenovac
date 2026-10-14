@@ -24,9 +24,10 @@ internal static class ServeCommand
     /// </summary>
     /// <param name="output">Where the service reports starting and stopping.</param>
     /// <param name="settingsPath">The host settings file.</param>
+    /// <param name="cancellationToken">Stops the service as SIGTERM would.</param>
     /// <returns>0 once stopped.</returns>
     /// <exception cref="InvalidOperationException">The host settings are missing or invalid.</exception>
-    public static int Run(PipelineOutput output, string settingsPath)
+    public static int Run(PipelineOutput output, string settingsPath, CancellationToken cancellationToken = default)
     {
         var host = HostSettings.Load(settingsPath);
         var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
@@ -41,7 +42,8 @@ internal static class ServeCommand
 
         using var service = builder.Build();
         output.WriteLine($"Serving {host.Repository} as {host.EffectiveMachine} in pool {host.Pool}.");
-        service.Run();
+        service.Start();
+        service.WaitForShutdownAsync(cancellationToken).GetAwaiter().GetResult();
         output.WriteLine("Stopped.");
         return 0;
     }

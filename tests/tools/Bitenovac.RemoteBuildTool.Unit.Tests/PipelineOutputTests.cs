@@ -5,6 +5,40 @@ public sealed class PipelineOutputTests
     private static readonly string NewLine = Environment.NewLine;
 
     [Fact]
+    public void Console_ShouldWriteToTheProcessConsole_WhenTheToolRuns()
+    {
+        // Arrange
+        var console = System.Console.Out;
+
+        // Act
+        var output = PipelineOutput.Console;
+
+        // Assert
+        Assert.Same(console, output.Out);
+    }
+
+    [Theory]
+    [InlineData(null, null, false, null)]
+    [InlineData("false", "", false, null)]
+    [InlineData("true", "/runner/summary.md", true, "/runner/summary.md")]
+    public void FromEnvironment_ShouldFollowGitHubActions_WhenItsVariablesAreSet(string? actions, string? summary, bool expectedActions, string? expectedSummary)
+    {
+        // Arrange
+        string? Read(string name) => name switch
+        {
+            "GITHUB_ACTIONS" => actions,
+            "GITHUB_STEP_SUMMARY" => summary,
+            _ => null,
+        };
+
+        // Act
+        var output = PipelineOutput.FromEnvironment(TextWriter.Null, TextWriter.Null, Read);
+
+        // Assert
+        Assert.Equal((expectedActions, expectedSummary), (output.GitHubActions, output.StepSummaryPath));
+    }
+
+    [Fact]
     public void WriteFailure_ShouldWriteAPlainErrorLine_WhenNotUnderGitHubActions()
     {
         // Arrange

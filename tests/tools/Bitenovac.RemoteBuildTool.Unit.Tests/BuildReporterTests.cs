@@ -53,6 +53,27 @@ public sealed class BuildReporterTests
     }
 
     [Fact]
+    public async Task ReportAsync_ShouldPreferWhatTheStagesRecorded_WhenTheyNameTheCommit()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var host = Host(directory);
+        WriteStage(host.TelemetryRoot, "7-1", "refs/pull/62/merge", "merge", 62);
+        var github = new FakeGitHub(
+            runs: """{ "workflow_runs": [ { "id": 7, "run_attempt": 1, "name": "PR", "head_sha": "head", "head_branch": "feature", "updated_at": "2026-10-14T11:00:00Z" } ] }""",
+            jobs: """{ "jobs": [] }""");
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        var reporter = new BuildReporter(new GitHubClient(http, "owner/repo"), host);
+
+        // Act
+        await reporter.ReportAsync([], Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var build = Assert.Single(TelemetryWriter.Read(host.TelemetryRoot, TelemetryWriter.BuildTable, "", TelemetryJsonContext.Default.BuildInfo));
+        Assert.Equal(("refs/pull/62/merge", "merge", 62), (build.Ref, build.Sha, build.PullRequest));
+    }
+
+    [Fact]
     public async Task ReportAsync_ShouldKeepOnlyTheNewest_WhenItRemembersTooMany()
     {
         // Arrange
@@ -81,7 +102,7 @@ public sealed class BuildReporterTests
         Machine = "service-host",
     };
 
-    private static void WriteStage(string root, string buildId) =>
+    private static void WriteStage(string root, string buildId, string? reference = null, string? sha = null, int? pullRequest = null) =>
         TelemetryWriter.Write(root, TelemetryWriter.StageTable, $"{buildId}.plan.host-1", Now,
             [
                 new StageInfo
@@ -91,6 +112,9 @@ public sealed class BuildReporterTests
                     Pool = "docker",
                     Machine = "host-1",
                     Stage = "plan",
+                    Ref = reference,
+                    Sha = sha,
+                    PullRequest = pullRequest,
                     StartTime = Now.AddMinutes(-61),
                     EndTime = Now.AddMinutes(-60),
                     DurationMS = 60_000,

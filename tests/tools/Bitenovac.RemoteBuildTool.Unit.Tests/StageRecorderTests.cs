@@ -214,6 +214,25 @@ public sealed class StageRecorderTests
         Assert.Equal(1, info.ExitCode);
     }
 
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData(0L, 8L << 30)]
+    public void Complete_ShouldLeaveTheMemoryShareOut_WhenTheStageHasNoMemoryLimit(long? containerLimit, long? hostTotal)
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var counters = TestFactory.Counters(containerPeak: 100) with { ContainerMemoryLimitBytes = containerLimit, HostMemoryTotalBytes = hostTotal };
+        using var stage = StageRecorder.Start(TestFactory.TelemetryOptions(directory), TestFactory.Silence(), "plan", null, NoSampling, () => counters);
+
+        // Act
+        stage.Complete(0);
+
+        // Assert
+        var info = Assert.Single(Read(directory, TelemetryWriter.StageTable, TelemetryJsonContext.Default.StageInfo));
+        Assert.Equal(containerLimit, info.MemoryLimitBytes);
+        Assert.Null(info.MemoryUtilization);
+    }
+
     [Fact]
     public void Complete_ShouldRecordTheDropVersion_WhenTheStageDroppedARelease()
     {

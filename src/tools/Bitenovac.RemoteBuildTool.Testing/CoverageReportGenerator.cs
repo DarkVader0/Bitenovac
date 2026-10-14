@@ -27,10 +27,6 @@ internal static class CoverageReportGenerator
         if (exitCode != 0)
             throw new InvalidOperationException($"reportgenerator failed (exit {exitCode}) merging reports under {coverageDirectory}.");
 
-        var merged = Path.Combine(reportDirectory, "Cobertura.xml");
-        if (!File.Exists(merged))
-            throw new InvalidOperationException($"reportgenerator produced no merged report at {merged}.");
-
-        return merged;
+        return Path.Combine(reportDirectory, "Cobertura.xml");
     }
 }

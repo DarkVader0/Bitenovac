@@ -44,24 +44,6 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
         return results;
     }
 
-    /// <summary>
-    /// Returns a copy of the specified project whose package entries in its own-hash inputs are
-    /// replaced with the resolved package closure read from disk.
-    /// </summary>
-    /// <remarks>
-    /// The project is not evaluated again, so this method can be called after a restore. Evaluating
-    /// the same project a second time for the same configuration throws.
-    /// </remarks>
-    public static EvaluatedProject RefreshPackageClosure(EvaluatedProject project)
-    {
-        var refreshedInputs = project.OwnHashInputs
-            .Where(entry => !entry.StartsWith("package:", StringComparison.Ordinal))
-            .Concat(PackageClosureReader.Read(project.FullPath))
-            .ToList();
-
-        return project with { OwnHashInputs = refreshedInputs };
-    }
-
     private EvaluatedProject Evaluate(string relativePath, string configuration)
     {
         var fullPath = Path.Combine(_repositoryRoot, relativePath);
@@ -119,7 +101,7 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
             CoverageName: project.GetPropertyValue("AssemblyName"),
             Properties: new Dictionary<string, string>
             {
-                [DotNetToolchain.RunCommandProperty] = project.GetPropertyValue("RunCommand"),
+                [DotNetToolchain.TargetPathProperty] = project.GetPropertyValue("TargetPath"),
                 [DotNetToolchain.TargetFrameworksProperty] = project.GetPropertyValue("TargetFrameworks"),
                 [DotNetToolchain.OutputTypeProperty] = project.GetPropertyValue("OutputType"),
                 [DotNetToolchain.IsPackableProperty] = project.GetPropertyValue("IsPackable"),

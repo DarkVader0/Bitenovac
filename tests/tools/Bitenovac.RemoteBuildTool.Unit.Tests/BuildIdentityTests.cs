@@ -50,6 +50,32 @@ public sealed class BuildIdentityTests
     }
 
     [Fact]
+    public void FromEnvironment_ShouldNameTheServicesBuild_WhenTheServiceStartsIt()
+    {
+        // Arrange
+        var environment = new Dictionary<string, string>
+        {
+            ["REMOTEBUILDTOOL_BUILD_ID"] = "rebuild-abc-20261014",
+            ["REMOTEBUILDTOOL_QUEUE"] = "Rebuild",
+            ["REMOTEBUILDTOOL_POOL"] = "docker",
+            ["REMOTEBUILDTOOL_MACHINE"] = "service-host",
+            ["REMOTEBUILDTOOL_LOG_RUN"] = "Rebuild_abc/rebuild-abc-20261014",
+            ["GITHUB_RUN_ID"] = "500",
+            ["GITHUB_WORKFLOW"] = "PR",
+            ["GITHUB_REF"] = "refs/heads/master",
+            ["GITHUB_SHA"] = "abc",
+        };
+
+        // Act
+        var identity = BuildIdentity.FromEnvironment(name => environment.GetValueOrDefault(name));
+
+        // Assert
+        Assert.Equal(
+            new BuildIdentity("rebuild-abc-20261014", "Rebuild", "docker", "service-host", null, null, "refs/heads/master", "abc", null, "Rebuild_abc/rebuild-abc-20261014"),
+            identity);
+    }
+
+    [Fact]
     public void FromEnvironment_ShouldDescribeALocalBuildOnThisMachine_WhenNothingIsSet()
     {
         // Arrange

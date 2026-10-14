@@ -27,6 +27,12 @@ internal static class BuildCommand
 {
     public static int Run(PipelineOptions options, string configuration, PipelineOutput output)
     {
+        using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
+        return Run(options, configuration, output, toolchains);
+    }
+
+    public static int Run(PipelineOptions options, string configuration, PipelineOutput output, ToolchainRegistry toolchains)
+    {
         using var stage = StageRecorder.Start(options, output, "build", configuration);
         var plan = PlanState.Load(options.PlanFile);
         var entries = plan.For(configuration);
@@ -36,7 +42,6 @@ internal static class BuildCommand
             return stage.Complete(0);
         }
 
-        using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
         var mainStore = new LocalVolumeArtifactStore(options.MainStoreRoot);
         var prStore = new LocalVolumeArtifactStore(options.PrStoreRoot);
 

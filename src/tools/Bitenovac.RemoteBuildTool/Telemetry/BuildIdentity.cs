@@ -46,9 +46,8 @@ internal sealed partial record BuildIdentity(
                 ? $"{runId}-{Value("GITHUB_RUN_ATTEMPT") ?? "1"}"
                 : $"local-{DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture)}");
         var reference = Value("GITHUB_REF");
-        int? pullRequest = reference is not null && PullRequestRef().Match(reference) is { Success: true } match
-            ? int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)
-            : null;
+        var match = reference is null ? Match.Empty : PullRequestRef().Match(reference);
+        int? pullRequest = match.Success ? int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) : null;
 
         return new BuildIdentity(
             buildId,

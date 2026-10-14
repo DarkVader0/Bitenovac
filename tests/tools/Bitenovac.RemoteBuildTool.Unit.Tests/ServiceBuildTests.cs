@@ -72,6 +72,41 @@ public sealed class ServiceBuildTests
     }
 
     [Fact]
+    public async Task RunAsync_ShouldSkipTheStepsAfterOne_WhenItFails()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var (host, workspace, sha) = Repository(directory);
+        host.MaxCpu = 2;
+        var kind = new ServiceBuildKind("Probe", "Probe", Cacheless: false, [["no-such-command"], ["--version"]]);
+
+        // Act
+        var build = await new ServiceBuild(host, Git).RunAsync(kind, workspace, "master", sha, DateTimeOffset.UtcNow, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal("failure", build.Result);
+        Assert.True(File.Exists(Path.Combine(host.LogsRoot, build.LogsPath!, "no-such-command.log")));
+        Assert.False(File.Exists(Path.Combine(host.LogsRoot, build.LogsPath!, "--version.log")));
+    }
+
+    [Fact]
+    public async Task RunAsync_ShouldReuseTheCheckout_WhenItBuildsAgain()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var (host, workspace, sha) = Repository(directory);
+        var kind = new ServiceBuildKind("Probe", "Probe", Cacheless: true, [["--version"]]);
+        var service = new ServiceBuild(host, Git);
+        await service.RunAsync(kind, workspace, "master", sha, DateTimeOffset.UtcNow, TestContext.Current.CancellationToken);
+
+        // Act
+        var build = await service.RunAsync(kind, workspace, "master", sha, DateTimeOffset.UtcNow, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal("success", build.Result);
+    }
+
+    [Fact]
     public async Task RunAsync_ShouldRecordTheBuildAsCancelled_WhenStoppedWhileItRuns()
     {
         // Arrange

@@ -257,6 +257,14 @@ internal sealed class FixtureRepository : IDisposable
                 </ItemGroup>
             </Project>
             """);
+
+        Write("Directory.Packages.props", "<Project/>");
+        Write(".editorconfig", """
+            root = true
+
+            [*.cs]
+            indent_style = space
+            """);
     }
 
     private void WriteLibrary()

@@ -71,6 +71,27 @@ public sealed class BuildCommandTests
         Assert.Contains("Debug: materialised 0 cache hit(s) from main, 1 already present.", output.Out, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Run_ShouldRebuildAHit_WhenMainNoLongerHoldsIt()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        var entry = TestFactory.Entry("src/A/A.csproj", fullPath: directory.Combine("src/A/A.csproj"), hit: true);
+        TestFactory.Plan("Debug", entry).Save(options.PlanFile);
+        var toolchain = new FakeToolchain();
+        using var registry = toolchain.Registry();
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = BuildCommand.Run(options, "Debug", output.Pipeline, registry);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal(["src/A/A.csproj"], toolchain.Built);
+        Assert.Contains("rebuild src/A/A.csproj: main's entry could not be materialised", output.Out, StringComparison.Ordinal);
+    }
+
     private static PipelineOptions WarmMain(TemporaryDirectory directory)
     {
         var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));

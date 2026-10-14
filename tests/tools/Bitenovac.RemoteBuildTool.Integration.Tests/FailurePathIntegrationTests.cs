@@ -145,7 +145,7 @@ public sealed class FailurePathIntegrationTests
         int exitCode;
         try
         {
-            exitCode = MsBuildRunner.Restore(
+            exitCode = new MsBuildRunner().Restore(
                 fixture.Root,
                 [fixture.Combine(FixtureRepository.LibraryProject)],
                 "Debug",

@@ -21,6 +21,23 @@ public sealed class PipelineOptionsTests : IDisposable
     }
 
     [Fact]
+    public void FromEnvironment_ShouldTreatAVariableAsUnset_WhenItIsEmpty()
+    {
+        // Arrange
+        string? Read(string name) => name == "REMOTEBUILDTOOL_REPO_ROOT" ? "repo" : "";
+
+        // Act
+        var options = PipelineOptions.FromEnvironment(Read);
+
+        // Assert
+        Assert.Equal(Path.Combine("repo", "artifacts", "ci-main"), options.MainStoreRoot);
+        Assert.Equal(Path.Combine("repo", "artifacts", "ci-pr"), options.PrStoreRoot);
+        Assert.Equal(Path.Combine("repo", "artifacts", "official"), options.DropRoot);
+        Assert.Null(options.LogsRoot);
+        Assert.Null(options.TelemetryRoot);
+    }
+
+    [Fact]
     public void FromEnvironment_ShouldUseTheDeclaredRoot_WhenRepositoryRootIsSet()
     {
         // Arrange

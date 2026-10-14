@@ -331,9 +331,7 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
             var target = Path.GetFullPath(Path.GetDirectoryName(current)!);
             var entries = Path.Combine(target, "entries");
             var live = File.ReadAllText(current).Trim();
-            var stale = Directory.Exists(entries)
-                ? Directory.GetDirectories(entries).Where(entry => !kept.Contains(target) || Path.GetFileName(entry) != live).ToList()
-                : [];
+            var stale = Directory.GetDirectories(entries).Where(entry => !kept.Contains(target) || Path.GetFileName(entry) != live).ToList();
 
             deleted += stale.Count;
             if (kept.Contains(target))
@@ -348,13 +346,10 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
         }
 
         var blobsRoot = Path.Combine(_root, BlobsDirectoryName);
-        foreach (var directory in Directory.EnumerateDirectories(_root, "*", SearchOption.AllDirectories)
-            .Where(directory => !directory.StartsWith(blobsRoot, StringComparison.Ordinal))
-            .OrderByDescending(directory => directory.Length)
-            .ToList())
+        foreach (var directory in Directory.GetDirectories(_root))
         {
-            if (!Directory.EnumerateFileSystemEntries(directory).Any())
-                Directory.Delete(directory);
+            if (directory != blobsRoot)
+                DeleteEmptyDirectories(directory);
         }
 
         return deleted;
@@ -425,15 +420,8 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
         var temporary = blobPath + $".tmp-{Guid.NewGuid():N}";
         write(temporary);
 
-        try
-        {
-            File.Move(temporary, blobPath, overwrite: false);
-        }
-        catch (IOException) when (File.Exists(blobPath))
-        {
-            File.Delete(temporary);
-        }
-
+        // A blob is named by its content, so one another writer stored meanwhile holds the same bytes.
+        File.Move(temporary, blobPath, overwrite: true);
         return digest;
     }
 
@@ -465,6 +453,16 @@ public sealed class LocalVolumeArtifactStore : IArtifactStore
         manifest = read;
         hash = new StoredTargetHash(read.OwnHash, read.FullHash);
         return true;
+    }
+
+    // Children first, so a directory their removal leaves empty goes too.
+    private static void DeleteEmptyDirectories(string directory)
+    {
+        foreach (var child in Directory.GetDirectories(directory))
+            DeleteEmptyDirectories(child);
+
+        if (!Directory.EnumerateFileSystemEntries(directory).Any())
+            Directory.Delete(directory);
     }
 
     private static Manifest? ReadManifestFile(string path)

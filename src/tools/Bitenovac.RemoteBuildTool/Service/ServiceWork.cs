@@ -67,7 +67,7 @@ internal abstract class ServiceWork(TimeProvider time, ILogger logger) : Backgro
     {
         try
         {
-            while (!stoppingToken.IsCancellationRequested)
+            while (true)
             {
                 await RunTurnAsync(stoppingToken);
                 await Task.Delay(await IntervalAsync(stoppingToken), time, stoppingToken);

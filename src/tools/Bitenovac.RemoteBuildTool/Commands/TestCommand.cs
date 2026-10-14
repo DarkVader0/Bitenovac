@@ -29,6 +29,12 @@ internal static class TestCommand
 
     public static int Run(PipelineOptions options, string configuration, PipelineOutput output)
     {
+        using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
+        return Run(options, configuration, output, toolchains);
+    }
+
+    public static int Run(PipelineOptions options, string configuration, PipelineOutput output, ToolchainRegistry toolchains)
+    {
         using var stage = StageRecorder.Start(options, output, "test", configuration);
         var plan = PlanState.Load(options.PlanFile);
         var entries = plan.For(configuration);
@@ -38,7 +44,6 @@ internal static class TestCommand
             return stage.Complete(0);
         }
 
-        using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
         var prStore = new LocalVolumeArtifactStore(options.PrStoreRoot);
         var mainStore = new LocalVolumeArtifactStore(options.MainStoreRoot);
 
@@ -264,9 +269,8 @@ internal static class TestCommand
             materialised++;
         }
 
-        if (materialised > 0 || skipped > 0)
-            output.WriteLine($"{configuration}: materialised {materialised} project(s)"
-                + (skipped > 0 ? $", {skipped} already present" : "") + ".");
+        output.WriteLine($"{configuration}: materialised {materialised} project(s)"
+            + (skipped > 0 ? $", {skipped} already present" : "") + ".");
 
         return true;
     }

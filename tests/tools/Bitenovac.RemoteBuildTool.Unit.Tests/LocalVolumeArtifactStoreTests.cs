@@ -638,6 +638,23 @@ public sealed class LocalVolumeArtifactStoreTests
         Assert.Single(Directory.EnumerateFiles(Path.Combine(root, "blobs"), "*", SearchOption.AllDirectories));
     }
 
+    [Fact]
+    public void Prune_ShouldTreatItsBlobsAsUnreferenced_WhenAManifestCannotBeRead()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var root = directory.Combine("store");
+        var store = new LocalVolumeArtifactStore(root);
+        store.Put(Project, "Debug", Source(directory, "bin/A.dll", "content"), Hash);
+        File.WriteAllText(Directory.EnumerateFiles(root, "manifest.json", SearchOption.AllDirectories).Single(), "not json");
+
+        // Act
+        var removed = store.Prune();
+
+        // Assert
+        Assert.Equal(1, removed);
+    }
+
     /// <summary>
     /// Creates a new directory holding one file, ready to be stored with <c>Put</c>.
     /// </summary>

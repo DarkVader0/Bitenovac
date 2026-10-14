@@ -194,8 +194,7 @@ internal static class TelemetryCompactor
 
     private static string Sql(string name)
     {
-        using var stream = typeof(TelemetryCompactor).Assembly.GetManifestResourceStream($"Telemetry.{name}.sql")
-            ?? throw new InvalidOperationException($"The tool is missing its {name}.sql.");
+        using var stream = typeof(TelemetryCompactor).Assembly.GetManifestResourceStream($"Telemetry.{name}.sql")!;
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
     }

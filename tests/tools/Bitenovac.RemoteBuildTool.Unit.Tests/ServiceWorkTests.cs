@@ -51,20 +51,26 @@ public sealed class ServiceWorkTests
     }
 
     [Fact]
-    public async Task RunTurnAsync_ShouldReportAndCarryOn_WhenGitHubCannotBeReached()
+    public async Task RunTurnAsync_ShouldReportAndCarryOn_WhenTheWorkFails()
     {
         // Arrange
         using var directory = TestFactory.Directory();
         await using var service = Create(directory, new FakeGitHub { Reachable = false });
 
+        TestFactory.WriteFile(directory.Combine("telemetry"), "not a directory");
+        service.Time.Now = Morning.AddHours(3);
+
         // Act
-        await service.Work<PromotionService>().RunTurnAsync(TestContext.Current.CancellationToken);
-        await service.Work<BuildReportService>().RunTurnAsync(TestContext.Current.CancellationToken);
+        foreach (var work in service.Provider.GetServices<IHostedService>().Cast<ServiceWork>())
+            await work.RunTurnAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains(service.Messages, message => message.StartsWith("Settings could not be read, the last ones are kept", StringComparison.Ordinal));
-        Assert.Contains(service.Messages, message => message.StartsWith("promotion failed, retried on its next turn", StringComparison.Ordinal));
-        Assert.Contains(service.Messages, message => message.StartsWith("build records failed, retried on its next turn", StringComparison.Ordinal));
+        Assert.Equal(
+            ["build records", "housekeeping", "promotion", "rebuild"],
+            service.Messages.Where(message => message.Contains(" failed, retried on its next turn", StringComparison.Ordinal))
+                .Select(message => message[..message.IndexOf(" failed", StringComparison.Ordinal)])
+                .Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -93,6 +99,9 @@ public sealed class ServiceWorkTests
         var oldLogs = directory.Combine("logs/PR_1/1-1");
         TestFactory.WriteFile(Path.Combine(oldLogs, "plan.log"), "log");
         Directory.SetLastWriteTimeUtc(oldLogs, Morning.UtcDateTime.AddDays(-40));
+        TelemetryWriter.Write(directory.Combine("telemetry"), TelemetryWriter.TargetTable, "1-1.build.host-1", Morning.AddDays(-1),
+            [new TargetInfo { Project = "a", Toolchain = "dotnet", Kind = "build", CacheOutcome = "miss" }],
+            TelemetryJsonContext.Default.TargetInfo);
 
         // Act
         await housekeeping.RunTurnAsync(TestContext.Current.CancellationToken);
@@ -104,6 +113,8 @@ public sealed class ServiceWorkTests
         Assert.False(beforeItsTime);
         Assert.True(File.Exists(directory.Combine("telemetry/telemetry.duckdb")));
         Assert.False(Directory.Exists(oldLogs));
+        Assert.Contains("compacted target 2026-10-13", service.Messages);
+        Assert.Contains(service.Messages, message => message.StartsWith("pruned logs ", StringComparison.Ordinal));
         Assert.Equal(DateOnly.FromDateTime(Morning.UtcDateTime), ServiceState.Load(directory.Combine("work/state/service.json")).HousekeptOn);
     }
 
@@ -145,7 +156,7 @@ public sealed class ServiceWorkTests
     }
 
     [Fact]
-    public async Task StopAsync_ShouldEndEveryService_WhenTheHostStops()
+    public async Task StopAsync_ShouldEndEveryService_WhenItWaitsForItsNextTurn()
     {
         // Arrange
         using var directory = TestFactory.Directory();
@@ -154,14 +165,39 @@ public sealed class ServiceWorkTests
         var hosted = service.Provider.GetServices<IHostedService>().ToList();
         foreach (var work in hosted)
             await work.StartAsync(TestContext.Current.CancellationToken);
+        var waited = new List<bool>();
+        foreach (var _ in hosted)
+            waited.Add(await service.Time.Waiting.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
 
         // Act
         foreach (var work in hosted)
             await work.StopAsync(TestContext.Current.CancellationToken);
 
         // Assert
+        Assert.All(waited, Assert.True);
         Assert.All(hosted.Cast<BackgroundService>(), work => Assert.True(work.ExecuteTask!.IsCompleted));
         Assert.Equal(4, hosted.Count);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ShouldTakeAnotherTurn_WhenItsWaitEnds()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        Stage(directory, "main", store: "main");
+        await using var service = Create(directory, new FakeGitHub());
+        service.Time.Wait = TimeSpan.Zero;
+        var rebuild = service.Work<RebuildService>();
+        await rebuild.StartAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var first = await service.Time.Waiting.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        var second = await service.Time.Waiting.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        await rebuild.StopAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(first && second);
+        Assert.True(rebuild.ExecuteTask!.IsCompletedSuccessfully);
     }
 
     private static void Stage(TemporaryDirectory directory, string buildId, string store = "staging")
@@ -207,7 +243,23 @@ public sealed class ServiceWorkTests
     {
         public DateTimeOffset Now { get; set; }
 
+        /// <summary>
+        /// Gets a count of the waits started on this clock, each until a work's next turn.
+        /// </summary>
+        public SemaphoreSlim Waiting { get; } = new(0);
+
+        /// <summary>
+        /// Gets or sets how long every wait lasts instead of the time it asks for.
+        /// </summary>
+        public TimeSpan? Wait { get; set; }
+
         public override DateTimeOffset GetUtcNow() => Now;
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            Waiting.Release();
+            return base.CreateTimer(callback, state, Wait ?? dueTime, period);
+        }
     }
 
     private sealed class CapturingLoggerProvider(List<string> messages) : ILoggerProvider

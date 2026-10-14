@@ -69,6 +69,26 @@ public sealed class MainStoreWriterTests
         Assert.Contains("Promoted run new-1", output.Out, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task SwitchAsync_ShouldStillSwitchAndPromoteAgain_WhenNeitherRunNamesItsBuild()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var time = new ManualTime { Now = Start.AddMinutes(5) };
+        var writer = new MainStoreWriter(time);
+        await writer.PromoteAsync(Run(directory, "during", "merged during", fullHash: "during", forced: false) with { Identity = null }, TestContext.Current.CancellationToken);
+        var rebuild = Run(directory, "rebuild", "rebuilt", fullHash: "rebuilt", forced: true) with { Identity = null };
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = await writer.SwitchAsync(rebuild, output.Pipeline, Start, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal("merged during", MainContent(directory));
+        Assert.Contains("Promoted run  again, merged while the rebuild ran: Promoted 1 entry into main.", output.Out, StringComparison.Ordinal);
+    }
+
     private static PipelineOptions Run(TemporaryDirectory directory, string name, string content, string fullHash, bool forced)
     {
         var store = directory.Combine($"stores/{name}");

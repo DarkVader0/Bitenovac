@@ -52,7 +52,7 @@ internal static class RepositoryContributions
 
         foreach (var item in project.Items)
         {
-            if (!Contributes(item.Xml?.ContainingProject.FullPath))
+            if (!Contributes(item.Xml.ContainingProject.FullPath))
                 continue;
 
             var metadata = item.DirectMetadata
@@ -65,7 +65,7 @@ internal static class RepositoryContributions
         {
             foreach (var metadata in definition.Metadata)
             {
-                if (Contributes(metadata.Xml?.ContainingProject.FullPath))
+                if (Contributes(metadata.Xml.ContainingProject.FullPath))
                     yield return $"repo-item-definition:{itemType}:{metadata.Name}={Digest(Normal(metadata.EvaluatedValue))}";
             }
         }

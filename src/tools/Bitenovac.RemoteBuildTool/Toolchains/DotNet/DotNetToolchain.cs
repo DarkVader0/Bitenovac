@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Bitenovac.RemoteBuildTool.Core.Processes;
+using Bitenovac.RemoteBuildTool.Hashing;
 using Bitenovac.RemoteBuildTool.MsBuild;
 using Bitenovac.RemoteBuildTool.Planning;
 using Bitenovac.RemoteBuildTool.Telemetry;
@@ -20,15 +21,15 @@ namespace Bitenovac.RemoteBuildTool.Toolchains.DotNet;
 /// published under <c>apps/</c>, and any other packable project is packed under <c>packages/</c>.
 /// </para>
 /// </remarks>
-internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
+internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBuild) : IToolchain
 {
     public const string ToolchainName = "dotnet";
 
     /// <summary>
-    /// The name of the property that holds the test executable reported by MSBuild, which is the
-    /// apphost of a Microsoft.Testing.Platform test project.
+    /// The name of the property that holds the assembly MSBuild builds, which a
+    /// Microsoft.Testing.Platform test project runs as.
     /// </summary>
-    public const string RunCommandProperty = "RunCommand";
+    public const string TargetPathProperty = "TargetPath";
 
     public const string TargetFrameworksProperty = "TargetFrameworks";
 
@@ -70,7 +71,7 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         if (verifyExitCode != 0)
             return ToolchainPreparation.Failed(verifyExitCode);
 
-        var restoreExitCode = Run("restore", $"Restoring {debug.Count} project(s)", StagePhase.Restore, options, output, stage, logs => MsBuildRunner.Restore(
+        var restoreExitCode = Run("restore", $"Restoring {debug.Count} project(s)", StagePhase.Restore, options, output, stage, logs => msBuild.Restore(
             options.RepositoryRoot,
             debug.Select(project => project.FullPath),
             configuration: "Debug",
@@ -85,7 +86,7 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
 
         var refreshed = byConfiguration.ToDictionary(
             pair => pair.Key,
-            pair => (IReadOnlyList<EvaluatedProject>)[.. pair.Value.Select(MsBuildProjectEvaluator.RefreshPackageClosure)]);
+            pair => (IReadOnlyList<EvaluatedProject>)[.. pair.Value.Select(PackageClosureReader.Refresh)]);
 
         RestoreOutputs.Save(options.RepositoryRoot, refreshed["Debug"].Select(project => project.FullPath), options.RestoreOutputsRoot);
 
@@ -112,9 +113,9 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
             var (kind, result) = DeploymentOf(entry) switch
             {
                 Deployment.Publish => ("publish", Run($"publish-{name}", $"{name}: publish", StagePhase.Publish, options, output, stage, logs =>
-                    MsBuildRunner.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name), logs))),
+                    msBuild.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name), logs))),
                 Deployment.Pack => ("pack", Run($"pack-{name}", $"{name}: pack", StagePhase.Pack, options, output, stage, logs =>
-                    MsBuildRunner.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"), logs))),
+                    msBuild.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"), logs))),
                 _ => ((string?)null, (ProcessResult?)null),
             };
 
@@ -163,7 +164,7 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
 
         if (unrestored.Count > 0)
         {
-            var restoreExitCode = Run($"restore-{configuration}", $"Restoring {unrestored.Count} project(s) plan did not restore", StagePhase.Restore, options, output, stage, logs => MsBuildRunner.Restore(
+            var restoreExitCode = Run($"restore-{configuration}", $"Restoring {unrestored.Count} project(s) plan did not restore", StagePhase.Restore, options, output, stage, logs => msBuild.Restore(
                 options.RepositoryRoot,
                 unrestored.Select(entry => entry.FullPath),
                 configuration,
@@ -178,7 +179,7 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
         }
 
         var step = $"build-{configuration}";
-        var exitCode = Run(step, $"Building {entries.Count} project(s) ({configuration})", StagePhase.Build, options, output, stage, logs => MsBuildRunner.Build(
+        var exitCode = Run(step, $"Building {entries.Count} project(s) ({configuration})", StagePhase.Build, options, output, stage, logs => msBuild.Build(
             options.RepositoryRoot,
             entries.Select(entry => entry.FullPath),
             configuration,
@@ -213,15 +214,15 @@ internal sealed class DotNetToolchain(string repositoryRoot) : IToolchain
 
     public TestRunResult RunTests(PlanEntry entry, string configuration, string resultsFilePrefix, string resultsDirectory)
     {
-        var executable = entry.Properties.GetValueOrDefault(RunCommandProperty, "");
-        if (!File.Exists(executable))
-            throw new InvalidOperationException($"No built test executable found for {entry.ProjectPath} ({configuration}) at '{executable}'. Run 'build' first.");
+        var assembly = entry.Properties.GetValueOrDefault(TargetPathProperty, "");
+        if (!File.Exists(assembly))
+            throw new InvalidOperationException($"No built test assembly found for {entry.ProjectPath} ({configuration}) at '{assembly}'. Run 'build' first.");
 
-        return TestRunner.Run(executable, resultsFilePrefix, resultsDirectory, ReportOf(entry));
+        return TestRunner.Run(assembly, resultsFilePrefix, resultsDirectory, ReportOf(entry));
     }
 
     // The resolved packages are among the hash inputs as "package:<id>/<version>", transitive ones too.
-    private static TestReport ReportOf(PlanEntry entry)
+    public static TestReport ReportOf(PlanEntry entry)
     {
         bool References(string package) => entry.OwnHashInputs.Any(input =>
             input.StartsWith($"package:{package}/", StringComparison.OrdinalIgnoreCase));

@@ -60,7 +60,8 @@ public sealed class GitHubClientTests
               "workflow_runs": [
                 { "id": 7, "run_attempt": 2, "name": "PR", "conclusion": "failure", "head_sha": "abc", "head_branch": "feature",
                   "pull_requests": [ { "number": 62 } ], "updated_at": "2026-10-14T10:05:00Z" },
-                { "id": 8, "updated_at": "2026-10-14T11:00:00Z", "pull_requests": [] }
+                { "id": 8, "updated_at": "2026-10-14T11:00:00Z", "pull_requests": [] },
+                { "id": 9, "run_attempt": null, "name": null, "conclusion": null, "pull_requests": null, "event": null, "updated_at": "2026-10-14T12:00:00Z" }
               ]
             }
             """);
@@ -75,6 +76,7 @@ public sealed class GitHubClientTests
             [
                 new WorkflowRun(7, 2, "PR", "failure", "abc", "feature", 62, new DateTimeOffset(2026, 10, 14, 10, 5, 0, TimeSpan.Zero)),
                 new WorkflowRun(8, 1, "", "unknown", null, null, null, new DateTimeOffset(2026, 10, 14, 11, 0, 0, TimeSpan.Zero)),
+                new WorkflowRun(9, 1, "", "unknown", null, null, null, new DateTimeOffset(2026, 10, 14, 12, 0, 0, TimeSpan.Zero)),
             ],
             runs);
         Assert.Equal("7-2", runs[0].BuildId);

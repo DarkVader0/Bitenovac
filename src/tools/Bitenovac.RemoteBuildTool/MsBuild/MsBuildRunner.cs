@@ -13,15 +13,17 @@ namespace Bitenovac.RemoteBuildTool.MsBuild;
 /// its own value, where a global property would override it.
 /// </para>
 /// </remarks>
-internal static class MsBuildRunner
+internal sealed class MsBuildRunner : IMsBuildRunner
 {
-    public static ProcessResult Restore(string repositoryRoot, IEnumerable<string> projectFullPaths, string configuration, string solutionPath, MsBuildLogs logs)
+    /// <inheritdoc/>
+    public ProcessResult Restore(string repositoryRoot, IEnumerable<string> projectFullPaths, string configuration, string solutionPath, MsBuildLogs logs)
     {
         SyntheticSolution.Write(solutionPath, projectFullPaths);
         return RunMsBuild(repositoryRoot, solutionPath, "Restore", configuration, graph: false, new Dictionary<string, string>(), logs);
     }
 
-    public static ProcessResult Build(
+    /// <inheritdoc/>
+    public ProcessResult Build(
         string repositoryRoot,
         IEnumerable<string> projectFullPaths,
         string configuration,
@@ -33,18 +35,12 @@ internal static class MsBuildRunner
         return RunMsBuild(repositoryRoot, solutionPath, "Build", configuration, graph: true, defaultProperties, logs);
     }
 
-    /// <summary>
-    /// Packs a project already built in Release into <paramref name="outputDirectory"/>.
-    /// </summary>
-    /// <returns>The exit code of MSBuild and what it used.</returns>
-    public static ProcessResult Pack(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs) =>
+    /// <inheritdoc/>
+    public ProcessResult Pack(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs) =>
         RunDotNet(repositoryRoot, "pack", projectFullPath, defaultProperties, outputDirectory, logs);
 
-    /// <summary>
-    /// Publishes a project already built in Release into <paramref name="outputDirectory"/>.
-    /// </summary>
-    /// <returns>The exit code of MSBuild and what it used.</returns>
-    public static ProcessResult Publish(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs) =>
+    /// <inheritdoc/>
+    public ProcessResult Publish(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs) =>
         RunDotNet(repositoryRoot, "publish", projectFullPath, defaultProperties, outputDirectory, logs);
 
     private static ProcessResult RunDotNet(

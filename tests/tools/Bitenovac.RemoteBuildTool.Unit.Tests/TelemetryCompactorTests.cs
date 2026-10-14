@@ -47,6 +47,24 @@ public sealed class TelemetryCompactorTests
     }
 
     [Fact]
+    public void Compact_ShouldKeepWhatItCompactedAndSkipAnEmptyDay_WhenItRunsAgain()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var root = directory.Combine("telemetry");
+        WriteStage(root, "1-1", Yesterday);
+        TelemetryCompactor.Compact(root, Today);
+        Directory.CreateDirectory(Path.Combine(root, "stage", "date=2026-10-14"));
+
+        // Act
+        var compacted = TelemetryCompactor.Compact(root, Today.AddDays(1));
+
+        // Assert
+        Assert.Empty(compacted);
+        Assert.Equal(["1-1"], Query(root, "SELECT BuildId FROM stage"));
+    }
+
+    [Fact]
     public void Compact_ShouldFinishWhatAStoppedRunMovedAside_WhenItRunsAgain()
     {
         // Arrange

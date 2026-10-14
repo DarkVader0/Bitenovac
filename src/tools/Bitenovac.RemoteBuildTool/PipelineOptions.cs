@@ -20,37 +20,28 @@ internal sealed record PipelineOptions(
 {
     public static readonly string[] Configurations = ["Debug", "Release"];
 
-    public static PipelineOptions FromEnvironment()
+    public static PipelineOptions FromEnvironment() => FromEnvironment(Environment.GetEnvironmentVariable);
+
+    /// <summary>
+    /// Reads the options from <c>REMOTEBUILDTOOL_*</c> variables; an empty one counts as unset.
+    /// </summary>
+    /// <param name="read">Returns a variable's value, or <see langword="null"/> when it is unset.</param>
+    /// <returns>The options.</returns>
+    public static PipelineOptions FromEnvironment(Func<string, string?> read)
     {
-        var repositoryRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_REPO_ROOT") is { Length: > 0 } repo
-            ? repo
-            : Directory.GetCurrentDirectory();
+        string? Value(string name) => read(name) is { Length: > 0 } value ? value : null;
 
-        var mainStoreRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_MAIN_STORE") is { Length: > 0 } main
-            ? main
-            : Path.Combine(repositoryRoot, "artifacts", "ci-main");
-
-        var prStoreRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_PR_STORE") is { Length: > 0 } pr
-            ? pr
-            : Path.Combine(repositoryRoot, "artifacts", "ci-pr");
-
-        var dropRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_DROP_ROOT") is { Length: > 0 } drop
-            ? drop
-            : Path.Combine(repositoryRoot, "artifacts", "official");
-
-        var cacheless = IsTrue(Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_CACHELESS"));
-        var coverageHtml = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_COVERAGE_HTML") != "0";
-
-        var logsRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_LOGS_DIR") is { Length: > 0 } logs
-            ? logs
-            : null;
-
-        var telemetryRoot = Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_TELEMETRY_DIR") is { Length: > 0 } telemetry
-            ? telemetry
-            : null;
-
-        return new PipelineOptions(repositoryRoot, mainStoreRoot, prStoreRoot, dropRoot, cacheless, coverageHtml, logsRoot, telemetryRoot,
-            BuildIdentity.FromEnvironment(Environment.GetEnvironmentVariable));
+        var repositoryRoot = Value("REMOTEBUILDTOOL_REPO_ROOT") ?? Directory.GetCurrentDirectory();
+        return new PipelineOptions(
+            repositoryRoot,
+            Value("REMOTEBUILDTOOL_MAIN_STORE") ?? Path.Combine(repositoryRoot, "artifacts", "ci-main"),
+            Value("REMOTEBUILDTOOL_PR_STORE") ?? Path.Combine(repositoryRoot, "artifacts", "ci-pr"),
+            Value("REMOTEBUILDTOOL_DROP_ROOT") ?? Path.Combine(repositoryRoot, "artifacts", "official"),
+            IsTrue(read("REMOTEBUILDTOOL_CACHELESS")),
+            read("REMOTEBUILDTOOL_COVERAGE_HTML") != "0",
+            Value("REMOTEBUILDTOOL_LOGS_DIR"),
+            Value("REMOTEBUILDTOOL_TELEMETRY_DIR"),
+            BuildIdentity.FromEnvironment(read));
     }
 
     public string PlanFile => Path.Combine(PrStoreRoot, "plan.json");

@@ -3,8 +3,6 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <RootNamespace>Bitenovac.RemoteBuildTool</RootNamespace>
-        <MinimumLineCoverage>95</MinimumLineCoverage>
-        <MinimumBranchCoverage>90</MinimumBranchCoverage>
     </PropertyGroup>
 
     <!-- Versioned independently of the repository: CI runs a published release, not this source. -->

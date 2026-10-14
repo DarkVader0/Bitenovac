@@ -4,7 +4,7 @@ namespace Bitenovac.RemoteBuildTool.Telemetry;
 /// Samples the machine and the stage's container while a stage runs: once when it starts, every
 /// interval after that, and once when it stops.
 /// </summary>
-internal sealed class MachineSampler : IDisposable
+internal sealed class MachineSampler
 {
     private readonly BuildIdentity _identity;
     private readonly string _stage;
@@ -49,11 +49,9 @@ internal sealed class MachineSampler : IDisposable
     }
 
     /// <summary>
-    /// Stops sampling without a last sample.
+    /// Takes a sample, as the timer does every interval; once stopped, takes none.
     /// </summary>
-    public void Dispose() => _timer.Dispose();
-
-    private void SampleNow()
+    public void SampleNow()
     {
         lock (_gate)
         {
@@ -78,7 +76,7 @@ internal sealed class MachineSampler : IDisposable
             HostCpuUtilization = now.HostCpuUtilizationSince(earlier),
             HostMemoryUsedBytes = now.HostMemoryUsedBytes,
             HostMemoryTotalBytes = now.HostMemoryTotalBytes,
-            HostMemoryUtilization = now.HostMemoryTotalBytes > 0 ? (double?)now.HostMemoryUsedBytes / now.HostMemoryTotalBytes : null,
+            HostMemoryUtilization = (now.HostMemoryTotalBytes, now.HostMemoryAvailableBytes) is (long total and > 0, { } available) ? (double)(total - available) / total : null,
             ContainerCpuMS = now.ContainerCpuTime is { } cpu ? (long)cpu.TotalMilliseconds : null,
             ContainerMemoryBytes = now.ContainerMemoryBytes,
             ContainerMemoryLimitBytes = now.ContainerMemoryLimitBytes,

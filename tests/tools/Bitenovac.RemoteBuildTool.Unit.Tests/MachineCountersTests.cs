@@ -52,6 +52,40 @@ public sealed class MachineCountersTests
         Assert.Null(counters.ContainerCpuTime);
     }
 
+    [Theory]
+    [InlineData("150000")]
+    [InlineData("150000 soon")]
+    [InlineData("150000 0")]
+    public void Read_ShouldLeaveTheCpuLimitOut_WhenCpuMaxCannotBeRead(string cpuMax)
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.WriteFile(directory.Combine("cgroup/cpu.max"), cpuMax);
+
+        // Act
+        var counters = MachineCounters.Read(directory.Combine("proc"), directory.Combine("cgroup"));
+
+        // Assert
+        Assert.Null(counters.ContainerCpuLimit);
+    }
+
+    [Fact]
+    public void Read_ShouldReadWhatIsThere_WhenTheHostsFilesAreShortOrMalformed()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.WriteFile(directory.Combine("proc/stat"), "cpu  10 0 5 30\n");
+        TestFactory.WriteFile(directory.Combine("proc/meminfo"), "MemTotal:       8000 kB\nHugePages\nMemAvailable:   unknown kB\n");
+
+        // Act
+        var counters = MachineCounters.Read(directory.Combine("proc"), directory.Combine("cgroup"));
+
+        // Assert
+        Assert.Equal((10 + 5, 10 + 5 + 30), (counters.HostCpuBusyTicks, counters.HostCpuTotalTicks));
+        Assert.Equal(8000 * 1024, counters.HostMemoryTotalBytes);
+        Assert.Null(counters.HostMemoryAvailableBytes);
+    }
+
     [Fact]
     public void Read_ShouldReadNoContainer_WhenTheCgroupIsNotAContainersOwn()
     {

@@ -48,4 +48,26 @@ public sealed class CoverageCheckTests
         Assert.Equal(1, exitCode);
         Assert.Contains("no coverage reports under", error.ToString(), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Run_ShouldThrow_WhenTheReportsCannotBeMerged()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.WriteFile(directory.Combine("coverage/A.Tests.coverage.cobertura.xml"), "<coverage/>");
+        var location = new CoverageReportLocation(directory.Path, directory.Combine("coverage"), directory.Combine("report"), IncludeHtml: false);
+        var project = new ProjectId("src/A/A.csproj");
+
+        // Act
+        Action act = () => CoverageCheck.Run(
+            new Dictionary<ProjectId, CoveragePolicy> { [project] = new(100, 100) },
+            new Dictionary<ProjectId, string> { [project] = "A" },
+            location,
+            TextWriter.Null,
+            TextWriter.Null);
+
+        // Assert
+        var exception = Assert.Throws<InvalidOperationException>(act);
+        Assert.StartsWith("reportgenerator failed", exception.Message, StringComparison.Ordinal);
+    }
 }

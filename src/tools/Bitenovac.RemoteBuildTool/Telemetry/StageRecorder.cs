@@ -249,7 +249,7 @@ internal sealed class StageRecorder : IDisposable
             CpuUtilization = allocatedCpuMS > 0 ? cpu.TotalMilliseconds / allocatedCpuMS : null,
             PeakMemoryBytes = peakMemory,
             MemoryLimitBytes = memoryLimit,
-            MemoryUtilization = memoryLimit > 0 ? (double)peakMemory / memoryLimit : null,
+            MemoryUtilization = memoryLimit is long limit and > 0 ? (double)peakMemory / limit : null,
             LogsPath = _identity.LogsPath,
             DropVersion = _dropVersion,
         };

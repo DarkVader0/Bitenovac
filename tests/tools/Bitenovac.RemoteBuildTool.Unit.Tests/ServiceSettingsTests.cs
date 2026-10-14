@@ -50,12 +50,14 @@ public sealed class ServiceSettingsTests
         Assert.Equal("host-1", settings.EffectiveMachine);
     }
 
-    [Fact]
-    public void HostSettingsLoad_ShouldCloneFromGitHubAsThisMachine_WhenTheFileNamesNeither()
+    [Theory]
+    [InlineData("""{ "repository": "owner/repo", "gitHubToken": "secret" }""")]
+    [InlineData("""{ "repository": "owner/repo", "gitHubToken": "secret", "cloneUrl": "", "machine": "" }""")]
+    public void HostSettingsLoad_ShouldCloneFromGitHubAsThisMachine_WhenTheFileNamesNeither(string content)
     {
         // Arrange
         using var directory = TestFactory.Directory();
-        var path = TestFactory.WriteFile(directory.Combine("config.json"), """{ "repository": "owner/repo", "gitHubToken": "secret" }""");
+        var path = TestFactory.WriteFile(directory.Combine("config.json"), content);
 
         // Act
         var settings = HostSettings.Load(path);

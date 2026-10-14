@@ -73,6 +73,6 @@ internal sealed class MainStoreWriter(TimeProvider time)
     {
         using var log = new StringWriter();
         exitCode = PromoteCommand.Run(run, new PipelineOutput(log, log));
-        return log.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault() ?? "";
+        return log.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[^1];
     }
 }

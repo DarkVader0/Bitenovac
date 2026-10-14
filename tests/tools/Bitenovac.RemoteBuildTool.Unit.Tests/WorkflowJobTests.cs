@@ -13,7 +13,7 @@ public sealed class WorkflowJobTests
               "total_count": 3,
               "jobs": [
                 { "name": "Plan", "created_at": "2026-10-14T10:00:00Z", "started_at": "2026-10-14T10:00:05Z", "completed_at": "2026-10-14T10:00:50Z" },
-                { "name": "PR", "created_at": "2026-10-14T10:03:00Z", "started_at": null, "completed_at": null },
+                { "name": "PR", "created_at": "2026-10-14T10:03:00Z", "started_at": "queued", "completed_at": null },
                 { "name": "Broken" }
               ]
             }

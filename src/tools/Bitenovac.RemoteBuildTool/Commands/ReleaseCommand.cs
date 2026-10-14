@@ -20,6 +20,12 @@ internal static class ReleaseCommand
 
     public static int Run(PipelineOptions options, PipelineOutput output, DateOnly date)
     {
+        using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
+        return Run(options, output, date, toolchains);
+    }
+
+    public static int Run(PipelineOptions options, PipelineOutput output, DateOnly date, ToolchainRegistry toolchains)
+    {
         using var stage = StageRecorder.Start(options, output, "release");
         var plan = PlanState.Load(options.PlanFile);
         var entries = plan.For("Release");
@@ -36,7 +42,6 @@ internal static class ReleaseCommand
 
         output.WriteLine($"==> Release {version}");
 
-        using var toolchains = ToolchainRegistry.Create(options.RepositoryRoot);
         try
         {
             if (Directory.Exists(staging))
