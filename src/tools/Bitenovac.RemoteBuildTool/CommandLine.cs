@@ -79,7 +79,7 @@ internal static class CommandLine
               remotebuildtool graph             Print the graph with each target's hashes
               remotebuildtool compare-graphs <old> <new>
                                                 Show how the build graph changed between two builds
-              remotebuildtool serve             Run the service: fill main from the watched branch, record
+              remotebuildtool serve             Run the service: fill main from merged pull requests, record
                                                 builds, compact telemetry, prune logs, audit the cache
 
             Environment:

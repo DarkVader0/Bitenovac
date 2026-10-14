@@ -173,19 +173,19 @@ public sealed class ServiceSettingsTests
         var path = directory.Combine("state/service.json");
         var state = new ServiceState
         {
-            RefreshedSha = "abc",
+            PromotedPullRequests = [5, 6],
             HousekeptOn = new DateOnly(2026, 10, 14),
             AuditedOn = new DateOnly(2026, 10, 13),
             ReportedBuilds = ["1-1", "2-1"],
         };
 
         // Act
-        new ServiceState { RefreshedSha = "old" }.Save(path);
+        new ServiceState { PromotedPullRequests = [1] }.Save(path);
         state.Save(path);
         var read = ServiceState.Load(path);
 
         // Assert
-        Assert.Equal(state.RefreshedSha, read.RefreshedSha);
+        Assert.Equal(state.PromotedPullRequests, read.PromotedPullRequests);
         Assert.Equal(state.HousekeptOn, read.HousekeptOn);
         Assert.Equal(state.AuditedOn, read.AuditedOn);
         Assert.Equal(state.ReportedBuilds, read.ReportedBuilds);
@@ -207,7 +207,7 @@ public sealed class ServiceSettingsTests
         var state = ServiceState.Load(path);
 
         // Assert
-        Assert.Null(state.RefreshedSha);
+        Assert.Empty(state.PromotedPullRequests);
         Assert.Empty(state.ReportedBuilds);
     }
 

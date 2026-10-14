@@ -7,7 +7,6 @@
   "cacheAuditConfiguration": "Debug",
   "logRetentionDays": {
     "PR_": 30,
-    "CacheRefresh_": 30,
     "CacheAudit_": 30,
     "Official_": 365
   }

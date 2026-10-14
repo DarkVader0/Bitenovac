@@ -15,13 +15,23 @@ namespace Bitenovac.RemoteBuildTool.Service;
 /// <param name="HeadBranch">The branch it ran on.</param>
 /// <param name="PullRequest">The pull request it ran for, if any.</param>
 /// <param name="UpdatedAt">When it last changed, which for a completed run is when it ended.</param>
-internal sealed record WorkflowRun(long Id, int Attempt, string Workflow, string Conclusion, string? HeadSha, string? HeadBranch, int? PullRequest, DateTimeOffset UpdatedAt)
+/// <param name="Event">What started it, such as <c>pull_request</c> or <c>merge_group</c>.</param>
+internal sealed record WorkflowRun(long Id, int Attempt, string Workflow, string Conclusion, string? HeadSha, string? HeadBranch, int? PullRequest, DateTimeOffset UpdatedAt, string Event = "")
 {
     /// <summary>
     /// Gets the build id its stages recorded, the run id and the attempt.
     /// </summary>
     public string BuildId => $"{Id.ToString(CultureInfo.InvariantCulture)}-{Attempt.ToString(CultureInfo.InvariantCulture)}";
 }
+
+/// <summary>
+/// Represents a merged pull request, as the GitHub REST API lists it.
+/// </summary>
+/// <param name="Number">Its number.</param>
+/// <param name="HeadSha">The commit its branch ended on, which its own runs built.</param>
+/// <param name="MergeCommitSha">The commit merging it made on the base branch, which a merge queue's run built.</param>
+/// <param name="MergedAt">When it was merged.</param>
+internal sealed record MergedPullRequest(int Number, string HeadSha, string? MergeCommitSha, DateTimeOffset MergedAt);
 
 /// <summary>
 /// Provides the GitHub REST API calls the service needs: a branch's head and the completed runs
@@ -90,6 +100,62 @@ internal sealed class GitHubClient(HttpClient http, string repository)
     }
 
     /// <summary>
+    /// Returns a file of the default branch, or <see langword="null"/> when it has none.
+    /// </summary>
+    /// <param name="path">The file's path in the repository.</param>
+    /// <param name="cancellationToken">Stops the request.</param>
+    /// <returns>The file's text.</returns>
+    /// <exception cref="HttpRequestException">GitHub refused or could not be reached.</exception>
+    public async Task<string?> DefaultBranchFileAsync(string path, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"repos/{repository}/contents/{path}");
+        request.Headers.Accept.Clear();
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.raw+json"));
+        using var response = await http.SendAsync(request, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns the pull requests into <paramref name="branch"/> that were merged, most recently
+    /// updated first.
+    /// </summary>
+    /// <param name="branch">The branch they were merged into.</param>
+    /// <param name="cancellationToken">Stops the request.</param>
+    /// <returns>The merged pull requests among the 100 closed ones updated last.</returns>
+    /// <exception cref="HttpRequestException">GitHub refused or could not be reached.</exception>
+    public async Task<IReadOnlyList<MergedPullRequest>> MergedPullRequestsAsync(string branch, CancellationToken cancellationToken)
+    {
+        using var document = await GetJsonAsync(
+            $"repos/{repository}/pulls?state=closed&base={Uri.EscapeDataString(branch)}&sort=updated&direction=desc&per_page=100", cancellationToken);
+
+        return [.. document.RootElement.EnumerateArray()
+            .Where(pull => pull.TryGetProperty("merged_at", out var merged) && merged.ValueKind == JsonValueKind.String)
+            .Select(pull => new MergedPullRequest(
+                pull.GetProperty("number").GetInt32(),
+                pull.GetProperty("head").GetProperty("sha").GetString() ?? "",
+                pull.TryGetProperty("merge_commit_sha", out var merge) ? merge.GetString() : null,
+                pull.GetProperty("merged_at").GetDateTimeOffset()))];
+    }
+
+    /// <summary>
+    /// Returns the runs on a commit that succeeded, newest first.
+    /// </summary>
+    /// <param name="headSha">The commit.</param>
+    /// <param name="cancellationToken">Stops the request.</param>
+    /// <returns>The runs.</returns>
+    /// <exception cref="HttpRequestException">GitHub refused or could not be reached.</exception>
+    public async Task<IReadOnlyList<WorkflowRun>> SuccessfulRunsAsync(string headSha, CancellationToken cancellationToken)
+    {
+        using var document = await GetJsonAsync(
+            $"repos/{repository}/actions/runs?head_sha={Uri.EscapeDataString(headSha)}&status=success&per_page=20", cancellationToken);
+        return [.. document.RootElement.GetProperty("workflow_runs").EnumerateArray().Select(Run).OrderByDescending(run => run.UpdatedAt)];
+    }
+
+    /// <summary>
     /// Returns the jobs of one attempt of a run, as the API's JSON for <see cref="Telemetry.WorkflowJob.Parse"/>.
     /// </summary>
     /// <param name="run">The run and attempt.</param>
@@ -119,5 +185,6 @@ internal sealed class GitHubClient(HttpClient http, string repository)
         run.TryGetProperty("pull_requests", out var pulls) && pulls.ValueKind == JsonValueKind.Array && pulls.GetArrayLength() > 0
             ? pulls[0].GetProperty("number").GetInt32()
             : null,
-        run.GetProperty("updated_at").GetDateTimeOffset());
+        run.GetProperty("updated_at").GetDateTimeOffset(),
+        run.TryGetProperty("event", out var trigger) ? trigger.GetString() ?? "" : "");
 }

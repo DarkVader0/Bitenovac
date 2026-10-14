@@ -9,9 +9,8 @@
 #
 # Layout, one folder per pull request or build, holding one folder per run attempt:
 #
-#   PR_<pr number>/<run id>-<attempt>/
-#   CacheRefresh_<commit>/<build id>/                the service's builds
-#   CacheAudit_<commit>/<build id>/
+#   PR_<pr number or queue>/<run id>-<attempt>/
+#   CacheAudit_<commit>/<build id>/                  the service's audits
 #   Official_<drop version>/<run id>-<attempt>/
 #   Official_failed_<run number>/...                a release that dropped nothing
 #

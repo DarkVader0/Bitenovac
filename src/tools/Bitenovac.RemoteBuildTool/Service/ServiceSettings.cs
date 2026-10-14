@@ -52,6 +52,12 @@ internal sealed record HostSettings
     public string MainStore { get; set; } = "/mnt/main";
 
     /// <summary>
+    /// Gets or sets the staging store: every PR and merge queue run's own artifact store, one folder
+    /// per run, kept a day for promotion.
+    /// </summary>
+    public string StagingRoot { get; set; } = "/mnt/staging";
+
+    /// <summary>
     /// Gets or sets the logs share.
     /// </summary>
     public string LogsRoot { get; set; } = "/mnt/logs";
@@ -90,7 +96,7 @@ internal sealed record HostSettings
         if (!File.Exists(path))
             throw new InvalidOperationException($"No service settings at {path}. runner/setup-runner.sh writes them.");
 
-        var settings = Deserialize(path, ServiceJsonContext.Default.HostSettings);
+        var settings = Deserialize(File.ReadAllText(path), path, ServiceJsonContext.Default.HostSettings);
         if (!settings.Repository.Contains('/', StringComparison.Ordinal))
             throw new InvalidOperationException($"{path}: 'repository' must be owner/name, got '{settings.Repository}'.");
         if (settings.GitHubToken.Length == 0)
@@ -99,23 +105,23 @@ internal sealed record HostSettings
         return settings;
     }
 
-    internal static T Deserialize<T>(string path, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo)
+    internal static T Deserialize<T>(string text, string source, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo)
     {
         try
         {
-            return JsonSerializer.Deserialize(File.ReadAllText(path), typeInfo)
-                ?? throw new InvalidOperationException($"{path} is empty.");
+            return JsonSerializer.Deserialize(text, typeInfo)
+                ?? throw new InvalidOperationException($"{source} is empty.");
         }
         catch (JsonException exception)
         {
-            throw new InvalidOperationException($"{path} is not valid: {exception.Message}");
+            throw new InvalidOperationException($"{source} is not valid: {exception.Message}");
         }
     }
 }
 
 /// <summary>
 /// Represents the repository's side of the service's settings: what to watch and when to run.
-/// Read from <c>remotebuildtool.json</c> at the root of the watched branch; every field has a
+/// Read from <c>remotebuildtool.json</c> at the root of the default branch; every field has a
 /// default, so the file is optional.
 /// </summary>
 internal sealed record RepositorySettings
@@ -126,12 +132,12 @@ internal sealed record RepositorySettings
     public const string FileName = "remotebuildtool.json";
 
     /// <summary>
-    /// Gets or sets the branch whose commits fill main.
+    /// Gets or sets the branch whose merged pull requests fill main and whose head the audit rebuilds.
     /// </summary>
     public string Branch { get; set; } = "master";
 
     /// <summary>
-    /// Gets or sets how often to look for a new commit on <see cref="Branch"/>, in seconds.
+    /// Gets or sets how often to look for pull requests merged into <see cref="Branch"/>, in seconds.
     /// </summary>
     public int PollSeconds { get; set; } = 60;
 
@@ -161,7 +167,6 @@ internal sealed record RepositorySettings
     public IReadOnlyDictionary<string, int> LogRetentionDays { get; set; } = new Dictionary<string, int>(StringComparer.Ordinal)
     {
         ["PR_"] = 30,
-        ["CacheRefresh_"] = 30,
         ["CacheAudit_"] = 30,
         ["Official_"] = 365,
     };
@@ -175,14 +180,26 @@ internal sealed record RepositorySettings
     public static RepositorySettings Load(string repositoryRoot)
     {
         var path = Path.Combine(repositoryRoot, FileName);
-        if (!File.Exists(path))
+        return Parse(File.Exists(path) ? File.ReadAllText(path) : null, path);
+    }
+
+    /// <summary>
+    /// Reads the settings from the file's text.
+    /// </summary>
+    /// <param name="text">The file's text, or <see langword="null"/> when there is no file.</param>
+    /// <param name="source">Where the text came from, for messages.</param>
+    /// <returns>The settings, or the defaults when there is no file.</returns>
+    /// <exception cref="InvalidOperationException">The file is malformed or out of range.</exception>
+    public static RepositorySettings Parse(string? text, string source)
+    {
+        if (text is null)
             return new RepositorySettings();
 
-        var settings = HostSettings.Deserialize(path, ServiceJsonContext.Default.RepositorySettings);
+        var settings = HostSettings.Deserialize(text, source, ServiceJsonContext.Default.RepositorySettings);
         if (settings.PollSeconds < 10 || settings.BuildReportSeconds < 10)
-            throw new InvalidOperationException($"{path}: 'pollSeconds' and 'buildReportSeconds' must be at least 10.");
+            throw new InvalidOperationException($"{source}: 'pollSeconds' and 'buildReportSeconds' must be at least 10.");
         if (settings.Branch.Length == 0)
-            throw new InvalidOperationException($"{path}: 'branch' must not be empty.");
+            throw new InvalidOperationException($"{source}: 'branch' must not be empty.");
 
         return settings;
     }

@@ -25,7 +25,7 @@ public sealed class ServiceBuildIntegrationTests
             LogsRoot = Path.Combine(work, "logs"),
             TelemetryRoot = Path.Combine(work, "telemetry"),
         };
-        var kind = new ServiceBuildKind("CacheRefresh", "Cache refresh", Cacheless: false, [["plan"], ["build", "Debug"], ["promote"]]);
+        var kind = new ServiceBuildKind("Probe", "Probe", Cacheless: false, [["plan"], ["build", "Debug"], ["promote"]]);
         var tool = new ToolCommand("dotnet", [typeof(PipelineOptions).Assembly.Location]);
         var workspace = new GitWorkspace(Path.Combine(work, "checkout"), host.EffectiveCloneUrl, token: null);
 
@@ -34,7 +34,7 @@ public sealed class ServiceBuildIntegrationTests
 
         // Assert
         Assert.Equal("success", build.Result);
-        Assert.Equal("Cache refresh", build.Queue);
+        Assert.Equal("Probe", build.Queue);
         Assert.Equal(sha, build.Sha);
         Assert.Equal(3, build.Stages);
         Assert.Equal(1, build.Jobs);
@@ -66,7 +66,7 @@ public sealed class ServiceBuildIntegrationTests
 
         // Act
         var build = await new ServiceBuild(host, ToolCommand.Self).RunAsync(
-            ServiceBuildKind.CacheRefresh, workspace, "master", new string('0', 40), DateTimeOffset.UtcNow, TestContext.Current.CancellationToken);
+            ServiceBuildKind.CacheAudit("Debug"), workspace, "master", new string('0', 40), DateTimeOffset.UtcNow, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal("failure", build.Result);
@@ -97,7 +97,7 @@ public sealed class ServiceBuildIntegrationTests
         await stop.CancelAsync();
 
         // Act
-        var build = await new ServiceBuild(host, tool).RunAsync(ServiceBuildKind.CacheRefresh, workspace, "master", sha, DateTimeOffset.UtcNow, stop.Token);
+        var build = await new ServiceBuild(host, tool).RunAsync(ServiceBuildKind.CacheAudit("Debug"), workspace, "master", sha, DateTimeOffset.UtcNow, stop.Token);
 
         // Assert
         Assert.Equal("cancelled", build.Result);

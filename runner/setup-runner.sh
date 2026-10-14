@@ -63,6 +63,7 @@ readonly LOGS_VOLUME="bitenovac-logs"
 readonly OFFICIAL_VOLUME="bitenovac-official"
 readonly TELEMETRY_VOLUME="bitenovac-telemetry"
 readonly WORK_VOLUME="bitenovac-service-work"
+readonly STAGING_VOLUME="bitenovac-staging"
 # Served over NFS, so the logs and telemetry paths records point at resolve the same from every
 # machine that mounts the share. This machine serves it for now.
 readonly SHARE_ROOT="/srv/bitenovac"
@@ -162,7 +163,8 @@ if [[ "${uninstall}" == true ]]; then
     ok "removed ${RUNNER_HOME}"
 
     if [[ "${purge}" == true ]]; then
-        docker volume rm "${NUGET_VOLUME}" "${MAIN_VOLUME}" "${LOGS_VOLUME}" "${TELEMETRY_VOLUME}" "${WORK_VOLUME}" > /dev/null 2>&1 || true
+        docker volume rm "${NUGET_VOLUME}" "${MAIN_VOLUME}" "${LOGS_VOLUME}" "${TELEMETRY_VOLUME}" "${WORK_VOLUME}" "${STAGING_VOLUME}" > /dev/null 2>&1 || true
+        rm -rf "${SHARE_ROOT}/staging"
         rm -rf /etc/remotebuildtool
         rm -rf "${SHARE_ROOT}/logs"
         ok "deleted the package cache, main artifact store and logs"
@@ -264,7 +266,7 @@ bash "${REPO_ROOT}/runner/build-image.sh"
 log "NFS share"
 
 apt-get install --yes --no-install-recommends nfs-kernel-server > /dev/null
-install -d -o "${run_as}" -g "${run_as}" "${SHARE_ROOT}" "${SHARE_ROOT}/logs" "${SHARE_ROOT}/telemetry"
+install -d -o "${run_as}" -g "${run_as}" "${SHARE_ROOT}" "${SHARE_ROOT}/logs" "${SHARE_ROOT}/telemetry" "${SHARE_ROOT}/staging"
 
 # Whoever a client runs as, it writes as the agents' account, so job containers and the root
 # container that migrates old logs leave files the agents can prune.
@@ -302,6 +304,7 @@ share_volume() {
 }
 share_volume "${LOGS_VOLUME}" logs
 share_volume "${TELEMETRY_VOLUME}" telemetry
+share_volume "${STAGING_VOLUME}" staging
 
 docker volume create "${NUGET_VOLUME}" > /dev/null
 docker volume create "${MAIN_VOLUME}" > /dev/null
@@ -393,8 +396,7 @@ rm -f /tmp/actions-runner.tar.gz
 
 # -------------------------------------------------------------------------------------- seed ----
 
-# With the service, its first refresh fills main from the watched branch instead.
-if [[ "${seed}" == true && -z "${api_token}" ]]; then
+if [[ "${seed}" == true ]]; then
     log "Seeding main's artifact store from this checkout"
     if REMOTEBUILDTOOL_MAX_CPU="${cpu_share}" REMOTEBUILDTOOL_CPUS="${cpu_share}" REMOTEBUILDTOOL_MEMORY="${memory}" \
         bash "${REPO_ROOT}/runner/seed-cache.sh" --user "${run_as}"; then
@@ -406,8 +408,8 @@ fi
 
 # ----------------------------------------------------------------------------------- service ----
 
-# The service writes main alone: it builds every new commit of the watched branch, the first one
-# as soon as it starts.
+# Started after seeding, so the two never write main at once. From here on main fills from merged
+# pull requests alone, which the service promotes.
 if [[ -n "${api_token}" ]]; then
     log "RemoteBuildTool service"
 
@@ -431,6 +433,7 @@ if [[ -n "${api_token}" ]]; then
   "machine": "$(hostname)-service",
   "workRoot": "/work",
   "mainStore": "/mnt/main",
+  "stagingRoot": "/mnt/staging",
   "logsRoot": "/mnt/logs",
   "telemetryRoot": "/srv/bitenovac/telemetry",
   "maxCpu": ${cpu_share}
@@ -446,12 +449,13 @@ JSON
         printf 'LOGS_VOLUME=%s\n' "${LOGS_VOLUME}"
         printf 'TELEMETRY_VOLUME=%s\n' "${TELEMETRY_VOLUME}"
         printf 'WORK_VOLUME=%s\n' "${WORK_VOLUME}"
+        printf 'STAGING_VOLUME=%s\n' "${STAGING_VOLUME}"
     } > /etc/remotebuildtool/.env
 
     bash "${REPO_ROOT}/runner/service.sh" start > /dev/null
     ok "remotebuildtool-service is running; follow it with: sudo bash runner/service.sh logs"
 else
-    warn "no --api-token: the RemoteBuildTool service is not installed, so nothing refreshes main"
+    warn "no --api-token: the RemoteBuildTool service is not installed, so nothing fills main after seeding"
 fi
 
 # ------------------------------------------------------------------------------------- ready ----
@@ -477,8 +481,8 @@ cat <<EOF
   console output and MSBuild binary logs in ${LOGS_VOLUME}, and every stage writes its telemetry
   to ${TELEMETRY_VOLUME}; both are NFS volumes on ${SHARE_ROOT} — see runner/logs.sh and
   docs/Local_RemoteBuildTool_Setup.md.
-  A per-run store (bitenovac-pr-<run id>) is created and dropped by the workflow itself — see
-  .github/workflows/pr.yml, cache-refresh.yml and official.yml.
+  Every run attempt keeps its own store in ${STAGING_VOLUME} for 24 hours; the service promotes
+  it into main once its pull request is merged.
 
   Pull requests run the RemoteBuildTool release installed in the image. Once a bumped
   <VersionPrefix> in its csproj is on the feed, update it without

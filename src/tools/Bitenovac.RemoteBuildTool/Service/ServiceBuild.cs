@@ -4,28 +4,14 @@ using Bitenovac.RemoteBuildTool.Telemetry;
 namespace Bitenovac.RemoteBuildTool.Service;
 
 /// <summary>
-/// Specifies a build the service runs itself, on a commit of the watched branch.
+/// Specifies a build the service runs itself, on a commit of the branch main follows.
 /// </summary>
-/// <param name="Kind">Names the build's logs folder and id, as in <c>CacheRefresh</c>.</param>
-/// <param name="Queue">The queue its telemetry records, as in <c>Cache refresh</c>.</param>
+/// <param name="Kind">Names the build's logs folder and id, as in <c>CacheAudit</c>.</param>
+/// <param name="Queue">The queue its telemetry records, as in <c>Cache audit</c>.</param>
 /// <param name="Cacheless">Whether to ignore main and build every project.</param>
 /// <param name="Steps">The RemoteBuildTool commands to run in order; the first that fails ends the build.</param>
 internal sealed record ServiceBuildKind(string Kind, string Queue, bool Cacheless, IReadOnlyList<IReadOnlyList<string>> Steps)
 {
-    /// <summary>
-    /// Builds and tests every configuration of a commit and promotes it into main: the only way
-    /// output enters main, so only merged code ever does.
-    /// </summary>
-    public static ServiceBuildKind CacheRefresh { get; } = new("CacheRefresh", "Cache refresh", Cacheless: false,
-    [
-        ["plan"],
-        ["build", "Debug"],
-        ["test", "Debug"],
-        ["build", "Release"],
-        ["test", "Release"],
-        ["promote"],
-    ]);
-
     /// <summary>
     /// Rebuilds one configuration of a commit from scratch and compares it with main.
     /// </summary>
@@ -127,8 +113,9 @@ internal sealed class ServiceBuild(HostSettings host, ToolCommand tool)
         return BuildSummarizer.Write(host.TelemetryRoot, identity, result, end, timeline, host.EffectiveMachine);
     }
 
-    // The service is no workflow step: nothing of an Actions environment it may have inherited
-    // reaches its builds.
+    // A build may read GITHUB_ACTIONS into what it hashes, as ContinuousIntegrationBuild does, so
+    // the service's builds see the same value the pull requests' did, or no fingerprint would
+    // match. Its other Actions settings are not the service's and are cleared.
     private Dictionary<string, string> Environment(string repository, string store, string logsDirectory, BuildIdentity identity, bool cacheless)
     {
         var environment = new Dictionary<string, string>
@@ -148,7 +135,7 @@ internal sealed class ServiceBuild(HostSettings host, ToolCommand tool)
             ["GITHUB_REPOSITORY"] = identity.Repository!,
             ["GITHUB_REF"] = identity.Ref!,
             ["GITHUB_SHA"] = identity.Sha!,
-            ["GITHUB_ACTIONS"] = "",
+            ["GITHUB_ACTIONS"] = "true",
             ["GITHUB_STEP_SUMMARY"] = "",
         };
 

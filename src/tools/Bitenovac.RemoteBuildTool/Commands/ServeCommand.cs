@@ -7,7 +7,7 @@ namespace Bitenovac.RemoteBuildTool.Commands;
 /// Provides the <c>serve</c> command, which runs the service until it is stopped.
 /// </summary>
 /// <remarks>
-/// The service keeps main filled from the watched branch, records every build, compacts telemetry,
+/// The service fills main from merged pull requests, records every build, compacts telemetry,
 /// prunes logs and audits the cache; see <see cref="ServiceLoop"/>. It stops on SIGTERM or Ctrl+C,
 /// cancelling a running build.
 /// </remarks>

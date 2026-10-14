@@ -113,17 +113,104 @@ public sealed class GitHubClientTests
         Assert.Equal("""{ "jobs": [] }""", jobs);
     }
 
+    [Fact]
+    public async Task MergedPullRequestsAsync_ShouldReturnOnlyTheMergedOnes_WhenClosedOnesAreListed()
+    {
+        // Arrange
+        var github = new FakeGitHub();
+        github.Respond("/repos/owner/repo/pulls?state=closed&base=master&sort=updated&direction=desc&per_page=100", """
+            [
+              { "number": 1, "merged_at": "2026-10-14T10:00:00Z", "merge_commit_sha": "m1", "head": { "sha": "h1" } },
+              { "number": 2, "merged_at": null, "head": { "sha": "h2" } },
+              { "number": 3, "merged_at": "2026-10-14T11:00:00Z", "head": { "sha": null } }
+            ]
+            """);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+
+        // Act
+        var merged = await new GitHubClient(http, "owner/repo").MergedPullRequestsAsync("master", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(
+            [
+                new MergedPullRequest(1, "h1", "m1", new DateTimeOffset(2026, 10, 14, 10, 0, 0, TimeSpan.Zero)),
+                new MergedPullRequest(3, "", null, new DateTimeOffset(2026, 10, 14, 11, 0, 0, TimeSpan.Zero)),
+            ],
+            merged);
+    }
+
+    [Fact]
+    public async Task SuccessfulRunsAsync_ShouldReturnTheCommitsRunsNewestFirst_WhenThereAreSome()
+    {
+        // Arrange
+        var github = new FakeGitHub();
+        github.Respond("/repos/owner/repo/actions/runs?head_sha=abc&status=success&per_page=20", """
+            { "workflow_runs": [
+                { "id": 1, "event": "pull_request", "updated_at": "2026-10-14T10:00:00Z" },
+                { "id": 2, "event": "merge_group", "updated_at": "2026-10-14T11:00:00Z" }
+            ] }
+            """);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+
+        // Act
+        var runs = await new GitHubClient(http, "owner/repo").SuccessfulRunsAsync("abc", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal([(2L, "merge_group"), (1L, "pull_request")], runs.Select(run => (run.Id, run.Event)));
+    }
+
+    [Fact]
+    public async Task DefaultBranchFileAsync_ShouldReturnTheFileOrNothing_WhenItExistsOrNot()
+    {
+        // Arrange
+        var github = new FakeGitHub();
+        github.Respond("/repos/owner/repo/contents/remotebuildtool.json", """{ "branch": "main" }""");
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        var client = new GitHubClient(http, "owner/repo");
+
+        // Act
+        var present = await client.DefaultBranchFileAsync("remotebuildtool.json", TestContext.Current.CancellationToken);
+        var absent = await client.DefaultBranchFileAsync("other.json", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal("""{ "branch": "main" }""", present);
+        Assert.Null(absent);
+        Assert.Equal("application/vnd.github.raw+json", github.Accept);
+    }
+
+    [Fact]
+    public async Task DefaultBranchFileAsync_ShouldThrow_WhenGitHubFails()
+    {
+        // Arrange
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", new FailingGitHub());
+
+        // Act
+        Func<Task> act = () => new GitHubClient(http, "owner/repo").DefaultBranchFileAsync("remotebuildtool.json", TestContext.Current.CancellationToken);
+
+        // Assert
+        await Assert.ThrowsAsync<HttpRequestException>(act);
+    }
+
+    private sealed class FailingGitHub : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+    }
+
     private sealed class FakeGitHub : HttpMessageHandler
     {
         private readonly Dictionary<string, string> _responses = new(StringComparer.Ordinal);
 
         public string? Authorization { get; private set; }
 
+        public string? Accept { get; private set; }
+
         public void Respond(string pathAndQuery, string body) => _responses[pathAndQuery] = body;
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Authorization = request.Headers.Authorization?.ToString();
+            Accept = request.Headers.Accept.ToString();
             var path = request.RequestUri!.PathAndQuery;
             var match = _responses.Where(response => path.StartsWith(response.Key, StringComparison.Ordinal))
                 .OrderByDescending(response => response.Key.Length)

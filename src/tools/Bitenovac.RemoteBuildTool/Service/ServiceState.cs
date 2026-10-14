@@ -8,9 +8,10 @@ namespace Bitenovac.RemoteBuildTool.Service;
 internal sealed record ServiceState
 {
     /// <summary>
-    /// Gets or sets the last commit of the watched branch the service built for main, whatever the outcome.
+    /// Gets or sets the merged pull requests the service has handled, promoted or not, newest last;
+    /// only the recent ones are kept, which is all a later listing can repeat.
     /// </summary>
-    public string? RefreshedSha { get; set; }
+    public IReadOnlyList<int> PromotedPullRequests { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the day, in UTC, the service last compacted telemetry and pruned logs.

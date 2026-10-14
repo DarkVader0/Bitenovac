@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Runs the RemoteBuildTool service on this machine: one container, restarted whenever it stops,
-# that fills main from the watched branch, records every build, compacts telemetry, prunes logs
+# that fills main from merged pull requests, records every build, compacts telemetry, prunes logs
 # and audits the cache. See "remotebuildtool serve".
 #
 # Usage:
@@ -65,6 +65,7 @@ run_args=(
     --volume "${LOGS_VOLUME}:/mnt/logs"
     # At the share's own path, so the views in telemetry.duckdb resolve wherever the share is mounted alike.
     --volume "${TELEMETRY_VOLUME}:/srv/bitenovac/telemetry"
+    --volume "${STAGING_VOLUME}:/mnt/staging"
     --volume "${WORK_VOLUME}:/work"
     --env NUGET_PACKAGES=/cache/nuget
     --env TMPDIR=/cache/tmp

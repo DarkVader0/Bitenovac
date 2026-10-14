@@ -22,9 +22,11 @@ readonly MAIN_VOLUME="${REMOTEBUILDTOOL_MAIN_VOLUME:-bitenovac-main}"
 readonly LOGS_VOLUME="${REMOTEBUILDTOOL_LOGS_VOLUME:-bitenovac-logs}"
 readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-bitenovac-official}"
 readonly TELEMETRY_VOLUME="${REMOTEBUILDTOOL_TELEMETRY_VOLUME:-bitenovac-telemetry}"
-# Keyed on the run id, not the PR number, so a re-run of the same PR gets a clean volume instead
-# of reading stale state a cancelled attempt left behind.
-readonly PR_VOLUME="${REMOTEBUILDTOOL_PR_VOLUME:-bitenovac-pr-${GITHUB_RUN_ID:-local}}"
+readonly STAGING_VOLUME="${REMOTEBUILDTOOL_STAGING_VOLUME:-bitenovac-staging}"
+# Every run attempt keeps its own artifact store in the staging volume, where the RemoteBuildTool
+# service promotes it into main once its pull request is merged, and deletes it after a day. An
+# attempt gets a clean store: a re-run never reads what a cancelled attempt left behind.
+readonly RUN_STORE="${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
 
 cd "${REPO_ROOT}"
 
@@ -45,9 +47,15 @@ readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"
 docker image inspect "${IMAGE}" > /dev/null 2>&1 \
     || fail "The image ${IMAGE} is missing. Run runner/build-image.sh on this machine; it builds the image from global.json."
 
+# Setup puts it on the NFS share; until it has, a local volume owned by the job's account serves.
+if ! docker volume inspect "${STAGING_VOLUME}" > /dev/null 2>&1; then
+    docker volume create "${STAGING_VOLUME}" > /dev/null
+    docker run --rm --user 0 --entrypoint chown --volume "${STAGING_VOLUME}:/mnt/staging" "${IMAGE}" "$(id -u):$(id -g)" /mnt/staging
+fi
+
 # main is read-only everywhere except 'promote': a PR run must not be able to write to it no
-# matter what RemoteBuildTool does, and the only thing that ever calls 'promote' is a Cache refresh
-# run that already passed every other stage — see .github/workflows/cache-refresh.yml.
+# matter what RemoteBuildTool does. Only runner/seed-cache.sh calls 'promote' here, after every other
+# stage passed; otherwise main fills from merged pull requests, which the service promotes.
 main_mount="${MAIN_VOLUME}:/mnt/main:ro"
 [[ "${1}" == "promote" ]] && main_mount="${MAIN_VOLUME}:/mnt/main"
 
@@ -58,7 +66,7 @@ run_args=(
     --volume "${REPO_ROOT}:/repo"
     --volume "${NUGET_VOLUME}:/cache"
     --volume "${main_mount}"
-    --volume "${PR_VOLUME}:/mnt/pr"
+    --volume "${STAGING_VOLUME}:/mnt/staging"
     --volume "${LOGS_VOLUME}:/mnt/logs"
     --workdir /repo
     # Running as a non-root user leaves no writable home, so both are pointed somewhere writable
@@ -75,7 +83,7 @@ run_args=(
     --env TESTINGPLATFORM_TELEMETRY_OPTOUT=1
     --env REMOTEBUILDTOOL_REPO_ROOT=/repo
     --env REMOTEBUILDTOOL_MAIN_STORE=/mnt/main
-    --env REMOTEBUILDTOOL_PR_STORE=/mnt/pr
+    --env "REMOTEBUILDTOOL_PR_STORE=/mnt/staging/${RUN_STORE}"
     --env REMOTEBUILDTOOL_DROP_ROOT=/mnt/official
 )
 

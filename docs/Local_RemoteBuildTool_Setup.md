@@ -6,8 +6,9 @@ What you end up with:
 
 - 6 GitHub runners in Ubuntu (WSL), each job limited to 1 CPU and 2 GB RAM
 - the pinned RemoteBuildTool release already installed in the runner image
-- the **RemoteBuildTool service**, always running beside the runners: it fills the build cache from
-  every new commit on `master`, records every build, compacts telemetry, prunes old logs and
+- the build cache filled from `master`, and kept filled by every merged pull request
+- the **RemoteBuildTool service**, always running beside the runners: it promotes what merged pull
+  requests built into the cache, records every build, compacts telemetry, prunes old logs and
   audits the cache. No workflow does any of that.
 
 Ubuntu commands go in the **Ubuntu** terminal. Windows commands go in **PowerShell**.
@@ -80,6 +81,8 @@ sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --api-token <SERVICE TOK
 Takes a few minutes. It must end with:
 
 ```
+Promoted 42 entries into main.
+  ok    main is warm
   ok    remotebuildtool-service is running; follow it with: sudo bash runner/service.sh logs
 ==> Ready
 ```
@@ -94,11 +97,15 @@ sudo bash runner/service.sh logs
 All six runners must be `active running`. On GitHub, Settings → Actions → Runners must show
 `DESKTOP-...-1` to `DESKTOP-...-6` as **Idle**.
 
-Within a minute the service log shows `Cache refresh of <commit> started`: it is building `master`
-to fill the cache. Pull requests already work meanwhile; they are only faster once it has finished
-(`Cache refresh of <commit>: success`).
+**5. Done.** Open a pull request into `master` and it runs on your PC. Once it is merged, the
+service log shows `PR #<number> merged; run <id>: Promoted <n> entries into main.`
 
-**5. Done.** Open a pull request into `master` and it runs on your PC.
+**Recommended: turn on the merge queue.** On GitHub, Settings → Rules → Rulesets → New branch
+ruleset for `master`: tick **Require merge queue** and **Require status checks to pass**, with the
+check `PR`. Each queued pull request is then built on top of `master` and everything queued ahead
+of it, which is exactly what `master` holds once it merges, so what it built is promoted as is and
+`master` is always fully cached. Without the queue it still works: projects that changed on
+`master` after a pull request's build simply build in the next pull request that needs them.
 
 ---
 
@@ -118,22 +125,29 @@ whatever is due:
 
 | Work | When | What |
 |---|---|---|
-| Cache refresh | a new commit on `master` | builds and tests Debug and Release, then promotes into main. The only way anything enters the cache, so only merged code ever does |
+| Promotion | every minute | for each pull request merged into `master`, promotes what its build staged into main: the merge queue's build of the merge commit, otherwise the pull request's own last successful build. Then deletes staged builds older than 24 hours |
 | Build records | every 2 minutes | a `build` telemetry row for every workflow run GitHub finished, with its queue and preparation time |
 | Housekeeping | daily, 03:30 UTC | compacts the telemetry of earlier days and deletes logs past their retention |
 | Cache audit | daily, 01:00 UTC | rebuilds `master` in Debug from scratch and compares it with the cache |
 
-One build, refresh or audit, runs at a time. Its logs land in the logs share like any other's,
-under `CacheRefresh_<commit>` or `CacheAudit_<commit>`, and its telemetry under queue
-`Cache refresh` or `Cache audit`.
+**How the cache fills.** Every PR and merge queue run keeps its artifact store in the
+`bitenovac-staging` volume (on the share at `/srv/bitenovac/staging`), one folder per run attempt.
+Nothing in it reaches main until GitHub reports the pull request merged; then promotion copies only
+the projects the run built, so it costs as much as the change, not the repository. A pull request
+merged more than 24 hours after its build has nothing left to promote; its projects build again in
+the next pull request that needs them, and that one fills main once merged. Nothing ever builds
+`master` just to fill the cache.
+
+The audit runs in the background and its logs land in the logs share under `CacheAudit_<commit>`,
+its telemetry under queue `Cache audit`.
 
 **Its settings come from two places:**
 
 - `/etc/remotebuildtool/config.json` on this machine, written by setup: the repository, the service
   token, where the stores are, the pool. Readable by the runners' account only.
-- `remotebuildtool.json` at the root of `master`, all optional: the branch to watch, how often to
-  look, the daily times, and how long to keep each kind of log. A change takes effect once the
-  service has refreshed the commit that makes it.
+- `remotebuildtool.json` at the root of the default branch, all optional: the branch whose merges
+  fill main, how often to look, the daily times, and how long to keep each kind of log. The
+  service reads it every minute.
 
 ```json
 {
@@ -143,7 +157,7 @@ under `CacheRefresh_<commit>` or `CacheAudit_<commit>`, and its telemetry under 
   "housekeeping": "03:30:00",
   "cacheAudit": "01:00:00",
   "cacheAuditConfiguration": "Debug",
-  "logRetentionDays": { "PR_": 30, "CacheRefresh_": 30, "CacheAudit_": 30, "Official_": 365 }
+  "logRetentionDays": { "PR_": 30, "CacheAudit_": 30, "Official_": 365 }
 }
 ```
 
@@ -184,8 +198,9 @@ sudo bash runner/build-image.sh
 It restarts the service on the new image. A new RemoteBuildTool release keeps the cache: only a
 project's inputs decide whether it is rebuilt. When a release changes the fingerprint rules (the
 release notes say so, and `FingerprintFormat.Version` in the source goes up), or after a
-`global.json` or Dockerfile change, every project misses once; the service's next cache refresh
-fills the cache again. Set `REMOTEBUILDTOOL_SOURCE` before `build-image.sh` to install from a feed
+`global.json` or Dockerfile change, every project misses once; refill the cache with
+`sudo bash runner/seed-cache.sh` (see [Fill the cache again](#fill-the-cache-again)). Set
+`REMOTEBUILDTOOL_SOURCE` before `build-image.sh` to install from a feed
 other than nuget.org.
 
 ### First time only: let the deploy workflow publish
@@ -278,8 +293,8 @@ bash deploy/web.sh /tmp/site [2026.10.11.001]
 
 ## Fill the cache again
 
-The service refills the cache by itself from every new commit on `master`. To fill it from this
-checkout by hand instead, such as on a machine without the service (Ubuntu):
+Merged pull requests keep the cache filled. After setup on a new machine, or once a release changes
+the fingerprint rules, fill it from `master` by hand (Ubuntu):
 
 ```bash
 cd ~/bitenovac
@@ -306,8 +321,8 @@ bash runner/telemetry.sh query "FROM build WHERE Queue = 'Cache audit' ORDER BY 
 ```
 
 The audit's `audit-Debug.log` in its logs folder lists every project as `match`, `MISMATCH` or
-`skip`. A project main holds under another fingerprint, as when `master` moved since the last cache
-refresh, is skipped rather than compared.
+`skip`. A project main holds under another fingerprint, as when the pull request that last changed
+it merged without a fresh build, is skipped rather than compared.
 
 ---
 
@@ -341,12 +356,12 @@ sudo ls /var/lib/docker/volumes/bitenovac-official/_data
 
 ## Logs
 
-Every PR, Official, cache refresh and cache audit keeps its logs in the `bitenovac-logs` volume, one
+Every PR, merge queue run, Official and cache audit keeps its logs in the `bitenovac-logs` volume, one
 folder per pull request or commit and one folder per run attempt inside it:
 
 ```
 PR_18/16473829-1/                                        kept 30 days
-CacheRefresh_8f3c2a1b9d0e/cacherefresh-8f3c2a1b9d0e-...  kept 30 days
+CacheAudit_8f3c2a1b9d0e/cacheaudit-8f3c2a1b9d0e-...      kept 30 days
 Official_2026.10.11.001/...                              kept 1 year
 Official_failed_57/...                                   kept 1 year; a release that dropped nothing
 ```
@@ -424,8 +439,8 @@ grep -h "resources:" /srv/bitenovac/logs/PR_18/16473829-1/*.log
 
 ## Telemetry
 
-With RemoteBuildTool 1.2.0 or later in the runner image, every stage of every PR, Official, cache
-refresh and cache audit records what it did, as JSON lines on the NFS share setup creates in Ubuntu
+With RemoteBuildTool 1.2.0 or later in the runner image, every stage of every PR, merge queue run,
+Official and cache audit records what it did, as JSON lines on the NFS share setup creates in Ubuntu
 (`/srv/bitenovac`, mounted into jobs as the `bitenovac-telemetry` volume). The logs moved onto the
 same share, so the logs path in every record opens from anywhere that mounts it.
 
@@ -471,7 +486,7 @@ Ready-made queries, from `queries.sql` in RemoteBuildTool:
 | `build_targets('<build id>')` | what each stage of one build did with each project |
 
 A GitHub build's id is the run id and attempt, as in `16473829-1`; the run's URL ends in the run id.
-The service's own builds are `cacherefresh-<commit>-<time>` and `cacheaudit-<commit>-<time>`. To drill
+The service's audits are `cacheaudit-<commit>-<time>`. To drill
 from a slow day into its slowest PR build:
 
 ```sql

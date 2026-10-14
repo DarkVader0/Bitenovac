@@ -3,6 +3,8 @@ name: PR
 on:
   pull_request:
     branches: [master]
+  merge_group:
+    branches: [master]
 
 concurrency:
   group: pr-${{ github.event.pull_request.number || github.ref }}
@@ -14,8 +16,7 @@ permissions:
 env:
   DOTNET_NOLOGO: "true"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
-  REMOTEBUILDTOOL_PR_VOLUME: bitenovac-pr-${{ github.run_id }}
-  REMOTEBUILDTOOL_LOG_RUN: PR_${{ github.event.pull_request.number }}/${{ github.run_id }}-${{ github.run_attempt }}
+  REMOTEBUILDTOOL_LOG_RUN: PR_${{ github.event.pull_request.number || 'queue' }}/${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   plan:
@@ -78,18 +79,6 @@ jobs:
 
       - name: Test
         run: bash runner/in-container.sh test Release
-
-  cleanup:
-    name: Cleanup
-    needs: [debug-test, release-test]
-    if: always()
-    runs-on: [self-hosted, linux, x64, bitenovac]
-    timeout-minutes: 1
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Drop this run's volumes
-        run: docker volume rm -f "${REMOTEBUILDTOOL_PR_VOLUME}"
 
   pr:
     name: PR
