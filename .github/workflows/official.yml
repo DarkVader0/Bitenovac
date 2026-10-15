@@ -15,6 +15,7 @@ permissions:
 env:
   DOTNET_NOLOGO: "true"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+  REMOTEBUILDTOOL_CACHELESS: "true"
   REMOTEBUILDTOOL_LOG_RUN: Official_${{ github.run_number }}/${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
