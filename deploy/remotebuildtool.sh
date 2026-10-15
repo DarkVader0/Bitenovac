@@ -10,7 +10,7 @@
 #
 # Environment:
 #   NUGET_API_KEY   Required. In CI this is the short-lived key NuGet/login exchanges for the
-#                   workflow's OIDC token (see .github/workflows/deploy-remotebuildtool.yml).
+#                   workflow's OIDC token (see .github/workflows/deploy_RemoteBuildTool.yml).
 #
 # The drops live in a Docker volume on this host only, so this must run here. They are mounted
 # read-only: a deploy cannot alter what Official produced. The key reaches the container by name,

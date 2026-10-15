@@ -1,4 +1,4 @@
-name: Deploy libraries
+name: Deploy RemoteBuildTool
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         default: ''
 
 concurrency:
-  group: deploy-libraries
+  group: deploy_RemoteBuildTool
   cancel-in-progress: false
 
 permissions:
@@ -35,4 +35,4 @@ jobs:
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
           DROP: ${{ inputs.drop }}
-        run: bash deploy/libraries.sh "${DROP}"
+        run: bash deploy/remotebuildtool.sh "${DROP}"
