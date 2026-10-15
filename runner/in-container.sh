@@ -69,8 +69,6 @@ run_args=(
     # containers extract the same package into one directory with nothing between them, and the
     # loser's rename target disappears mid-restore.
     --env TMPDIR=/cache/tmp
-    # .NET 10.0.13 and later keep named mutexes under HOME, so without it the CLI's first
-    # NuGet-Migrations mutex fails before restore starts.
     --env HOME=/tmp
     --env DOTNET_CLI_HOME=/tmp
     --env DOTNET_NOLOGO=true

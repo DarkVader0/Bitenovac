@@ -87,7 +87,7 @@ exec docker run \
             nupkgs+=("${found[0]}")
         done
 
-        # The service runs the tool'"'"'s commands from its own copy, so a mismatch would fingerprint
+        # The service runs the commands of its own copy of the tool, so a mismatch would fingerprint
         # main differently from what pull requests look up.
         [[ "${versions[0]}" == "${versions[1]}" ]] \
             || fail "The tool is ${versions[0]} but the service is ${versions[1]}; give both csproj files the same <VersionPrefix>."

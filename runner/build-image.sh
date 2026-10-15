@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 #
 # Builds the runner image, with RemoteBuildTool and its service installed at the release named by
-# <VersionPrefix> in their csproj files. Pull requests run the RemoteBuildTool this image holds, so
-# re-run this once a bumped version is on the feed, or after changing global.json or
-# docker/ci-runner.Dockerfile.
+# <VersionPrefix> in their csproj files.
 #
 # Usage:
 #   bash runner/build-image.sh [docker build options...]
