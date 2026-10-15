@@ -5,7 +5,6 @@
         <RootNamespace>Bitenovac.RemoteBuildTool.Service</RootNamespace>
     </PropertyGroup>
 
-    <!-- Released together with Bitenovac.RemoteBuildTool, at the version in the folder's Directory.Build.props: the service runs its commands. -->
     <PropertyGroup>
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>remotebuildtool-service</ToolCommandName>

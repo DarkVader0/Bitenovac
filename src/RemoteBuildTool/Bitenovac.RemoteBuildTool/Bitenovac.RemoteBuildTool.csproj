@@ -5,7 +5,6 @@
         <RootNamespace>Bitenovac.RemoteBuildTool</RootNamespace>
     </PropertyGroup>
 
-    <!-- Versioned independently of the repository, in the folder's Directory.Build.props: CI runs a published release, not this source. -->
     <PropertyGroup>
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>remotebuildtool</ToolCommandName>
