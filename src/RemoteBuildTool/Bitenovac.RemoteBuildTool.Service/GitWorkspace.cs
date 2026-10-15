@@ -23,21 +23,23 @@ internal sealed class GitWorkspace(string directory, string cloneUrl, string? to
     /// earlier build.
     /// </summary>
     /// <param name="reference">A commit SHA or a branch.</param>
+    /// <param name="cancellationToken">Kills the running git command.</param>
     /// <returns>The commit checked out.</returns>
     /// <exception cref="InvalidOperationException">git failed; the message holds its output.</exception>
-    public string CheckOut(string reference)
+    /// <exception cref="OperationCanceledException">The checkout was cancelled.</exception>
+    public string CheckOut(string reference, CancellationToken cancellationToken = default)
     {
         System.IO.Directory.CreateDirectory(Directory);
         if (!System.IO.Directory.Exists(Path.Combine(Directory, ".git")))
-            Git("init", "--quiet");
+            Git(cancellationToken, "init", "--quiet");
 
-        Git("fetch", "--quiet", "--depth", "1", "--no-tags", cloneUrl, reference);
-        Git("checkout", "--quiet", "--force", "--detach", "FETCH_HEAD");
-        Git("clean", "-ffdxq");
-        return Git("rev-parse", "HEAD").Trim();
+        Git(cancellationToken, "fetch", "--quiet", "--depth", "1", "--no-tags", cloneUrl, reference);
+        Git(cancellationToken, "checkout", "--quiet", "--force", "--detach", "FETCH_HEAD");
+        Git(cancellationToken, "clean", "-ffdxq");
+        return Git(cancellationToken, "rev-parse", "HEAD").Trim();
     }
 
-    private string Git(params string[] arguments)
+    private string Git(CancellationToken cancellationToken, params string[] arguments)
     {
         var environment = new Dictionary<string, string>
         {
@@ -52,7 +54,7 @@ internal sealed class GitWorkspace(string directory, string cloneUrl, string? to
             environment["GIT_CONFIG_VALUE_0"] = $"Authorization: Basic {basic}";
         }
 
-        var (exitCode, output) = ChildProcess.Run("git", arguments, Directory, environment);
+        var (exitCode, output) = ChildProcess.Run("git", arguments, Directory, environment, cancellationToken);
         return exitCode == 0
             ? output
             : throw new InvalidOperationException($"git {arguments[0]} failed (exit {exitCode}) in {Directory}: {output.Trim()}");

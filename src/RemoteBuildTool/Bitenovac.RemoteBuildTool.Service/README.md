@@ -48,7 +48,7 @@ of its work runs on its own schedule:
 | Rebuild | daily, 01:00 UTC, and at once when main is empty | Builds and tests the branch from scratch, then switches main to it and records how every project compared with the cache. A step that runs past its limit is stopped. |
 
 For promotion, every pull request run must stage its store at
-`<stagingRoot>/<GITHUB_RUN_ID>-<GITHUB_RUN_ATTEMPT>`, that is `REMOTEBUILDTOOL_PR_STORE` under the
+`<stagingRoot>/<GITHUB_RUN_ID>`, shared by every attempt of the run, that is `REMOTEBUILDTOOL_PR_STORE` under the
 staging directory the service reads. To promote within seconds of a merge, run
 `remotebuildtool-service wake` on the service's machine from a workflow triggered by
 `pull_request: types: [closed]`:

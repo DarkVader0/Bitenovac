@@ -19,7 +19,7 @@ public sealed class ServiceWorkTests
     {
         // Arrange
         using var directory = TestFactory.Directory();
-        Stage(directory, "70-1");
+        Stage(directory, "70");
         await using var service = Create(directory, new FakeGitHub());
         var promotion = service.Work<PromotionService>();
 
@@ -38,16 +38,16 @@ public sealed class ServiceWorkTests
     {
         // Arrange
         using var directory = TestFactory.Directory();
-        Stage(directory, "60-1");
-        Directory.SetLastWriteTimeUtc(directory.Combine("staging/60-1"), Morning.UtcDateTime.AddHours(-25));
+        Stage(directory, "60");
+        Directory.SetLastWriteTimeUtc(directory.Combine("staging/60"), Morning.UtcDateTime.AddHours(-25));
         await using var service = Create(directory, new FakeGitHub());
 
         // Act
         await service.Work<PromotionService>().RunTurnAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.False(Directory.Exists(directory.Combine("staging/60-1")));
-        Assert.Contains("staged output of run 60-1 expired", service.Messages);
+        Assert.False(Directory.Exists(directory.Combine("staging/60")));
+        Assert.Contains("staged output of run 60 expired", service.Messages);
     }
 
     [Fact]
@@ -220,11 +220,11 @@ public sealed class ServiceWorkTests
         Assert.True(promotion.ExecuteTask!.IsCompletedSuccessfully);
     }
 
-    private static void Stage(TemporaryDirectory directory, string buildId, string store = "staging")
+    private static void Stage(TemporaryDirectory directory, string runId, string store = "staging")
     {
-        var root = store == "main" ? directory.Combine("main") : directory.Combine($"{store}/{buildId}");
-        var source = directory.Combine($"built/{buildId}");
-        TestFactory.WriteFile(Path.Combine(source, "bin", "A.dll"), buildId);
+        var root = store == "main" ? directory.Combine("main") : directory.Combine($"{store}/{runId}");
+        var source = directory.Combine($"built/{runId}");
+        TestFactory.WriteFile(Path.Combine(source, "bin", "A.dll"), runId);
         new LocalVolumeArtifactStore(root).Put(new ProjectId("src/A/A.csproj"), "Debug", source, new StoredTargetHash("own", "full"));
         TestFactory.Plan("Debug", TestFactory.Entry("src/A/A.csproj", ownHash: "own", fullHash: "full")).Save(Path.Combine(root, "plan.json"));
     }

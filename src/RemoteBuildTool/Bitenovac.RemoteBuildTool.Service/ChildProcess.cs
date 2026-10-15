@@ -58,12 +58,15 @@ internal static class ChildProcess
     /// <param name="arguments">Its arguments.</param>
     /// <param name="workingDirectory">Where it runs.</param>
     /// <param name="environment">Variables to set on top of the service's own.</param>
+    /// <param name="cancellationToken">Kills the program and everything it started.</param>
     /// <returns>The exit code and what it wrote to its output and errors.</returns>
+    /// <exception cref="OperationCanceledException">The run was cancelled.</exception>
     public static (int ExitCode, string Output) Run(
         string fileName,
         IReadOnlyList<string> arguments,
         string workingDirectory,
-        IReadOnlyDictionary<string, string>? environment = null)
+        IReadOnlyDictionary<string, string>? environment = null,
+        CancellationToken cancellationToken = default)
     {
         var output = new StringBuilder();
         var gate = new Lock();
@@ -73,7 +76,10 @@ internal static class ChildProcess
             lock (gate)
                 output.AppendLine(line);
         });
-        process.WaitForExit();
+        using (cancellationToken.Register(() => process.Kill(entireProcessTree: true)))
+            process.WaitForExit();
+
+        cancellationToken.ThrowIfCancellationRequested();
         return (process.ExitCode, output.ToString());
     }
 

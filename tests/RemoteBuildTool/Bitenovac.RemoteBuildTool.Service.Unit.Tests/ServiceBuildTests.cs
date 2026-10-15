@@ -114,6 +114,27 @@ public sealed class ServiceBuildTests
     }
 
     [Fact]
+    public async Task RunAsync_ShouldStopTheCheckoutAndEndTimedOut_WhenItOutlivesTheStepLimit()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var (host, workspace, sha) = Repository(directory);
+        var kind = new ServiceBuildKind("Probe", "Probe", Cacheless: true, [["--version"]])
+        {
+            StepTimeout = TimeSpan.FromMilliseconds(1),
+        };
+
+        // Act
+        var build = await new ServiceBuild(host, Git).RunAsync(kind, workspace, "master", sha, DateTimeOffset.UtcNow, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal("timed_out", build.Result);
+        var logs = Path.Combine(host.LogsRoot, build.LogsPath!);
+        Assert.Contains("checkout did not finish within", File.ReadAllText(Path.Combine(logs, "service.log")), StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(logs, "--version.log")));
+    }
+
+    [Fact]
     public async Task RunAsync_ShouldReuseTheCheckout_WhenItBuildsAgain()
     {
         // Arrange

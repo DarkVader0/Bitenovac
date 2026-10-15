@@ -1,3 +1,4 @@
+using System.Globalization;
 using Bitenovac.RemoteBuildTool.Telemetry;
 
 namespace Bitenovac.RemoteBuildTool.Service;
@@ -9,9 +10,9 @@ namespace Bitenovac.RemoteBuildTool.Service;
 /// <remarks>
 /// <para>
 /// Every PR and merge queue run keeps its artifact store in the staging store, one folder per run
-/// attempt. A merged pull request's run is looked up by commit: a merge queue run on the merge
-/// commit first, as it built exactly what the branch now holds; otherwise the pull request's own
-/// run on its last commit. Its entries are keyed by fingerprint, so an entry for code the branch
+/// that all its attempts share, so a job re-run alone still finds the plan. A merged pull
+/// request's run is looked up by commit: a merge queue run on the merge commit first, as it built
+/// exactly what the branch now holds; otherwise the pull request's own run on its last commit. Its entries are keyed by fingerprint, so an entry for code the branch
 /// does not hold, as when the branch moved before the merge, is never a hit, only unused.
 /// </para>
 /// <para>
@@ -73,7 +74,7 @@ internal sealed class PullRequestPromoter(GitHubClient github, HostSettings host
         candidates.AddRange((await github.SuccessfulRunsAsync(pull.HeadSha, cancellationToken)).Where(run => run.Event == "pull_request"));
 
         return candidates
-            .Select(run => (Run: run, Directory: Path.Combine(host.StagingRoot, run.BuildId)))
+            .Select(run => (Run: run, Directory: Path.Combine(host.StagingRoot, run.Id.ToString(CultureInfo.InvariantCulture))))
             .Where(candidate => File.Exists(Path.Combine(candidate.Directory, "plan.json")))
             .Select(candidate => ((WorkflowRun, string)?)candidate)
             .FirstOrDefault();
