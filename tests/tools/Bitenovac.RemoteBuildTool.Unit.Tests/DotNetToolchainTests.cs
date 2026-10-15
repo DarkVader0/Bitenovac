@@ -154,7 +154,6 @@ public sealed class DotNetToolchainTests
             Entry(directory, "src/Lib/Lib.csproj", new() { ["IsPackable"] = "true" }),
             Entry(directory, "src/Internal/Internal.csproj", new() { ["IsPackable"] = "false" }),
             Entry(directory, "src/Sample/Sample.csproj", new() { ["OutputType"] = "WinExe", ["IsPublishable"] = "false" }),
-            Entry(directory, "tests/App.Tests/App.Tests.csproj", Executable, isTestProject: true),
         ];
 
         // Act

@@ -38,6 +38,45 @@ public sealed class ReleaseCommandTests
     }
 
     [Fact]
+    public void Run_ShouldLeaveTestProjectsOut_WhenThePlanSelectedThemForRelease()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        TestFactory.Plan("Release", TestFactory.Entry("src/A/A.csproj"), TestFactory.Entry("tests/A.Tests/A.Tests.csproj", isTestProject: true)).Save(options.PlanFile);
+        var toolchain = new FakeToolchain();
+        using var registry = toolchain.Registry();
+
+        // Act
+        var exitCode = ReleaseCommand.Run(options, TestFactory.Silence(), Today, registry);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal(["src/A/A.csproj"], toolchain.Published);
+    }
+
+    [Fact]
+    public void Run_ShouldFailWithoutCreatingADrop_WhenThePlanSelectedOnlyTestProjects()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        TestFactory.Plan("Release", TestFactory.Entry("tests/A.Tests/A.Tests.csproj", isTestProject: true)).Save(options.PlanFile);
+        var toolchain = new FakeToolchain();
+        using var registry = toolchain.Registry();
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = ReleaseCommand.Run(options, output.Pipeline, Today, registry);
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Empty(toolchain.Published);
+        Assert.False(Directory.Exists(options.DropRoot));
+        Assert.Contains("nothing to deploy for Release", output.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Run_ShouldDropWhatWasPublished_WhenAFailedReleaseLeftItsStagingBehind()
     {
         // Arrange

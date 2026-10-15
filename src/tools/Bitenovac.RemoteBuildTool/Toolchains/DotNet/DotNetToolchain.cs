@@ -106,7 +106,7 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
         if (exitCode != 0)
             return exitCode;
 
-        foreach (var entry in entries.Where(entry => !entry.IsTestProject))
+        foreach (var entry in entries)
         {
             var name = Path.GetFileNameWithoutExtension(entry.ProjectPath);
 

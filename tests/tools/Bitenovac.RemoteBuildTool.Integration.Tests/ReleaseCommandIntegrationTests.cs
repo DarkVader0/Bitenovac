@@ -26,6 +26,7 @@ public sealed class ReleaseCommandIntegrationTests
         Assert.True(File.Exists(Path.Combine(drop, "packages", "Lib.2026.10.7.1.nupkg")));
         Assert.True(File.Exists(Path.Combine(drop, "apps", "App", "App.dll")));
         Assert.DoesNotContain(Directory.EnumerateFileSystemEntries(drop, "*", SearchOption.AllDirectories), path => path.Contains("Lib.Tests", StringComparison.Ordinal));
+        Assert.False(Directory.Exists(fixture.Combine("tests/Lib.Tests/bin/Release")));
         Assert.Equal([drop], Directory.EnumerateFileSystemEntries(fixture.Options.DropRoot));
     }
 

@@ -6,8 +6,8 @@ using Bitenovac.RemoteBuildTool.Toolchains;
 namespace Bitenovac.RemoteBuildTool.Commands;
 
 /// <summary>
-/// Provides the <c>release</c> command, which builds every project in Release under the next
-/// release version and drops the deployable output into <see cref="PipelineOptions.DropRoot"/>.
+/// Provides the <c>release</c> command, which builds every project but the test projects in
+/// Release under the next release version and drops the deployable output into <see cref="PipelineOptions.DropRoot"/>.
 /// </summary>
 /// <remarks>
 /// The drop is assembled in a staging directory and renamed to its version only when every
@@ -28,10 +28,11 @@ internal static class ReleaseCommand
     {
         using var stage = StageRecorder.Start(options, output, "release");
         var plan = PlanState.Load(options.PlanFile);
-        var entries = plan.For("Release");
+        // Test projects are never deployed, so a release does not build them either.
+        var entries = plan.For("Release").Where(entry => !entry.IsTestProject).ToList();
         if (entries.Count == 0)
         {
-            output.WriteFailure("the plan selected nothing for Release, so there is nothing to release.");
+            output.WriteFailure("the plan selected nothing to deploy for Release, so there is nothing to release.");
             return stage.Complete(1);
         }
 
