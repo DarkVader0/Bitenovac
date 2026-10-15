@@ -54,7 +54,7 @@ log "Shell utilities"
 # runner/ and docker/ are written in these. They are always present on Linux and macOS; on
 # Windows they come with Git for Windows, so a missing one means this is not running under Git
 # Bash. awk is no longer among them: the pipeline logic it used to drive now lives in
-# src/tools/Bitenovac.RemoteBuildTool, which needs only the SDK checked for below.
+# src/RemoteBuildTool/Bitenovac.RemoteBuildTool, which needs only the SDK checked for below.
 for utility in git curl tar sed grep find sort; do
     if command -v "${utility}" > /dev/null 2>&1; then
         ok "${utility}"
@@ -137,17 +137,17 @@ else
     # 'plan' restores every discovered project before it hashes anything, so this warms the
     # package cache for the whole repository and smoke-tests RemoteBuildTool in one step. There is
     # no solution file to restore instead — RemoteBuildTool discovers projects from the filesystem.
-    dotnet run --project src/tools/Bitenovac.RemoteBuildTool -- plan
+    dotnet run --project src/RemoteBuildTool/Bitenovac.RemoteBuildTool -- plan
     ok "restored packages"
 fi
 
 log "Ready"
 cat <<'EOF'
-  dotnet run --project src/tools/Bitenovac.RemoteBuildTool -- graph    What depends on what
-  dotnet run --project src/tools/Bitenovac.RemoteBuildTool -- plan     What this working tree would build
+  dotnet run --project src/RemoteBuildTool/Bitenovac.RemoteBuildTool -- graph    What depends on what
+  dotnet run --project src/RemoteBuildTool/Bitenovac.RemoteBuildTool -- plan     What this working tree would build
 
   docker/ci-local.sh                  The whole pipeline, in the runner image
   docker/ci-local.sh --cacheless      The same, ignoring the local cache
 
-  dotnet test ./tests/libraries/Bitenovac.DecompressionAlgorithms.Core.Unit.Tests/Bitenovac.DecompressionAlgorithms.Core.Unit.Tests.csproj
+  dotnet test ./tests/DecompressionAlgorithms/Bitenovac.DecompressionAlgorithms.Core.Unit.Tests/Bitenovac.DecompressionAlgorithms.Core.Unit.Tests.csproj
 EOF

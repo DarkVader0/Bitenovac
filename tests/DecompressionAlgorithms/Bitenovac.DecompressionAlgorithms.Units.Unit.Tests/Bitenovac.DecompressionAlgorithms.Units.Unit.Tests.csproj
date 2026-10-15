@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>Bitenovac.DecompressionAlgorithms.Units.Unit.Tests</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="xunit.v3.mtp-v2"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../../src/DecompressionAlgorithms/Bitenovac.DecompressionAlgorithms.Units/Bitenovac.DecompressionAlgorithms.Units.csproj"/>
+    </ItemGroup>
+
+</Project>

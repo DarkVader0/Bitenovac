@@ -46,7 +46,7 @@
 #
 # Every agent shares this machine's cores, so past that point they only contend. MSBuild claims
 # the whole box by default: set REMOTEBUILDTOOL_MAX_CPU to roughly cores / instances in the agent environment
-# and RemoteBuildTool bounds each job to that instead (see MsBuildRunner in src/tools/Bitenovac.RemoteBuildTool).
+# and RemoteBuildTool bounds each job to that instead (see MsBuildRunner in src/RemoteBuildTool/Bitenovac.RemoteBuildTool).
 #
 # This is also the only machine in the pool: main and RemoteBuildTool's own build cache both live on
 # volumes local to this host (see runner/in-container.sh), so there is currently no sound way to

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Core.Unit.Tests"/>
+    </ItemGroup>
+</Project>

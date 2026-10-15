@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Description>Strongly typed depth, pressure and volume units for the Bitenovac decompression libraries.</Description>
+    </PropertyGroup>
+
+</Project>

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <ExcludeFromCoverage>true</ExcludeFromCoverage>
+        <IsPublishable>false</IsPublishable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="BenchmarkDotNet"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Bitenovac.DecompressionAlgorithms.BuhlmannZhl16c\Bitenovac.DecompressionAlgorithms.BuhlmannZhl16c.csproj"/>
+        <ProjectReference Include="..\Bitenovac.DecompressionAlgorithms.Core\Bitenovac.DecompressionAlgorithms.Core.csproj"/>
+        <ProjectReference Include="..\Bitenovac.DecompressionAlgorithms.Units\Bitenovac.DecompressionAlgorithms.Units.csproj"/>
+    </ItemGroup>
+
+</Project>
