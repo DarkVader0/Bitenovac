@@ -274,27 +274,38 @@ systemctl enable --now nfs-server > /dev/null 2>&1 || true
 exportfs -ra || fail "Could not export ${SHARE_ROOT}. Under WSL, systemd must be on (see docs/Local_RemoteBuildTool_Setup.md)."
 ok "exporting ${SHARE_ROOT} to this machine"
 
-# A volume an earlier setup made locally moves onto the share first; removing it fails while a
-# job still has it mounted.
+# NFS 4.1, not 4.2: the WSL kernel is built without 4.2, and Docker's mount of it fails with
+# "invalid argument".
+readonly SHARE_MOUNT_OPTIONS="addr=127.0.0.1,rw,nfsvers=4.1"
+
+# A volume an earlier setup made locally moves onto the share first; one already on the share is
+# made again when its mount options changed, which loses nothing since its files live on the
+# share. Removing either fails while a job still has it mounted.
 share_volume() {
     local name="$1" directory="$2" type
     if type="$(docker volume inspect --format '{{index .Options "type"}}' "${name}" 2> /dev/null)"; then
         if [[ "${type}" == nfs ]]; then
-            ok "${name} is on the share"
-            return
+            if [[ "$(docker volume inspect --format '{{index .Options "o"}}' "${name}")" == "${SHARE_MOUNT_OPTIONS}" ]]; then
+                ok "${name} is on the share"
+                return
+            fi
+            docker volume rm "${name}" > /dev/null \
+                || fail "${name} is in use. Stop the runners (sudo systemctl stop 'actions.runner.*') and run setup again."
+            ok "remounting ${name} with ${SHARE_MOUNT_OPTIONS}"
+        else
+            docker run --rm --user 0 --entrypoint cp \
+                --volume "${name}:/from:ro" \
+                --volume "${SHARE_ROOT}/${directory}:/to" \
+                "bitenovac-remotebuildtool-runner:${sdk_version}" -a /from/. /to/
+            docker volume rm "${name}" > /dev/null \
+                || fail "${name} is in use. Stop the runners (sudo systemctl stop 'actions.runner.*') and run setup again."
+            ok "moved the contents of ${name} onto the share"
         fi
-        docker run --rm --user 0 --entrypoint cp \
-            --volume "${name}:/from:ro" \
-            --volume "${SHARE_ROOT}/${directory}:/to" \
-            "bitenovac-remotebuildtool-runner:${sdk_version}" -a /from/. /to/
-        docker volume rm "${name}" > /dev/null \
-            || fail "${name} is in use. Stop the runners (sudo systemctl stop 'actions.runner.*') and run setup again."
-        ok "moved the contents of ${name} onto the share"
     fi
 
     docker volume create --driver local \
         --opt type=nfs \
-        --opt "o=addr=127.0.0.1,rw,nfsvers=4.2" \
+        --opt "o=${SHARE_MOUNT_OPTIONS}" \
         --opt "device=:${SHARE_ROOT}/${directory}" \
         "${name}" > /dev/null
     ok "${name} -> ${SHARE_ROOT}/${directory}"
