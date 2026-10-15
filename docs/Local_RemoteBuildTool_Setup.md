@@ -249,8 +249,9 @@ NUGET_API_KEY=<KEY> bash deploy/remotebuildtool.sh [2026.10.11.001]
 
 The libraries of `src/DecompressionAlgorithms` and of `src/DecompressionCalculator` are published to
 nuget.org one product at a time, each under its own version: `<VersionPrefix>` in the product
-folder's `Directory.Build.props`. The Web app restores them from nuget.org at the version pinned in
-`Directory.Packages.props`, not from the source.
+folder's `Directory.Build.props`. While the Web app is being developed it references the two
+calculator libraries as projects, so a change to them reaches the app without a release; the pinned
+versions in `Directory.Packages.props` wait for the switch back to packages.
 
 1. Bump the `<VersionPrefix>` of the product you changed and merge it.
 2. Wait for the next Official build, or run one: Actions → Official → Run workflow. The packages
@@ -260,8 +261,9 @@ folder's `Directory.Build.props`. The Web app restores them from nuget.org at th
    Packages nuget.org already has at that version are skipped, so a run that stopped part way can
    be run again; a run in which every package is already published fails, as the version was not
    bumped.
-4. Once nuget.org lists the new version, move the Web app onto it by changing its two
-   `PackageVersion` entries in `Directory.Packages.props`.
+4. To put the Web app back on packages, replace its two project references with package references
+   and set the two `PackageVersion` entries in `Directory.Packages.props` to the version nuget.org now
+   lists.
 
 The first time only, add a Trusted Publishing policy on nuget.org for each of the two workflows,
 like the one above but with the workflow file `deploy_DecompressionAlgorithmLibraries.yml` and
