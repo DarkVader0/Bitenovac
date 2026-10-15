@@ -1,41 +1,27 @@
+using Bitenovac.DecompressionCalculator.Model;
 using Microsoft.JSInterop;
 
 namespace Bitenovac.DecompressionCalculator.Web.Planning;
 
 /// <summary>
-/// Specifies how the app is coloured.
+/// Applies the theme to the page, and keeps the copy of it that the page reads before it is drawn.
 /// </summary>
-public enum AppTheme
-{
-    /// <summary>
-    /// Light surfaces and dark text; the default.
-    /// </summary>
-    Light,
-
-    /// <summary>
-    /// Dark surfaces and light text.
-    /// </summary>
-    Dark,
-
-    /// <summary>
-    /// Light or dark as the device is set, following it when it changes.
-    /// </summary>
-    System
-}
-
-/// <summary>
-/// Keeps the theme chosen in this browser and applies it to the page.
-/// </summary>
-public sealed class ThemeService(IKeyValueStorage storage, IJSRuntime js)
+/// <remarks>
+/// The choice itself is part of the <see cref="UserPreferences"/>; the copy under <see cref="Key"/> lets
+/// <c>theme.js</c> colour the first paint without waiting for the app to start.
+/// </remarks>
+public sealed class ThemeService(IJSRuntime js)
 {
     public const string Key = "bitenovac.theme";
 
-    public async ValueTask<AppTheme> GetAsync() => await storage.GetAsync(Key) switch
+    public static ThemePreference Parse(string? copy) => copy switch
     {
-        "dark" => AppTheme.Dark,
-        "system" => AppTheme.System,
-        _ => AppTheme.Light
+        "dark" => ThemePreference.Dark,
+        "system" => ThemePreference.System,
+        _ => ThemePreference.Light
     };
 
-    public ValueTask SetAsync(AppTheme theme) => js.InvokeVoidAsync("bitenovacTheme.set", theme.ToString().ToLowerInvariant());
+    public static string Name(ThemePreference theme) => theme.ToString().ToLowerInvariant();
+
+    public ValueTask ApplyAsync(ThemePreference theme) => js.InvokeVoidAsync("bitenovacTheme.set", Name(theme));
 }
