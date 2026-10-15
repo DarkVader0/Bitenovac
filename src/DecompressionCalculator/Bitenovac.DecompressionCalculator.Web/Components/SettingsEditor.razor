@@ -100,6 +100,20 @@
             }
         </div>
     </details>
+
+    <details>
+        <summary>Contingency</summary>
+        <div class="field-grid">
+            <div class="field-pair">
+                <NumberField Label="Extra time" Unit="min" Value="Value.ContingencyExtraMinutes"
+                             Issue="@Issues[nameof(PlannerSettings.ContingencyExtraMinutes)]"
+                             ValueChanged="value => ChangeAsync(Value with { ContingencyExtraMinutes = value })"/>
+                <NumberField Label="Extra depth" Unit="@Labels.Depth" Value="Value.ContingencyExtraDepth"
+                             Issue="@Issues[nameof(PlannerSettings.ContingencyExtraDepth)]"
+                             ValueChanged="value => ChangeAsync(Value with { ContingencyExtraDepth = value })"/>
+            </div>
+        </div>
+    </details>
 </section>
 
 @code {

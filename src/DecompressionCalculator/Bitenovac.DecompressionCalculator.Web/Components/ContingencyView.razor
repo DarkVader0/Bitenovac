@@ -1,0 +1,44 @@
+<details class="contingency">
+    <summary>
+        <span class="contingency-name">@Name</span>
+        @if (Contingency.Result.Succeeded)
+        {
+            <span class="contingency-summary">
+                @Display.Minutes(Contingency.Result.TotalRuntime) · TTS @Display.Minutes(ResultFigures.TimeToSurface(Contingency.Result))
+            </span>
+        }
+        else
+        {
+            <span class="contingency-summary contingency-failed">Cannot be planned</span>
+        }
+    </summary>
+
+    @if (!Contingency.Result.Succeeded)
+    {
+        <p class="alert alert-danger">@Contingency.Result.FailureMessage</p>
+    }
+    else
+    {
+        <ProfileTable Result="Contingency.Result" Units="Units"/>
+        <Figures Result="Contingency.Result"/>
+
+        @if (!Contingency.Result.IsValid)
+        {
+            <p class="alert alert-danger">An ascent between levels passes the decompression ceiling.</p>
+        }
+
+        <GasTable Result="Contingency.Result" Units="Units"/>
+    }
+</details>
+
+@code {
+    [Parameter, EditorRequired]
+    public Contingency Contingency { get; set; } = default!;
+
+    [Parameter]
+    public UnitSystem Units { get; set; }
+
+    private string Name => Contingency.Kind == ContingencyKind.LostGas
+        ? $"{Contingency.LostGas} lost"
+        : $"+{Display.Number(Contingency.ExtraMinutes)} min, +{Display.Number(Contingency.ExtraDepth)} {UnitLabels.For(Units).Depth}";
+}

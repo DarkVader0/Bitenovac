@@ -149,7 +149,8 @@ public sealed class PlanConverterTests
             AscentRateToStops = converted.Settings.AscentRateToStops,
             AscentRateShallow = converted.Settings.AscentRateShallow,
             BottomSac = converted.Settings.BottomSac,
-            DecoSac = converted.Settings.DecoSac
+            DecoSac = converted.Settings.DecoSac,
+            ContingencyExtraDepth = converted.Settings.ContingencyExtraDepth
         };
         Assert.Equal(expectedSettings, converted.Settings);
         Assert.Equal(plan.Algorithm, converted.Algorithm);

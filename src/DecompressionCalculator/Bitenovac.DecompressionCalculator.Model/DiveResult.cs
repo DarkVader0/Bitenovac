@@ -220,6 +220,12 @@ public sealed class DiveResult
     /// </remarks>
     public IReadOnlyList<DiveMoment> Timeline { get; }
 
+    /// <summary>
+    /// Gets the dive planned again for what could go wrong, empty for a dive that could not be planned: first the
+    /// deepest level longer and deeper, then one plan for each decompression gas lost.
+    /// </summary>
+    public IReadOnlyList<Contingency> Contingencies { get; internal set; } = [];
+
     internal static DiveResult Failed(int index, string message) =>
         new(index, message, false, TimeSpan.Zero, TimeSpan.Zero, 0, 0, 0, false, [], [], [], []);
 

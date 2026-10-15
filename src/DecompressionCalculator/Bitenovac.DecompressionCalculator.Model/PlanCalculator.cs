@@ -62,25 +62,89 @@ public static class PlanCalculator
             {
                 Cylinder[] cylinders = [.. dive.Cylinders.Select(cylinder => PlanMapper.ToCylinder(cylinder, plan.Units))];
                 var loop = PlanMapper.ToLoop(dive.Circuit, settings[index]);
-                return (Profile: PlanMapper.ToProfile(dive, cylinders, loop, plan.Units), Cylinders: cylinders);
+                return (Profile: PlanMapper.ToProfile(dive, cylinders, loop, plan.Units), Cylinders: cylinders, Loop: loop);
             })
             .ToArray();
 
         var results = new DiveResult[dives.Length];
         for (var index = 0; index < dives.Length; index++)
         {
-            var priorDives = dives[..index].Select((prior, priorIndex) => new PriorDive(
+            PriorDive[] priorDives = [.. dives[..index].Select((prior, priorIndex) => new PriorDive(
                 prior.Profile,
                 prior.Cylinders,
                 settings[priorIndex],
                 TimeSpan.FromMinutes(plan.Dives[priorIndex + 1].SurfaceIntervalMinutes),
-                GasMixture.Air));
+                GasMixture.Air))];
 
             var request = new DivePlanRequest(dives[index].Profile, dives[index].Cylinders, settings[index], priorDives);
-            results[index] = Plan(index, request, plan);
+            var result = Plan(index, request, plan);
+            if (result.Succeeded)
+            {
+                result.Contingencies = Contingencies(index, plan, dives[index].Cylinders, dives[index].Loop, settings[index], priorDives);
+            }
+
+            results[index] = result;
         }
 
         return new PlanCalculation([], results);
+    }
+
+    private static Contingency[] Contingencies(
+        int index,
+        DivePlanDocument plan,
+        Cylinder[] cylinders,
+        BreathingLoop loop,
+        DivePlanSettings settings,
+        PriorDive[] priorDives)
+    {
+        var dive = plan.Dives[index];
+        var planner = plan.SettingsFor(index);
+        var contingencies = new List<Contingency>();
+
+        var deepest = dive.Levels
+            .Select((level, position) => (level.Depth, Position: position))
+            .Max()
+            .Position;
+        var extended = dive with
+        {
+            Levels =
+            [
+                .. dive.Levels.Select((level, position) => position == deepest
+                    ? new LevelInput(level.Depth + planner.ContingencyExtraDepth, level.DurationMinutes + planner.ContingencyExtraMinutes)
+                    : level)
+            ]
+        };
+
+        contingencies.Add(new Contingency(
+            ContingencyKind.Extended,
+            PlanWithoutTimeline(index, new DivePlanRequest(PlanMapper.ToProfile(extended, cylinders, loop, plan.Units), cylinders, settings, priorDives), plan))
+        {
+            ExtraMinutes = planner.ContingencyExtraMinutes,
+            ExtraDepth = planner.ContingencyExtraDepth
+        });
+
+        foreach (var lost in cylinders.Where(static cylinder => cylinder.Purpose == CylinderPurpose.DecoGas).Select(static cylinder => cylinder.Gas.ToString()).Distinct())
+        {
+            Cylinder[] remaining = [.. cylinders.Where(cylinder => cylinder.Gas.ToString() != lost)];
+            var result = remaining.Length == 0
+                ? DiveResult.Failed(index, "No gas is left to breathe.")
+                : PlanWithoutTimeline(index, new DivePlanRequest(PlanMapper.ToProfile(dive, remaining, loop, plan.Units), remaining, settings, priorDives), plan);
+            contingencies.Add(new Contingency(ContingencyKind.LostGas, result) { LostGas = lost });
+        }
+
+        return [.. contingencies];
+    }
+
+    private static DiveResult PlanWithoutTimeline(int index, DivePlanRequest request, DivePlanDocument plan)
+    {
+        try
+        {
+            return DiveResult.From(index, new DivePlanner(AlgorithmCatalog.Create(plan.Algorithm)).CreatePlan(request), [], plan.Units);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return DiveResult.Failed(index, FailureMessages.Describe(exception, plan.Units));
+        }
     }
 
     private static DiveResult Plan(int index, DivePlanRequest request, DivePlanDocument plan)

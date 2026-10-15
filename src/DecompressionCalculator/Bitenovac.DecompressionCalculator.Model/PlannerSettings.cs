@@ -32,6 +32,8 @@ namespace Bitenovac.DecompressionCalculator.Model;
 /// <param name="LastStopAtSixMeters">Whether the last stop is at six meters (20 feet) instead of three (10 feet).</param>
 /// <param name="SwitchAtRequiredStop">Whether gas switches wait for a required stop instead of happening at a gas's maximum operating depth.</param>
 /// <param name="OxygenBreaks">Whether oxygen breaks are planned during long oxygen stops.</param>
+/// <param name="ContingencyExtraMinutes">The time added to the deepest level in the contingency plan, in minutes.</param>
+/// <param name="ContingencyExtraDepth">The depth added to the deepest level in the contingency plan, in meters or feet.</param>
 public sealed record PlannerSettings(
     double Altitude,
     Salinity Salinity,
@@ -57,7 +59,9 @@ public sealed record PlannerSettings(
     bool SafetyStop,
     bool LastStopAtSixMeters,
     bool SwitchAtRequiredStop,
-    bool OxygenBreaks)
+    bool OxygenBreaks,
+    double ContingencyExtraMinutes = 3,
+    double ContingencyExtraDepth = 3)
 {
     /// <summary>
     /// Returns the default settings for a unit system.
@@ -74,7 +78,8 @@ public sealed record PlannerSettings(
             AscentRateToStops = 30,
             AscentRateShallow = 3,
             BottomSac = 0.65,
-            DecoSac = 0.5
+            DecoSac = 0.5,
+            ContingencyExtraDepth = 10
         },
         _ => Metric
     };
@@ -104,5 +109,7 @@ public sealed record PlannerSettings(
         SafetyStop: false,
         LastStopAtSixMeters: false,
         SwitchAtRequiredStop: false,
-        OxygenBreaks: false);
+        OxygenBreaks: false,
+        ContingencyExtraMinutes: 3,
+        ContingencyExtraDepth: 3);
 }
