@@ -228,7 +228,7 @@ API key that expires within the hour, so no key is ever stored.
 |---|---|
 | Repository owner | `DarkVader0` |
 | Repository | `Bitenovac` |
-| Workflow file | `deploy-remotebuildtool.yml` |
+| Workflow file | `deploy_RemoteBuildTool.yml` |
 | Environment | `nuget` |
 
 **2.** On GitHub, Settings → Variables → Actions: add the variable `NUGET_USER` with your nuget.org
@@ -247,28 +247,30 @@ NUGET_API_KEY=<KEY> bash deploy/remotebuildtool.sh [2026.10.11.001]
 
 ## Releasing the libraries
 
-The libraries under `src/DecompressionAlgorithms` and `src/DecompressionCalculator` are published to
-nuget.org together, each folder under its own version:
-`<VersionPrefix>` in the folder's `Directory.Build.props`. The Web app restores them from
-nuget.org at the version pinned in `Directory.Packages.props`, not from the source.
+The libraries of `src/DecompressionAlgorithms` and of `src/DecompressionCalculator` are published to
+nuget.org one product at a time, each under its own version: `<VersionPrefix>` in the product
+folder's `Directory.Build.props`. The Web app restores them from nuget.org at the version pinned in
+`Directory.Packages.props`, not from the source.
 
-1. Bump the `<VersionPrefix>` of the folder you changed, in its `Directory.Build.props`, and merge it.
+1. Bump the `<VersionPrefix>` of the product you changed and merge it.
 2. Wait for the next Official build, or run one: Actions → Official → Run workflow. The packages
    keep the library version rather than the date.
-3. Publish them from that drop: Actions → Deploy libraries → Run workflow. Leave the drop empty for
-   the newest one. Packages nuget.org already has at that version are skipped, so a run that
-   stopped part way can be run again; a run in which every package is already published fails, as
-   the version was not bumped.
+3. Publish them from that drop: Actions → Deploy DecompressionAlgorithmLibraries, or Deploy
+   DecompressionCalculatorLibraries → Run workflow. Leave the drop empty for the newest one.
+   Packages nuget.org already has at that version are skipped, so a run that stopped part way can
+   be run again; a run in which every package is already published fails, as the version was not
+   bumped.
 4. Once nuget.org lists the new version, move the Web app onto it by changing its two
    `PackageVersion` entries in `Directory.Packages.props`.
 
-The first time only, add a second Trusted Publishing policy on nuget.org, like the one above but
-with the workflow file `deploy-libraries.yml`.
+The first time only, add a Trusted Publishing policy on nuget.org for each of the two workflows,
+like the one above but with the workflow file `deploy_DecompressionAlgorithmLibraries.yml` and
+`deploy_DecompressionCalculatorLibraries.yml`.
 
 To publish by hand on the runner host instead, with a key from nuget.org:
 
 ```bash
-NUGET_API_KEY=<KEY> bash deploy/libraries.sh [2026.10.11.001]
+NUGET_API_KEY=<KEY> bash deploy/libraries.sh DecompressionAlgorithms [2026.10.11.001]
 ```
 
 ---

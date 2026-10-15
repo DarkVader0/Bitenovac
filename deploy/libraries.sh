@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 #
-# Pushes the Bitenovac decompression library packages from an Official drop to nuget.org.
+# Pushes the packages of one product, DecompressionAlgorithms or DecompressionCalculator, from an
+# Official drop to nuget.org.
 #
 # Usage, on the runner host:
-#   NUGET_API_KEY=... bash deploy/libraries.sh [drop]
+#   NUGET_API_KEY=... bash deploy/libraries.sh <product> [drop]
 #
-#   drop   The drop to deploy from, for example 2026.10.11.001. Defaults to the newest one.
+#   product   The folder under src/ whose packages to push.
+#   drop      The drop to deploy from, for example 2026.10.11.001. Defaults to the newest one.
 #
 # Environment:
 #   NUGET_API_KEY   Required. In CI this is the short-lived key NuGet/login exchanges for the
-#                   workflow's OIDC token (see .github/workflows/deploy-libraries.yml).
+#                   workflow's OIDC token (see .github/workflows/deploy_DecompressionAlgorithmLibraries.yml).
 #
-# Each product folder shares one version, set in its Directory.Build.props. A package nuget.org already has at
+# The product shares one version, set in its Directory.Build.props. A package nuget.org already has at
 # that version is skipped, so a deploy that stopped part way can be run again for the rest; one in
 # which every package is already published fails, so a forgotten bump still fails loudly.
 
@@ -24,7 +26,11 @@ fail() { printf '\nerror: %s\n' "$*" >&2; exit 1; }
 
 [[ -n "${NUGET_API_KEY:-}" ]] || fail "NUGET_API_KEY is not set."
 
-drop="${1:-}"
+product="${1:-}"
+[[ "${product}" == DecompressionAlgorithms || "${product}" == DecompressionCalculator ]] \
+    || fail "Name the product to deploy: DecompressionAlgorithms or DecompressionCalculator."
+
+drop="${2:-}"
 [[ -z "${drop}" || "${drop}" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{3}$ ]] \
     || fail "'${drop}' is not a drop name. Drops are named yyyy.MM.dd.NNN."
 
@@ -47,6 +53,7 @@ exec docker run \
     --volume "${OFFICIAL_VOLUME}:/mnt/official:ro" \
     --env NUGET_API_KEY \
     --env "DROP=${drop}" \
+    --env "PRODUCT=${product}" \
     --env HOME=/tmp \
     --env DOTNET_CLI_HOME=/tmp \
     --env DOTNET_NOLOGO=true \
@@ -66,8 +73,8 @@ exec docker run \
         [[ -d "${packages}" ]] || fail "Drop ${DROP} has no packages directory."
 
         shopt -s nullglob
-        found=("${packages}"/Bitenovac.DecompressionAlgorithms.*.nupkg "${packages}"/Bitenovac.DecompressionCalculator.*.nupkg)
-        [[ ${#found[@]} -gt 0 ]] || fail "Drop ${DROP} has no library packages."
+        found=("${packages}/Bitenovac.${PRODUCT}".*.nupkg)
+        [[ ${#found[@]} -gt 0 ]] || fail "Drop ${DROP} has no ${PRODUCT} packages."
 
         # A drop made before the libraries had their own version stamps them with its date.
         # nuget.org never deletes a version, and that one would outrank every real one.
@@ -91,6 +98,6 @@ exec docker run \
         done
 
         [[ ${pushed} -gt 0 ]] \
-            || fail "nuget.org already has every package of drop ${DROP}. Bump <VersionPrefix> in the product folder's Directory.Build.props."
+            || fail "nuget.org already has every package of drop ${DROP}. Bump <VersionPrefix> in src/${PRODUCT}/Directory.Build.props."
         printf "==> Pushed %s of %s package(s); the rest were already on nuget.org.\n" "${pushed}" "${#found[@]}"
     '

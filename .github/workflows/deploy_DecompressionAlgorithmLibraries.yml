@@ -1,4 +1,4 @@
-name: Deploy RemoteBuildTool
+name: Deploy DecompressionAlgorithmLibraries
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         default: ''
 
 concurrency:
-  group: deploy-remotebuildtool
+  group: deploy_DecompressionAlgorithmLibraries
   cancel-in-progress: false
 
 permissions:
@@ -35,4 +35,4 @@ jobs:
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
           DROP: ${{ inputs.drop }}
-        run: bash deploy/remotebuildtool.sh "${DROP}"
+        run: bash deploy/libraries.sh DecompressionAlgorithms "${DROP}"
