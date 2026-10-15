@@ -46,11 +46,13 @@ public sealed class ProfileChart
     private const int MaximumTicks = 6;
 
     private ProfileChart(IReadOnlyList<ChartPoint> points, IReadOnlyList<ChartStop> stops, IReadOnlyList<ChartPoint> ceiling,
+        double maximumMinutes,
         IReadOnlyList<double> timeTicks, IReadOnlyList<double> depthTicks)
     {
         Points = points;
         Stops = stops;
         Ceiling = ceiling;
+        MaximumMinutes = maximumMinutes;
         TimeTicks = timeTicks;
         DepthTicks = depthTicks;
     }
@@ -75,7 +77,8 @@ public sealed class ProfileChart
     public IReadOnlyList<ChartPoint> Ceiling { get; }
 
     /// <summary>
-    /// Gets the runtimes, in minutes, at which the time axis is labelled, from zero to <see cref="MaximumMinutes"/>.
+    /// Gets the runtimes, in minutes, at which the time axis is labelled: equal steps from zero, none
+    /// past <see cref="MaximumMinutes"/>.
     /// </summary>
     public IReadOnlyList<double> TimeTicks { get; }
 
@@ -85,9 +88,10 @@ public sealed class ProfileChart
     public IReadOnlyList<double> DepthTicks { get; }
 
     /// <summary>
-    /// Gets the runtime at the right edge of the chart, in minutes: the runtime rounded up to a tick.
+    /// Gets the runtime at the right edge of the chart, in minutes: the runtime rounded up to the next
+    /// whole minute, so the chart ends where the dive does.
     /// </summary>
-    public double MaximumMinutes => TimeTicks[^1];
+    public double MaximumMinutes { get; }
 
     /// <summary>
     /// Gets the depth at the bottom edge of the chart: the maximum depth rounded up to a tick.
@@ -136,7 +140,8 @@ public sealed class ProfileChart
             ? [.. result.Ceiling.Select(static point => new ChartPoint(point.Runtime.TotalMinutes, point.Depth))]
             : [];
 
-        return new ProfileChart(points, stops, ceiling, Ticks(startMinutes, MinuteSteps), Ticks(deepest, depthSteps));
+        var maximumMinutes = Math.Max(1, Math.Ceiling(startMinutes - 1e-9));
+        return new ProfileChart(points, stops, ceiling, maximumMinutes, TimeTicksUpTo(maximumMinutes), Ticks(deepest, depthSteps));
     }
 
     /// <summary>
@@ -154,6 +159,17 @@ public sealed class ProfileChart
     /// <param name="area">The rectangle the data is drawn in.</param>
     /// <returns>The vertical coordinate.</returns>
     public double Y(double depth, ChartArea area) => area.Top + depth / MaximumDepth * area.Height;
+
+    /// <remarks>
+    /// The step is the smallest one that labels the range with at most <see cref="MaximumTicks"/>
+    /// intervals; the last tick is the last multiple of it within the range.
+    /// </remarks>
+    private static double[] TimeTicksUpTo(double maximum)
+    {
+        var step = MinuteSteps.FirstOrDefault(step => maximum / step <= MaximumTicks, MinuteSteps[^1]);
+        var count = (int)Math.Floor(maximum / step + 1e-9);
+        return [.. Enumerable.Range(0, count + 1).Select(index => index * step)];
+    }
 
     /// <remarks>
     /// The step is the smallest one that labels the range with at most <see cref="MaximumTicks"/>

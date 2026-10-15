@@ -1,10 +1,10 @@
 @typeparam TValue
 
-<select class="cell-input @(Invalid ? "invalid" : null)" aria-label="@Label" aria-invalid="@(Invalid ? "true" : null)" @onchange="OnChangeAsync">
+<select value="@SelectedIndex" class="cell-input @(Invalid ? "invalid" : null)" aria-label="@Label" aria-invalid="@(Invalid ? "true" : null)" @onchange="OnChangeAsync">
     @for (var index = 0; index < Options.Count; index++)
     {
         var option = Options[index];
-        <option value="@index" selected="@IsSelected(option)">@Text(option)</option>
+        <option value="@index">@Text(option)</option>
     }
 </select>
 
@@ -27,7 +27,19 @@
     [Parameter]
     public bool Invalid { get; set; }
 
-    private bool IsSelected(TValue option) => EqualityComparer<TValue>.Default.Equals(option, Value);
+    private int SelectedIndex
+    {
+        get
+        {
+            for (var index = 0; index < Options.Count; index++)
+            {
+                if (EqualityComparer<TValue>.Default.Equals(Options[index], Value))
+                    return index;
+            }
+
+            return 0;
+        }
+    }
 
     private Task OnChangeAsync(ChangeEventArgs args) =>
         int.TryParse(args.Value as string, out var index) && index >= 0 && index < Options.Count

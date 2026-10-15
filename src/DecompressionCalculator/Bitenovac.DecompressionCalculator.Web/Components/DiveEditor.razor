@@ -31,7 +31,7 @@
         </div>
     }
 
-    <CircuitEditor Value="Value.Circuit" Issues="Issues.Scope(nameof(DiveInput.Circuit))"
+    <CircuitEditor @key="Number" Value="Value.Circuit" Issues="Issues.Scope(nameof(DiveInput.Circuit))"
                    ValueChanged="circuit => ChangeAsync(Value with { Circuit = circuit })"/>
 
     <h3>Levels</h3>

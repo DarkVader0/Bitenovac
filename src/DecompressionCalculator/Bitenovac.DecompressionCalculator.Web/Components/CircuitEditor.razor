@@ -5,12 +5,14 @@
     @switch (Value)
     {
         case ClosedCircuitInput closed:
-            <NumberField Label="Bottom setpoint" Unit="bar" Value="closed.BottomSetpoint"
-                         Issue="@Issues[nameof(ClosedCircuitInput.BottomSetpoint)]"
-                         ValueChanged="value => ChangeAsync(closed with { BottomSetpoint = value })"/>
-            <NumberField Label="Deco setpoint" Unit="bar" Value="closed.DecoSetpoint"
-                         Issue="@Issues[nameof(ClosedCircuitInput.DecoSetpoint)]"
-                         ValueChanged="value => ChangeAsync(closed with { DecoSetpoint = value })"/>
+            <div class="field-pair">
+                <NumberField Label="Bottom setpoint" Unit="bar" Value="closed.BottomSetpoint"
+                             Issue="@Issues[nameof(ClosedCircuitInput.BottomSetpoint)]"
+                             ValueChanged="value => ChangeAsync(closed with { BottomSetpoint = value })"/>
+                <NumberField Label="Deco setpoint" Unit="bar" Value="closed.DecoSetpoint"
+                             Issue="@Issues[nameof(ClosedCircuitInput.DecoSetpoint)]"
+                             ValueChanged="value => ChangeAsync(closed with { DecoSetpoint = value })"/>
+            </div>
             break;
         case SemiClosedCircuitInput semiClosed:
             <NumberField Label="Dump ratio" Value="semiClosed.DumpRatio" Issue="@Issues[nameof(SemiClosedCircuitInput.DumpRatio)]"
