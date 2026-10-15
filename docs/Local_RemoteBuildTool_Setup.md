@@ -165,11 +165,13 @@ nightly rebuild writes main.
   "buildReportSeconds": 120,
   "housekeeping": "03:30:00",
   "rebuild": "01:00:00",
+  "rebuildStepMinutes": 20,
   "logRetentionDays": { "PR_": 30, "Rebuild_": 30, "Official_": 365 }
 }
 ```
 
-`"rebuild": null` turns the nightly rebuild off; an empty main is still rebuilt. Stop, start and
+`"rebuild": null` turns the nightly rebuild off; an empty main is still rebuilt. `rebuildStepMinutes`
+is how long each step of a rebuild may run; see [Nightly rebuild](#nightly-rebuild). Stop, start and
 follow it, or empty main so it is rebuilt now (Ubuntu):
 
 ```bash
@@ -316,7 +318,10 @@ step passes, main is switched to it:
 3. Pull requests merged while the rebuild ran are promoted again, so the switch never takes their
    output back out.
 
-A rebuild that fails, such as on a failing test on `master`, leaves main as it was. Its logs are in
+A rebuild that fails, such as on a failing test on `master`, leaves main as it was. So does one
+whose step runs past `rebuildStepMinutes` (20 by default): the step is stopped with every process it
+started, the rebuild is recorded as `timed_out`, and `service.log` names the step. The service
+carries on, and the next night's rebuild runs as usual. Its logs are in
 the logs share under `Rebuild_<commit>` (`tool-restore.log`, `plan.log`, `build-Debug.log`, ...,
 `switch.log`), its telemetry under queue `Rebuild`.
 

@@ -4,6 +4,7 @@
   "buildReportSeconds": 120,
   "housekeeping": "03:30:00",
   "rebuild": "01:00:00",
+  "rebuildStepMinutes": 20,
   "logRetentionDays": {
     "PR_": 30,
     "Rebuild_": 30,

@@ -37,27 +37,31 @@ internal sealed class ServiceBuild(HostSettings host, ToolCommand tool)
             workspace.CheckOut(sha);
             var environment = Environment(workspace.Directory, store, logsDirectory, identity, kind.Cacheless);
 
-            // The coverage merge in 'test' runs the repository's own reportgenerator.
-            if (File.Exists(Path.Combine(workspace.Directory, ".config", "dotnet-tools.json"))
-                && await ChildProcess.RunAsync("dotnet", ["tool", "restore"], workspace.Directory, environment,
-                    Path.Combine(logsDirectory, "tool-restore.log"), cancellationToken) != 0)
+            // A step that outlives the kind's limit is stopped with everything it started, and ends the build.
+            async Task<string> RunStepAsync(string fileName, IReadOnlyList<string> arguments, string name)
             {
-                result = "failure";
+                using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                limit.CancelAfter(kind.StepTimeout);
+                try
+                {
+                    var exitCode = await ChildProcess.RunAsync(
+                        fileName, arguments, workspace.Directory, environment, Path.Combine(logsDirectory, name + ".log"), limit.Token);
+                    return exitCode == 0 ? "success" : "failure";
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    await File.AppendAllTextAsync(
+                        Path.Combine(logsDirectory, "service.log"), $"{name} did not finish within {kind.StepTimeout}; it was stopped.\n", CancellationToken.None);
+                    return "timed_out";
+                }
             }
+
+            // The coverage merge in 'test' runs the repository's own reportgenerator.
+            if (File.Exists(Path.Combine(workspace.Directory, ".config", "dotnet-tools.json")))
+                result = await RunStepAsync("dotnet", ["tool", "restore"], "tool-restore");
 
             foreach (var step in kind.Steps.TakeWhile(_ => result == "success"))
-            {
-                var exitCode = await ChildProcess.RunAsync(
-                    tool.FileName,
-                    [.. tool.PrefixArguments, .. step],
-                    workspace.Directory,
-                    environment,
-                    Path.Combine(logsDirectory, string.Join('-', step) + ".log"),
-                    cancellationToken);
-
-                if (exitCode != 0)
-                    result = "failure";
-            }
+                result = await RunStepAsync(tool.FileName, [.. tool.PrefixArguments, .. step], string.Join('-', step));
 
             if (result == "success" && kind.Finish is { } finish)
             {

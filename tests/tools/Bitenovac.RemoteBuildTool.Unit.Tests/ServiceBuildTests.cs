@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Bitenovac.RemoteBuildTool.Service;
 
 namespace Bitenovac.RemoteBuildTool.Unit.Tests;
@@ -87,6 +88,29 @@ public sealed class ServiceBuildTests
         Assert.Equal("failure", build.Result);
         Assert.True(File.Exists(Path.Combine(host.LogsRoot, build.LogsPath!, "no-such-command.log")));
         Assert.False(File.Exists(Path.Combine(host.LogsRoot, build.LogsPath!, "--version.log")));
+    }
+
+    [Fact]
+    public async Task RunAsync_ShouldStopAStepAndEndTimedOut_WhenItOutlivesItsLimit()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var (host, workspace, sha) = Repository(directory);
+        var kind = new ServiceBuildKind("Probe", "Probe", Cacheless: true, [["-c", "alias.hang=!sleep 30", "hang"], ["--version"]])
+        {
+            StepTimeout = TimeSpan.FromSeconds(1),
+        };
+        var started = Stopwatch.GetTimestamp();
+
+        // Act
+        var build = await new ServiceBuild(host, Git).RunAsync(kind, workspace, "master", sha, DateTimeOffset.UtcNow, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal("timed_out", build.Result);
+        Assert.True(Stopwatch.GetElapsedTime(started) < TimeSpan.FromSeconds(20));
+        var logs = Path.Combine(host.LogsRoot, build.LogsPath!);
+        Assert.Contains("did not finish within 00:00:01; it was stopped.", File.ReadAllText(Path.Combine(logs, "service.log")), StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(logs, "--version.log")));
     }
 
     [Fact]
