@@ -54,12 +54,14 @@ public static class PlanCalculator
             return new PlanCalculation(issues, []);
         }
 
-        var settings = PlanMapper.ToSettings(plan.Settings, plan.Units);
+        var settings = plan.Dives
+            .Select((_, index) => PlanMapper.ToSettings(plan.SettingsFor(index), plan.Units))
+            .ToArray();
         var dives = plan.Dives
-            .Select(dive =>
+            .Select((dive, index) =>
             {
                 Cylinder[] cylinders = [.. dive.Cylinders.Select(cylinder => PlanMapper.ToCylinder(cylinder, plan.Units))];
-                var loop = PlanMapper.ToLoop(dive.Circuit, settings);
+                var loop = PlanMapper.ToLoop(dive.Circuit, settings[index]);
                 return (Profile: PlanMapper.ToProfile(dive, cylinders, loop, plan.Units), Cylinders: cylinders);
             })
             .ToArray();
@@ -70,11 +72,11 @@ public static class PlanCalculator
             var priorDives = dives[..index].Select((prior, priorIndex) => new PriorDive(
                 prior.Profile,
                 prior.Cylinders,
-                settings,
+                settings[priorIndex],
                 TimeSpan.FromMinutes(plan.Dives[priorIndex + 1].SurfaceIntervalMinutes),
                 GasMixture.Air));
 
-            var request = new DivePlanRequest(dives[index].Profile, dives[index].Cylinders, settings, priorDives);
+            var request = new DivePlanRequest(dives[index].Profile, dives[index].Cylinders, settings[index], priorDives);
             results[index] = Plan(index, request, plan);
         }
 

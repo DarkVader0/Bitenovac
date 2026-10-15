@@ -1,0 +1,71 @@
+@if (DiveCount > 1)
+{
+    <section class="card settings-scope">
+        <CheckField @key="_resets" Label="Apply to all dives" Value="Shared" ValueChanged="OnChangeAsync"/>
+        @if (_confirm)
+        {
+            <p class="scope-note">@DiveName has its own settings. Replace them with the plan's?</p>
+            <div class="button-row">
+                <button type="button" class="danger" @onclick="ReplaceAsync">Replace</button>
+                <button type="button" class="secondary" @onclick="Keep">Keep</button>
+            </div>
+        }
+        else
+        {
+            <p class="scope-note">
+                @if (Shared)
+                {
+                    <text>The settings below apply to every dive that follows the plan's.</text>
+                }
+                else
+                {
+                    <text>The settings below are for @DiveName only.</text>
+                }
+            </p>
+        }
+    </section>
+}
+
+@code {
+    private bool _confirm;
+    private int _resets;
+
+    [Parameter, EditorRequired]
+    public string DiveName { get; set; } = "";
+
+    [Parameter]
+    public int DiveCount { get; set; }
+
+    [Parameter]
+    public bool Shared { get; set; }
+
+    [Parameter]
+    public bool HasChanges { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> SharedChanged { get; set; }
+
+    private Task OnChangeAsync(bool shared)
+    {
+        if (shared && HasChanges)
+        {
+            _confirm = true;
+            return Task.CompletedTask;
+        }
+
+        _confirm = false;
+        return SharedChanged.InvokeAsync(shared);
+    }
+
+    private void Keep()
+    {
+        _confirm = false;
+        _resets++;
+    }
+
+    private Task ReplaceAsync()
+    {
+        _confirm = false;
+        return SharedChanged.InvokeAsync(true);
+    }
+}

@@ -29,7 +29,7 @@ public static class PlanValidator
 
         var issues = new List<ValidationIssue>();
         ValidateAlgorithm(plan.Algorithm, issues);
-        ValidateSettings(plan.Settings, plan.Units, issues);
+        ValidateSettings(plan.Settings, plan.Units, nameof(DivePlanDocument.Settings), issues);
         ValidateDives(plan.Dives, plan.Units, issues);
         return issues;
     }
@@ -65,10 +65,8 @@ public static class PlanValidator
         }
     }
 
-    private static void ValidateSettings(PlannerSettings settings, UnitSystem units, List<ValidationIssue> issues)
+    private static void ValidateSettings(PlannerSettings settings, UnitSystem units, string prefix, List<ValidationIssue> issues)
     {
-        const string prefix = nameof(DivePlanDocument.Settings);
-
         var altitudeMeters = UnitConversion.ToDepth(settings.Altitude, units).InMeter;
         if (!double.IsFinite(altitudeMeters) || altitudeMeters is < MinimumAltitudeMeters or > MaximumAltitudeMeters)
         {
@@ -141,6 +139,11 @@ public static class PlanValidator
             if (index > 0)
             {
                 RequirePositive(dive.SurfaceIntervalMinutes, $"{prefix}.{nameof(DiveInput.SurfaceIntervalMinutes)}", "The surface interval", issues);
+            }
+
+            if (dive.Settings is { } settings)
+            {
+                ValidateSettings(settings, units, $"{prefix}.{nameof(DiveInput.Settings)}", issues);
             }
 
             ValidateCircuit(dive.Circuit, $"{prefix}.{nameof(DiveInput.Circuit)}", issues);

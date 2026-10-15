@@ -24,9 +24,10 @@ internal static class Summary
 
     public static string Date(DateTime exportedAt) => exportedAt.ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
 
-    public static string Settings(DivePlanDocument plan)
+    public static string Settings(DivePlanDocument plan) => Settings(plan, plan.Settings);
+
+    public static string Settings(DivePlanDocument plan, PlannerSettings settings)
     {
-        var settings = plan.Settings;
         var labels = UnitLabels.For(plan.Units);
         var lastStop = settings.LastStopAtSixMeters
             ? plan.Units == UnitSystem.Imperial ? "20 ft" : "6 m"

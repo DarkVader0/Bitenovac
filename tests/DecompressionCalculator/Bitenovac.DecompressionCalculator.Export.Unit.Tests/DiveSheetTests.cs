@@ -142,6 +142,24 @@ public sealed class DiveSheetTests
     }
 
     [Fact]
+    public void Create_ShouldShowTheSettingsTheDiveIsPlannedWith_WhenItHasItsOwn()
+    {
+        // Arrange
+        var series = TestFactory.SeriesPlan();
+        var own = series.Settings with { BottomSac = 25 };
+        var plan = series with { Dives = [series.Dives[0], series.Dives[1] with { Settings = own }] };
+
+        // Act
+        var first = Sheet(plan);
+        var second = Sheet(plan, 1);
+
+        // Assert
+        Assert.Contains("SAC 18 / 14 L/min", first, StringComparison.Ordinal);
+        Assert.Contains("SAC 25 / 14 L/min", second, StringComparison.Ordinal);
+        Assert.DoesNotContain("SAC 25", first, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Create_ShouldTitleTheDiveByItsName_WhenTheOnlyDiveIsNamed()
     {
         // Arrange

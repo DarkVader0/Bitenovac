@@ -63,6 +63,7 @@ public static class PlanConverter
 
     private static DiveInput ConvertDive(DiveInput dive, UnitSystem from, UnitSystem to) => dive with
     {
+        Settings = dive.Settings is { } settings ? ConvertSettings(settings, from, to) : null,
         Levels = [.. dive.Levels.Select(level => level with { Depth = ConvertDepth(level.Depth, from, to) })],
         Cylinders = [.. dive.Cylinders.Select(cylinder => ConvertCylinder(cylinder, from, to))]
     };

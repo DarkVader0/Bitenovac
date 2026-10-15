@@ -68,7 +68,7 @@ public static class DiveSheet
 
         var which = Which(plan, dive);
         WriteTitle(sheet, title, $"{which} · {Summary.Date(exportedAt)} UTC · Bitenovac {appVersion}");
-        sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan)}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
+        sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan, plan.SettingsFor(dive))}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
 
         var input = plan.Dives[dive];
         var interval = dive > 0 ? $"After {Formats.Number(input.SurfaceIntervalMinutes)} min on the surface · " : string.Empty;
