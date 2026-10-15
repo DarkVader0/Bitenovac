@@ -137,6 +137,8 @@ internal static class TestFactory
 
     public static DiveResult Calculate(DivePlanDocument plan) => PlanCalculator.Calculate(plan).Dives[0];
 
+    public static IReadOnlyList<DiveResult> CalculateAll(DivePlanDocument plan) => PlanCalculator.Calculate(plan).Dives;
+
     /// <summary>
     /// Returns a PDF file as text, one character per byte, so its structure and uncompressed content can be searched.
     /// </summary>

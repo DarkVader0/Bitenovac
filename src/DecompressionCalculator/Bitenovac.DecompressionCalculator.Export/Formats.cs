@@ -34,4 +34,15 @@ public static class Formats
     /// <param name="duration">The duration.</param>
     /// <returns>For example <c>20 min</c> or <c>1:40 min</c>.</returns>
     public static string Minutes(TimeSpan duration) => $"{Clock(duration)} min";
+
+    /// <summary>
+    /// Returns a duration in hours and minutes, rounded to the minute.
+    /// </summary>
+    /// <param name="duration">The duration.</param>
+    /// <returns>For example <c>1:30</c> for ninety minutes, or <c>0:45</c>.</returns>
+    public static string HoursAndMinutes(TimeSpan duration)
+    {
+        var minutes = (int)Math.Round(duration.TotalMinutes, MidpointRounding.AwayFromZero);
+        return string.Create(CultureInfo.InvariantCulture, $"{minutes / 60}:{minutes % 60:00}");
+    }
 }

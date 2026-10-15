@@ -8,14 +8,16 @@ namespace Bitenovac.DecompressionCalculator.Export.Unit.Tests;
 public sealed class DiveSheetTests
 {
     private const string AppVersion = "2026.10.13.001";
-    private const string CeilingStroke = "0.702 0.129 0.129 RG 1.2 w";
-    private const string CeilingZoneFill = "0.941 0.788 0.788 rg";
-    private const string DecompressionStopStroke = "0.702 0.129 0.129 RG 1.6 w";
-    private const string SafetyStopStroke = "0.91 0.537 0.047 RG 1.6 w";
+    private const string CeilingStroke = "0.702 0.129 0.129 RG 2.2 w";
+    private const string CeilingZoneFill = "0.816 0.612 0.635 rg";
+    private const string DecompressionStopStroke = "0.702 0.129 0.129 RG 3 w";
+    private const string SafetyStopStroke = "0.91 0.537 0.047 RG 3 w";
     private const string ChartTimeLabel = "(min) Tj";
 
+    private static readonly ResultBlock[] OnePageBlocks = [ResultBlock.Figures, ResultBlock.Profile, ResultBlock.Gas, ResultBlock.Chart];
+
     private static string Sheet(DivePlanDocument plan, int dive = 0) =>
-        TestFactory.Read(DiveSheet.Create(plan, dive, TestFactory.Now, AppVersion));
+        TestFactory.Read(DiveSheet.Create(plan, dive, TestFactory.Now, AppVersion, OnePageBlocks));
 
     [Fact]
     public void Create_ShouldThrowArgumentNullException_WhenThePlanIsNull()
@@ -185,7 +187,7 @@ public sealed class DiveSheetTests
 
         // Assert
         Assert.Contains(TestFactory.Shown($"Dive 2 of 2 · 11 Oct 2026 12:00 UTC · Bitenovac {AppVersion}"), pdf, StringComparison.Ordinal);
-        Assert.Matches(Regex.Escape("(After 90 min on the surface · Open circuit · 20 m 30 min"), pdf);
+        Assert.Matches(Regex.Escape("(After 1:30 h on the surface · Open circuit · 20 m 30 min"), pdf);
         Assert.DoesNotMatch(Regex.Escape("40 m 25 min"), pdf);
         Assert.Contains("/Count 1", pdf, StringComparison.Ordinal);
     }
@@ -254,21 +256,52 @@ public sealed class DiveSheetTests
     }
 
     [Fact]
-    public void Create_ShouldListTheContingenciesWithTheirRuntimeAndStops_WhenTheContingenciesBlockIsShown()
+    public void Create_ShouldGiveEachContingencyItsOwnPageWithTheFullDive_WhenTheContingenciesBlockIsShown()
     {
         // Arrange
         var plan = TestFactory.DecompressionPlan();
         var contingencies = TestFactory.Calculate(plan).Contingencies;
 
         // Act
-        var pdf = TestFactory.Read(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, [ResultBlock.Contingencies]));
+        var pdf = TestFactory.Read(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, [ResultBlock.Profile, ResultBlock.Contingencies]));
 
         // Assert
-        Assert.Contains(TestFactory.Shown("Contingency"), pdf, StringComparison.Ordinal);
+        Assert.Equal(2, contingencies.Count);
+        Assert.Contains($"/Count {1 + contingencies.Count}", pdf, StringComparison.Ordinal);
+        Assert.Equal(1 + contingencies.Count, Regex.Count(pdf, Regex.Escape(TestFactory.Shown("Depth (m)"))));
         Assert.Contains(TestFactory.Shown("+3 min, +3 m"), pdf, StringComparison.Ordinal);
         Assert.Contains(TestFactory.Shown("NX50 lost"), pdf, StringComparison.Ordinal);
-        Assert.Contains(TestFactory.Shown(Formats.Clock(contingencies[0].Result.TotalRuntime)), pdf, StringComparison.Ordinal);
-        Assert.Contains(TestFactory.Shown(Formats.Clock(contingencies[1].Result.StopTime)), pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown(Formats.Clock(contingencies[1].Result.TotalRuntime)), pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_ShouldShowEveryBlockAndEachContingencyPage_WhenNoBlocksAreGiven()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+        var contingencies = TestFactory.Calculate(plan).Contingencies;
+
+        // Act
+        var pdf = TestFactory.Read(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion));
+
+        // Assert
+        Assert.Contains($"/Count {1 + contingencies.Count}", pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("NX50 lost"), pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_ShouldPrintNoContingencyAtAll_WhenTheContingenciesBlockIsHidden()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+
+        // Act
+        var pdf = TestFactory.Read(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, [ResultBlock.Profile, ResultBlock.Gas]));
+
+        // Assert
+        Assert.Contains("/Count 1", pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(TestFactory.Shown("NX50 lost"), pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(TestFactory.Shown("+3 min, +3 m"), pdf, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -284,7 +317,7 @@ public sealed class DiveSheetTests
         var pdf = TestFactory.Read(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, [ResultBlock.Contingencies]));
 
         // Assert
-        Assert.Contains(TestFactory.Shown("cannot be planned"), pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("No gas is left to breathe."), pdf, StringComparison.Ordinal);
     }
 
     [Fact]

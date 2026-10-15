@@ -151,7 +151,7 @@ public sealed class PlanSummaryTests
 
         // Assert
         Assert.Contains($"{Environment.NewLine}Dive 1: Open circuit", text, StringComparison.Ordinal);
-        Assert.Contains($"{Environment.NewLine}Dive 2 (after 90 min on the surface): Open circuit", text, StringComparison.Ordinal);
+        Assert.Contains($"{Environment.NewLine}Dive 2 (after 1:30 h on the surface): Open circuit", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -183,7 +183,7 @@ public sealed class PlanSummaryTests
         var singleText = PlanSummary.Text(single, TestFactory.Now);
 
         // Assert
-        Assert.Contains($"{Environment.NewLine}Wreck (after 90 min on the surface): Open circuit", seriesText, StringComparison.Ordinal);
+        Assert.Contains($"{Environment.NewLine}Wreck (after 1:30 h on the surface): Open circuit", seriesText, StringComparison.Ordinal);
         Assert.Contains($"{Environment.NewLine}Reef: Open circuit", singleText, StringComparison.Ordinal);
     }
 

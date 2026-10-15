@@ -8,6 +8,23 @@
         <button type="button" class="secondary" @onclick="OnClose"><Icon Name="IconName.Close"/>Close</button>
     </div>
 
+    @if (Plan.Dives.Count > 1)
+    {
+        <div class="field share-scope">
+            <span class="field-label">What to share</span>
+            <div class="button-row">
+                <button type="button" class="@(_series ? "secondary" : null)" aria-pressed="@(_series ? "false" : "true")"
+                        @onclick="() => _series = false">
+                    This dive
+                </button>
+                <button type="button" class="@(_series ? null : "secondary")" aria-pressed="@(_series ? "true" : "false")"
+                        @onclick="() => _series = true">
+                    Whole series
+                </button>
+            </div>
+        </div>
+    }
+
     <div class="share-options">
         @if (_canShareFiles)
         {
@@ -25,6 +42,7 @@
 
 @code {
     private bool _canShareFiles;
+    private bool _series;
     private IReadOnlyList<ResultBlock> _blocks = UserPreferences.Default.VisibleBlocks();
     private string? _status;
 
@@ -42,9 +60,11 @@
 
     private string Title => string.IsNullOrWhiteSpace(Plan.Name) ? FileNames.Fallback : Plan.Name;
 
-    private string FileName => FileNames.Pdf(Plan.Dives.Count > 1 || !string.IsNullOrWhiteSpace(Plan.Dives[Dive].Name)
-        ? $"{Title} - {Plan.Dives[Dive].DisplayName(Dive + 1)}"
-        : Title);
+    private string FileName => FileNames.Pdf(_series
+        ? $"{Title} - all dives"
+        : Plan.Dives.Count > 1 || !string.IsNullOrWhiteSpace(Plan.Dives[Dive].Name)
+            ? $"{Title} - {Plan.Dives[Dive].DisplayName(Dive + 1)}"
+            : Title);
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,7 +72,9 @@
         _blocks = (await Preferences.GetAsync()).VisibleBlocks();
     }
 
-    private byte[] Sheet() => DiveSheet.Create(Plan, Dive, DateTime.UtcNow, AppVersion.Current, _blocks);
+    private byte[] Sheet() => _series
+        ? DiveSheet.CreateSeries(Plan, DateTime.UtcNow, AppVersion.Current, _blocks)
+        : DiveSheet.Create(Plan, Dive, DateTime.UtcNow, AppVersion.Current, _blocks);
 
     private async Task SharePdfAsync()
     {

@@ -46,4 +46,23 @@ public sealed class FormatsTests
         // Assert
         Assert.Equal("1:40 min", text);
     }
+
+    [Theory]
+    [InlineData(0, "0:00")]
+    [InlineData(45, "0:45")]
+    [InlineData(60, "1:00")]
+    [InlineData(90, "1:30")]
+    [InlineData(1510, "25:10")]
+    [InlineData(89.5, "1:30")]
+    public void HoursAndMinutes_ShouldGiveHoursAndTwoDigitMinutes_WhenTheDurationIsGiven(double minutes, string expected)
+    {
+        // Arrange
+        var duration = TimeSpan.FromMinutes(minutes);
+
+        // Act
+        var text = Formats.HoursAndMinutes(duration);
+
+        // Assert
+        Assert.Equal(expected, text);
+    }
 }
