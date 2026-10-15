@@ -20,6 +20,7 @@ public static class DiveSheet
     private const double Gap = 10;
     private const double FigureHeight = 30;
     private const double GasRowHeight = 14;
+    private const double OverviewRowHeight = 18;
     private const double LargestRow = 16;
     private const double SmallestRowBesideChart = 11;
     private const double SmallestRow = 7;
@@ -66,34 +67,137 @@ public static class DiveSheet
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(dive, plan.Dives.Count);
 
         var calculation = PlanCalculator.Calculate(plan);
-        var labels = UnitLabels.For(plan.Units);
+        var sheet = NewSheet();
+        WriteDiveSheet(sheet, plan, calculation, dive, exportedAt, appVersion, blocks ?? UserPreferences.Default.VisibleBlocks());
+        return sheet.Build(Title(plan), exportedAt);
+    }
+
+    /// <summary>
+    /// Returns every dive of the plan as the bytes of one PDF file: a page that lists the series, then each dive as
+    /// <see cref="Create"/> lays it out, starting on a page of its own.
+    /// </summary>
+    /// <param name="plan">The plan, which is calculated for the sheets.</param>
+    /// <param name="exportedAt">When the sheets are made, in UTC; printed on them and stored as the file's creation time.</param>
+    /// <param name="appVersion">The version of the app that made the sheets, printed beside each title.</param>
+    /// <param name="blocks">
+    /// The result blocks to show on each dive, in order; <see langword="null"/> for every block in the default order.
+    /// </param>
+    /// <returns>The PDF file.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="plan"/> or <paramref name="appVersion"/> is <see langword="null"/>.
+    /// </exception>
+    /// <remarks>
+    /// A plan with issues is exported as its first page alone, with the issues listed, since no dive can be shown.
+    /// </remarks>
+    public static byte[] CreateSeries(DivePlanDocument plan, DateTime exportedAt, string appVersion, IReadOnlyList<ResultBlock>? blocks = null)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(appVersion);
+
+        var calculation = PlanCalculator.Calculate(plan);
+        var sheet = NewSheet();
+        WriteOverview(sheet, plan, calculation, exportedAt, appVersion);
+
+        if (calculation.IsCalculated)
+        {
+            for (var dive = 0; dive < plan.Dives.Count; dive++)
+            {
+                sheet.NewPage();
+                WriteDiveSheet(sheet, plan, calculation, dive, exportedAt, appVersion, blocks ?? UserPreferences.Default.VisibleBlocks());
+            }
+        }
+
+        return sheet.Build(Title(plan), exportedAt);
+    }
+
+    private static SheetWriter NewSheet()
+    {
         var sheet = new SheetWriter();
         sheet.Footnote(Disclaimer, PdfFont.HelveticaBold, 7.5, SheetWriter.Text);
-        var title = string.IsNullOrWhiteSpace(plan.Name) ? "Dive plan" : plan.Name;
+        return sheet;
+    }
 
-        var which = Which(plan, dive);
-        WriteTitle(sheet, title, $"{which} · {Summary.Date(exportedAt)} UTC · Bitenovac {appVersion}");
+    private static string Title(DivePlanDocument plan) => string.IsNullOrWhiteSpace(plan.Name) ? "Dive plan" : plan.Name;
+
+    private static void WriteDiveSheet(
+        SheetWriter sheet,
+        DivePlanDocument plan,
+        PlanCalculation calculation,
+        int dive,
+        DateTime exportedAt,
+        string appVersion,
+        IReadOnlyList<ResultBlock> blocks)
+    {
+        WriteTitle(sheet, Title(plan), $"{Which(plan, dive)} · {Summary.Date(exportedAt)} UTC · Bitenovac {appVersion}");
         sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan, plan.SettingsFor(dive))}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
 
         var input = plan.Dives[dive];
-        var interval = dive > 0 ? $"After {Formats.Number(input.SurfaceIntervalMinutes)} min on the surface · " : string.Empty;
+        var interval = dive > 0 ? $"After {Formats.HoursAndMinutes(TimeSpan.FromMinutes(input.SurfaceIntervalMinutes))} h on the surface · " : string.Empty;
         sheet.Paragraph(interval + Summary.Inputs(input, plan.Units), PdfFont.Helvetica, 8.5, SheetWriter.Text);
 
         if (!calculation.IsCalculated)
         {
-            sheet.Advance(Gap);
-            sheet.Paragraph("This plan cannot be calculated:", PdfFont.HelveticaBold, 11, SheetWriter.Danger);
-            foreach (var issue in calculation.Issues)
-            {
-                sheet.Paragraph($"- {Summary.Describe(issue)}", PdfFont.Helvetica, 10, SheetWriter.Text);
-            }
+            WriteIssues(sheet, calculation);
         }
         else
         {
-            WriteDive(sheet, plan, calculation.Dives[dive], labels, blocks ?? UserPreferences.Default.VisibleBlocks());
+            WriteDive(sheet, plan, calculation.Dives[dive], UnitLabels.For(plan.Units), blocks);
+        }
+    }
+
+    private static void WriteIssues(SheetWriter sheet, PlanCalculation calculation)
+    {
+        sheet.Advance(Gap);
+        sheet.Paragraph("This plan cannot be calculated:", PdfFont.HelveticaBold, 11, SheetWriter.Danger);
+        foreach (var issue in calculation.Issues)
+        {
+            sheet.Paragraph($"- {Summary.Describe(issue)}", PdfFont.Helvetica, 10, SheetWriter.Text);
+        }
+    }
+
+    /// <remarks>
+    /// Like the series table on screen: each dive with its surface interval and, from the plan, its depth, runtime,
+    /// time to surface, and the CNS and oxygen tolerance units that include the dives before it.
+    /// </remarks>
+    private static void WriteOverview(SheetWriter sheet, DivePlanDocument plan, PlanCalculation calculation, DateTime exportedAt, string appVersion)
+    {
+        var labels = UnitLabels.For(plan.Units);
+        WriteTitle(sheet, Title(plan), $"{plan.Dives.Count} dives · {Summary.Date(exportedAt)} UTC · Bitenovac {appVersion}");
+        sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan)}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
+
+        if (!calculation.IsCalculated)
+        {
+            WriteIssues(sheet, calculation);
+            return;
         }
 
-        return sheet.Build(title, exportedAt);
+        sheet.Advance(Gap);
+        SheetColumn[] columns =
+        [
+            new("Dive", 141), new("SI (h:mm)", 60, PdfAlign.Right), new($"Depth ({labels.Depth})", 70, PdfAlign.Right),
+            new("Runtime (min)", 80, PdfAlign.Right, Emphasis: true), new("TTS (min)", 60, PdfAlign.Right),
+            new("CNS (%)", 60, PdfAlign.Right), new("OTU", 60, PdfAlign.Right)
+        ];
+        var rows = plan.Dives
+            .Select((dive, index) =>
+            {
+                var result = calculation.Dives[index];
+                var interval = index == 0 ? "–" : Formats.HoursAndMinutes(TimeSpan.FromMinutes(dive.SurfaceIntervalMinutes));
+                return result.Succeeded
+                    ? new[]
+                    {
+                        dive.DisplayName(index + 1), interval, Formats.Number(result.MaximumDepth), Formats.Clock(result.TotalRuntime),
+                        Formats.Clock(TimeToSurface(result)), Formats.Number(result.CnsPercent), Formats.Number(result.OxygenToleranceUnits)
+                    }
+                    : [dive.DisplayName(index + 1), interval, "cannot be planned", string.Empty, string.Empty, string.Empty, string.Empty];
+            })
+            .ToArray();
+
+        sheet.Table(columns, rows, _ => false, OverviewRowHeight, 9);
+        sheet.Advance(Gap / 2);
+        sheet.Paragraph(
+            "SI is the surface interval before the dive, in hours and minutes. CNS and OTU include the earlier dives.",
+            PdfFont.Helvetica, 7.5, SheetWriter.Muted);
     }
 
     /// <remarks>The title and the line beside it share a line when both fit, and stack otherwise.</remarks>

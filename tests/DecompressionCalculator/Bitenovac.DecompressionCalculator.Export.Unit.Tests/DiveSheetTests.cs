@@ -185,7 +185,7 @@ public sealed class DiveSheetTests
 
         // Assert
         Assert.Contains(TestFactory.Shown($"Dive 2 of 2 · 11 Oct 2026 12:00 UTC · Bitenovac {AppVersion}"), pdf, StringComparison.Ordinal);
-        Assert.Matches(Regex.Escape("(After 90 min on the surface · Open circuit · 20 m 30 min"), pdf);
+        Assert.Matches(Regex.Escape("(After 1:30 h on the surface · Open circuit · 20 m 30 min"), pdf);
         Assert.DoesNotMatch(Regex.Escape("40 m 25 min"), pdf);
         Assert.Contains("/Count 1", pdf, StringComparison.Ordinal);
     }

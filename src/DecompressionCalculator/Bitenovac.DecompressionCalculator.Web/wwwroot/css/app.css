@@ -1587,3 +1587,7 @@ tr.gas-warning td:first-child {
     display: flex;
     gap: 0.25rem;
 }
+
+.share-scope {
+    margin: 0 0 1rem;
+}
