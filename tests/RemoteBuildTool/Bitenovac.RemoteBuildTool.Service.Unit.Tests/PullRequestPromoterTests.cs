@@ -15,8 +15,8 @@ public sealed class PullRequestPromoterTests
     {
         // Arrange
         using var directory = TestFactory.Directory();
-        Stage(directory, "90-1", "from the pull request");
-        Stage(directory, "91-2", "from the merge queue");
+        Stage(directory, "90", "from the pull request");
+        Stage(directory, "91", "from the merge queue");
         var github = new FakeGitHub(
             pulls: """[ { "number": 9, "merged_at": "2026-10-14T11:00:00Z", "merge_commit_sha": "m9", "head": { "sha": "h9" } } ]""",
             runs: new()
@@ -119,10 +119,10 @@ public sealed class PullRequestPromoterTests
         TelemetryRoot = directory.Combine("telemetry"),
     };
 
-    private static void Stage(TemporaryDirectory directory, string buildId, string content)
+    private static void Stage(TemporaryDirectory directory, string runId, string content)
     {
-        var store = directory.Combine($"staging/{buildId}");
-        var source = directory.Combine($"built/{buildId}");
+        var store = directory.Combine($"staging/{runId}");
+        var source = directory.Combine($"built/{runId}");
         TestFactory.WriteFile(Path.Combine(source, "bin", "A.dll"), content);
         new LocalVolumeArtifactStore(store).Put(new ProjectId("src/A/A.csproj"), "Debug", source, new StoredTargetHash("own", "full"));
         TestFactory.Plan("Debug", TestFactory.Entry("src/A/A.csproj", ownHash: "own", fullHash: "full")).Save(Path.Combine(store, "plan.json"));

@@ -23,7 +23,7 @@ readonly LOGS_VOLUME="${REMOTEBUILDTOOL_LOGS_VOLUME:-bitenovac-logs}"
 readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-bitenovac-official}"
 readonly TELEMETRY_VOLUME="${REMOTEBUILDTOOL_TELEMETRY_VOLUME:-bitenovac-telemetry}"
 readonly STAGING_VOLUME="${REMOTEBUILDTOOL_STAGING_VOLUME:-bitenovac-staging}"
-readonly RUN_STORE="${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}"
+readonly RUN_STORE="${GITHUB_RUN_ID:-local}"
 
 cd "${REPO_ROOT}"
 

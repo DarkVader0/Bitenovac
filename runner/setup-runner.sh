@@ -24,8 +24,9 @@
 #                      Unlimited by default.
 #   --api-token TOKEN  GitHub token the RemoteBuildTool service reads the repository and its
 #                      workflow runs with: a fine-grained token with read access to Contents,
-#                      Pull requests and Actions. Without it the service is not installed, and nothing fills main.
-#   --repo URL        Repository to serve. Defaults to the origin remote of this checkout.
+#                      Pull requests and Actions. Without it the service is not installed, and
+#                      nothing fills main.
+#   --repo URL         Repository to serve. Defaults to the origin remote of this checkout.
 #   --labels LIST      Comma separated labels the workflow selects on.
 #                      Defaults to self-hosted,linux,x64,bitenovac.
 #   --user NAME        Account the agents run as. Created if missing. Defaults to ci-runner.
@@ -34,23 +35,22 @@
 #                      --token as well, since deregistering asks GitHub too.
 #   --purge            With --uninstall, also delete the cached packages.
 #
-# Installs three things: the agents as systemd services, the image jobs build in — with the pinned
-# RemoteBuildTool release already installed into it — and the volume their packages are cached in.
+# Installs the agents as systemd services, the image jobs build in with the pinned RemoteBuildTool
+# release in it, the NuGet cache and main as local volumes, an NFS share for staging, logs and
+# telemetry, and, given --api-token, the RemoteBuildTool service.
 #
 # Sizing --instances
 # ------------------
-# One pull request runs a fixed four jobs — plan, debug, release, cleanup — with no shard count
-# to multiply by: plan, then debug and release in parallel, then cleanup. Peak demand per open
-# pull request is therefore 2 (debug and release running at once); N instances runs N pull
-# requests at that concurrency, the rest queued.
+# One pull request runs plan, then the Debug and Release builds in parallel, then their tests in
+# parallel, then a check of the results. Peak demand per open pull request is therefore 2; N
+# instances runs N pull requests at that concurrency, the rest queued.
 #
-# Every agent shares this machine's cores, so past that point they only contend. MSBuild claims
-# the whole box by default: set REMOTEBUILDTOOL_MAX_CPU to roughly cores / instances in the agent environment
-# and RemoteBuildTool bounds each job to that instead (see MsBuildRunner in src/RemoteBuildTool/Bitenovac.RemoteBuildTool).
+# Every agent shares this machine's cores, so past that point they only contend. Each agent's
+# .env bounds its jobs to cores / instances, through REMOTEBUILDTOOL_MAX_CPU and the container's
+# CPU limit.
 #
-# This is also the only machine in the pool: main and RemoteBuildTool's own build cache both live on
-# volumes local to this host (see runner/in-container.sh), so there is currently no sound way to
-# add a second one without first giving those a shared backing store.
+# This is also the only machine in the pool: main and the NuGet cache are volumes local to this
+# host, so a second machine first needs main on the share too.
 
 set -euo pipefail
 

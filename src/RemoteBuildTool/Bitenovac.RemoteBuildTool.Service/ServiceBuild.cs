@@ -34,30 +34,38 @@ internal sealed class ServiceBuild(HostSettings host, ToolCommand tool)
         var result = "success";
         try
         {
-            workspace.CheckOut(sha);
             var environment = Environment(workspace.Directory, store, logsDirectory, identity, kind.Cacheless);
 
             // A step that outlives the kind's limit is stopped with everything it started, and ends the build.
-            async Task<string> RunStepAsync(string fileName, IReadOnlyList<string> arguments, string name)
+            async Task<string> WithinLimitAsync(string name, Func<CancellationToken, Task<string>> step)
             {
                 using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 limit.CancelAfter(kind.StepTimeout);
                 try
                 {
-                    var exitCode = await ChildProcess.RunAsync(
-                        fileName, arguments, workspace.Directory, environment, Path.Combine(logsDirectory, name + ".log"), limit.Token);
-                    return exitCode == 0 ? "success" : "failure";
+                    return await step(limit.Token);
                 }
                 catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
+                    Directory.CreateDirectory(logsDirectory);
                     await File.AppendAllTextAsync(
                         Path.Combine(logsDirectory, "service.log"), $"{name} did not finish within {kind.StepTimeout}; it was stopped.\n", CancellationToken.None);
                     return "timed_out";
                 }
             }
 
+            Task<string> RunStepAsync(string fileName, IReadOnlyList<string> arguments, string name) =>
+                WithinLimitAsync(name, async limit => await ChildProcess.RunAsync(
+                    fileName, arguments, workspace.Directory, environment, Path.Combine(logsDirectory, name + ".log"), limit) == 0 ? "success" : "failure");
+
+            result = await WithinLimitAsync("checkout", limit =>
+            {
+                workspace.CheckOut(sha, limit);
+                return Task.FromResult("success");
+            });
+
             // The coverage merge in 'test' runs the repository's own reportgenerator.
-            if (File.Exists(Path.Combine(workspace.Directory, ".config", "dotnet-tools.json")))
+            if (result == "success" && File.Exists(Path.Combine(workspace.Directory, ".config", "dotnet-tools.json")))
                 result = await RunStepAsync("dotnet", ["tool", "restore"], "tool-restore");
 
             foreach (var step in kind.Steps.TakeWhile(_ => result == "success"))
