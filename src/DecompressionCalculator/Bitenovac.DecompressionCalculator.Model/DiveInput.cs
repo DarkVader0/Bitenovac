@@ -63,6 +63,12 @@ public sealed record DiveInput
     }
 
     /// <summary>
+    /// <summary>
+    /// Gets the planner settings of this dive alone, or <see langword="null"/> when the dive follows the
+    /// settings of its plan.
+    /// </summary>
+    public PlannerSettings? Settings { get; init; }
+
     /// Gets the name the diver gave the dive, or <see langword="null"/> when it has none.
     /// </summary>
     public string? Name { get; init; }
@@ -81,6 +87,7 @@ public sealed record DiveInput
         && string.Equals(Name, other.Name, StringComparison.Ordinal)
         && SurfaceIntervalMinutes.Equals(other.SurfaceIntervalMinutes)
         && Circuit.Equals(other.Circuit)
+        && Equals(Settings, other.Settings)
         && _levels.AsSpan().SequenceEqual(other._levels)
         && _cylinders.AsSpan().SequenceEqual(other._cylinders);
 

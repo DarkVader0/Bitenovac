@@ -1545,3 +1545,9 @@ tr.gas-warning td:first-child {
         display: none;
     }
 }
+
+.settings-scope .scope-note {
+    margin: 0.25rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}

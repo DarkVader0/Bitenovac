@@ -66,6 +66,10 @@ public static class PlanSummary
         }
 
         text.AppendLine(CultureInfo.InvariantCulture, $": {Summary.Inputs(dive, plan.Units)}");
+        if (dive.Settings is { } settings)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"Settings: {Summary.Settings(plan, settings)}");
+        }
 
         if (!result.Succeeded)
         {

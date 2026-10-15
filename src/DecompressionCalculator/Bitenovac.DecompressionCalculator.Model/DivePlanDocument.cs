@@ -127,6 +127,20 @@ public sealed record DivePlanDocument
             PlannerSettings.Default(units), [dive]);
     }
 
+    /// <summary>
+    /// Returns the planner settings a dive is calculated with: its own, or the plan's when it has none.
+    /// </summary>
+    /// <param name="dive">The index of the dive, from 0.</param>
+    /// <returns>The settings of the dive.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="dive"/> is not the index of a dive.</exception>
+    public PlannerSettings SettingsFor(int dive)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(dive);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(dive, _dives.Length);
+
+        return _dives[dive].Settings ?? Settings;
+    }
+
     /// <inheritdoc/>
     public bool Equals(DivePlanDocument? other) =>
         other is not null

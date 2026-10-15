@@ -105,6 +105,22 @@ public sealed class PlanSummaryTests
     }
 
     [Fact]
+    public void Text_ShouldListTheSettingsOfADiveThatHasItsOwn_WhenThePlanIsASeries()
+    {
+        // Arrange
+        var series = TestFactory.SeriesPlan();
+        var own = series.Settings with { BottomSac = 25, Altitude = 300 };
+        var plan = series with { Dives = [series.Dives[0], series.Dives[1] with { Settings = own }] };
+
+        // Act
+        var text = PlanSummary.Text(plan, TestFactory.Now);
+
+        // Assert
+        Assert.Contains("Settings: Salt water · altitude 300 m · SAC 25 / 14 L/min · PO2 1.4 / 1.6 bar · last stop 3 m · safety stop off", text, StringComparison.Ordinal);
+        Assert.Equal(1, text.Split("Settings: ").Length - 1);
+    }
+
+    [Fact]
     public void Text_ShouldNameTheDiveByItsOwnName_WhenTheDiveIsNamed()
     {
         // Arrange

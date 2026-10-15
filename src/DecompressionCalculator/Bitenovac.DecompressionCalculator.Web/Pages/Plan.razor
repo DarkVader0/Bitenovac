@@ -166,8 +166,13 @@ else
         <AlgorithmEditor Value="_plan.Algorithm" Issues="_issues.Scope(nameof(DivePlanDocument.Algorithm))"
                          ValueChanged="algorithm => ChangeAsync(_plan with { Algorithm = algorithm })"/>
 
-        <SettingsEditor Value="_plan.Settings" Units="_plan.Units" Issues="_issues.Scope(nameof(DivePlanDocument.Settings))"
-                        ValueChanged="settings => ChangeAsync(_plan with { Settings = settings })"/>
+        <DiveSettingsScope DiveName="@_plan.Dives[_selected].DisplayName(_selected + 1)" DiveCount="_plan.Dives.Count"
+                           Shared="_plan.Dives[_selected].Settings is null"
+                           HasChanges="_plan.Dives[_selected].Settings is { } own && own != _plan.Settings"
+                           SharedChanged="shared => ShareSettingsAsync(_plan, shared)"/>
+
+        <SettingsEditor Value="_plan.SettingsFor(_selected)" Units="_plan.Units" Issues="SettingsIssues"
+                        ValueChanged="settings => ChangeSettingsAsync(_plan, settings)"/>
     }
 </aside>
 
@@ -216,6 +221,21 @@ else
         await Store.SaveAsync(plan);
         Navigation.NavigateTo($"plan/{plan.Id:D}");
     }
+
+    private IssueMap SettingsIssues => _plan!.Dives[_selected].Settings is null
+        ? _issues.Scope(nameof(DivePlanDocument.Settings))
+        : _issues.Scope(nameof(DivePlanDocument.Dives), _selected).Scope(nameof(DiveInput.Settings));
+
+    private Task ShareSettingsAsync(DivePlanDocument plan, bool shared) =>
+        ChangeAsync(plan with
+        {
+            Dives = ListEdit.Replace(plan.Dives, _selected, plan.Dives[_selected] with { Settings = shared ? null : plan.Settings })
+        });
+
+    private Task ChangeSettingsAsync(DivePlanDocument plan, PlannerSettings settings) =>
+        plan.Dives[_selected].Settings is null
+            ? ChangeAsync(plan with { Settings = settings })
+            : ChangeAsync(plan with { Dives = ListEdit.Replace(plan.Dives, _selected, plan.Dives[_selected] with { Settings = settings }) });
 
     private async Task AddDiveAsync(DivePlanDocument plan)
     {
