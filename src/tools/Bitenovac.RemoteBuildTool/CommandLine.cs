@@ -74,7 +74,7 @@ internal static class CommandLine
               remotebuildtool build <Config>    Materialise hits, compile misses
               remotebuildtool test <Config>     Restore or run tests, gate coverage on Debug
               remotebuildtool promote           Copy this run's qualifying entries into main
-              remotebuildtool release           Build every project in Release under the next release
+              remotebuildtool release           Build every project but the tests in Release under the next release
                                                 version and drop its deployable output
               remotebuildtool graph             Print the graph with each target's hashes
               remotebuildtool serve             Run the service: fill main from merged pull requests, record

@@ -342,8 +342,8 @@ bash runner/telemetry.sh query "FROM cache_comparison_outcomes"
 
 ## Official builds
 
-Every 12 hours, at 00:00 and 12:00 UTC, the **Official** workflow builds every project in Release
-from scratch, with no tests and no cache, and drops what can be deployed into the
+Every 12 hours, at 00:00 and 12:00 UTC, the **Official** workflow builds every project but the test projects in
+Release from scratch, with no cache, and drops what can be deployed into the
 `bitenovac-official` volume:
 
 ```

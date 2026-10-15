@@ -93,10 +93,10 @@ internal interface IToolchain : IDisposable
 
     /// <summary>
     /// Builds the specified plan entries in Release, stamped with a release version, and copies the
-    /// deployable output of every non-test project into a drop directory.
+    /// deployable output of each into a drop directory.
     /// </summary>
     /// <param name="options">The options of this run.</param>
-    /// <param name="entries">Every Release plan entry this toolchain owns.</param>
+    /// <param name="entries">Every Release plan entry this toolchain owns, test projects left out.</param>
     /// <param name="version">The release version to stamp, for example <c>2026.10.07.001</c>.</param>
     /// <param name="dropDirectory">The directory to copy the deployable output into.</param>
     /// <param name="output">The output to report progress to.</param>

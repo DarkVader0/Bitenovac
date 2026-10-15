@@ -211,6 +211,8 @@ internal sealed class FakeToolchain : IToolchain
 
     public List<string> Built { get; } = [];
 
+    public List<string> Published { get; } = [];
+
     public string Name => DotNetToolchain.ToolchainName;
 
     public IReadOnlyList<string> OutputDirectories => ["bin", "obj"];
@@ -234,6 +236,7 @@ internal sealed class FakeToolchain : IToolchain
 
     public int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output, StageRecorder stage)
     {
+        Published.AddRange(entries.Select(entry => entry.ProjectPath));
         File.WriteAllText(Path.Combine(dropDirectory, "published.txt"), version);
         return PublishExitCode;
     }
