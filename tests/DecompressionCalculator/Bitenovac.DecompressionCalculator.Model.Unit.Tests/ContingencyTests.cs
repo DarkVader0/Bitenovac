@@ -145,6 +145,22 @@ public sealed partial class ContingencyTests
     }
 
     [Fact]
+    public void Calculate_ShouldReportTheFailureOnTheContingency_WhenTheDeeperDiveCannotBePlanned()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(TestFactory.Dive(depth: 55, minutes: 5, cylinders: [TestFactory.Cylinder(size: 24, startPressure: 230)]));
+
+        // Act
+        var result = Calculate(plan);
+
+        // Assert
+        Assert.True(result.Succeeded);
+        var extended = Assert.Single(result.Contingencies);
+        Assert.False(extended.Result.Succeeded);
+        Assert.NotEmpty(extended.Result.FailureMessage!);
+    }
+
+    [Fact]
     public void Calculate_ShouldCarryNoTimelineAndNoContingenciesOnTheContingencies_WhenTheDiveHasThem()
     {
         // Arrange

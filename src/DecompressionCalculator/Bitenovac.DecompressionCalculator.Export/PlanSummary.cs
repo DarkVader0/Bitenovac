@@ -111,13 +111,10 @@ public static class PlanSummary
             text.AppendLine("Warning: an ascent between levels passes the decompression ceiling.");
         }
 
-        if (result.Contingencies.Count > 0)
+        text.AppendLine("Contingencies:");
+        foreach (var contingency in result.Contingencies)
         {
-            text.AppendLine("Contingencies:");
-            foreach (var contingency in result.Contingencies)
-            {
-                text.AppendLine(CultureInfo.InvariantCulture, $"- {Contingency(contingency, labels)}");
-            }
+            text.AppendLine(CultureInfo.InvariantCulture, $"- {Contingency(contingency, labels)}");
         }
     }
 
