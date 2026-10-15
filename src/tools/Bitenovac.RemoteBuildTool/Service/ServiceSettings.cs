@@ -17,7 +17,7 @@ internal sealed record HostSettings
     public string Repository { get; set; } = "";
 
     /// <summary>
-    /// Gets or sets the GitHub token: read access to the repository's contents and Actions.
+    /// Gets or sets the GitHub token: read access to the repository's contents, pull requests and Actions.
     /// </summary>
     public string GitHubToken { get; set; } = "";
 
