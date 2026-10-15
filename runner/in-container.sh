@@ -69,6 +69,7 @@ run_args=(
     # containers extract the same package into one directory with nothing between them, and the
     # loser's rename target disappears mid-restore.
     --env TMPDIR=/cache/tmp
+    --env HOME=/tmp
     --env DOTNET_CLI_HOME=/tmp
     --env DOTNET_NOLOGO=true
     --env DOTNET_CLI_TELEMETRY_OPTOUT=true

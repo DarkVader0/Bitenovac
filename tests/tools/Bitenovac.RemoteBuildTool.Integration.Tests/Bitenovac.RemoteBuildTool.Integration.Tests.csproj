@@ -28,7 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\src\tools\Bitenovac.RemoteBuildTool\Bitenovac.RemoteBuildTool.csproj"/>
+        <ProjectReference Include="..\..\..\src\tools\Bitenovac.RemoteBuildTool.Service\Bitenovac.RemoteBuildTool.Service.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

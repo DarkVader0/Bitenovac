@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace Bitenovac.RemoteBuildTool.Service;
 
 /// <summary>
-/// Represents the socket <c>remotebuildtool wake</c> connects to; every connection asks the
+/// Represents the socket <c>remotebuildtool-service wake</c> connects to; every connection asks the
 /// promotion work for a turn now.
 /// </summary>
 /// <remarks>

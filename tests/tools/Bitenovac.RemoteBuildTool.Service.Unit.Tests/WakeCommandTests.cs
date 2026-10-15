@@ -2,7 +2,7 @@ using Bitenovac.RemoteBuildTool.Commands;
 using Bitenovac.RemoteBuildTool.Service;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteBuildTool.Service.Unit.Tests;
 
 public sealed class WakeCommandTests
 {

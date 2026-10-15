@@ -2,7 +2,7 @@ using System.Net;
 using Bitenovac.RemoteBuildTool.Service;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteBuildTool.Service.Unit.Tests;
 
 public sealed class RepositorySettingsSourceTests
 {
@@ -46,6 +46,36 @@ public sealed class RepositorySettingsSourceTests
 
         // Assert
         Assert.Equal(30, settings.PollSeconds);
+    }
+
+    [Fact]
+    public async Task BranchAsync_ShouldAskGitHubForTheDefaultBranch_WhenTheSettingsNameNone()
+    {
+        // Arrange
+        var github = new FakeContents("""{ "default_branch": "main" }""");
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        var source = new RepositorySettingsSource(new GitHubClient(http, "owner/repo"), new ManualTime { Now = Now }, NullLogger<RepositorySettingsSource>.Instance);
+
+        // Act
+        var branch = await source.BranchAsync(new RepositorySettings(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal("main", branch);
+    }
+
+    [Fact]
+    public async Task BranchAsync_ShouldNotAskGitHub_WhenTheSettingsNameABranch()
+    {
+        // Arrange
+        var github = new FakeContents("""{ "default_branch": "main" }""");
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        var source = new RepositorySettingsSource(new GitHubClient(http, "owner/repo"), new ManualTime { Now = Now }, NullLogger<RepositorySettingsSource>.Instance);
+
+        // Act
+        var branch = await source.BranchAsync(new RepositorySettings { Branch = "release" }, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(("release", 0), (branch, github.Requests));
     }
 
     private sealed class ManualTime : TimeProvider

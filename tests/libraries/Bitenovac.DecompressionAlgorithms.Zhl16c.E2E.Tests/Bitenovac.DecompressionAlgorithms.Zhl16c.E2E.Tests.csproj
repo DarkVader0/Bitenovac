@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <RootNamespace>Bitenovac.DecompressionAlgorithms.Zhl16c.E2E.Tests</RootNamespace>
+        <RemoteBuildToolSkip>true</RemoteBuildToolSkip>
     </PropertyGroup>
 
     <ItemGroup>

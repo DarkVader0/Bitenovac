@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteBuildTool.Service.Unit.Tests;
 
 public sealed class ServiceWorkTests
 {
@@ -330,6 +330,7 @@ public sealed class ServiceWorkTests
                 _ when query.Contains("head_sha=h7", StringComparison.Ordinal) =>
                     """{ "workflow_runs": [ { "id": 70, "run_attempt": 1, "name": "PR", "event": "pull_request", "conclusion": "success", "updated_at": "2026-10-14T00:10:00Z" } ] }""",
                 _ when query.Contains("head_sha=", StringComparison.Ordinal) => """{ "workflow_runs": [] }""",
+                _ when path.EndsWith("/repos/owner/repo", StringComparison.Ordinal) => """{ "default_branch": "master" }""",
                 _ when path.EndsWith("/actions/runs", StringComparison.Ordinal) =>
                     """{ "workflow_runs": [ { "id": 5, "run_attempt": 1, "name": "PR", "conclusion": "success", "updated_at": "2026-10-14T00:10:00Z" } ] }""",
                 _ => """{ "jobs": [] }""",

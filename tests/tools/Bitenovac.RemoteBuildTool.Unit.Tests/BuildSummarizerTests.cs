@@ -131,6 +131,22 @@ public sealed class BuildSummarizerTests
         Assert.Null(build.HostCpuUtilization);
     }
 
+    [Fact]
+    public void Write_ShouldTakeTheLogsPathFromTheStages_WhenTheIdentityHasNone()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.TelemetryOptions(directory);
+        WriteStage(options.TelemetryRoot!, Stage("plan", "host-1", Created, durationMS: 1_000, cpuMS: 500, allocatedMS: 1_000, peak: 10, memory: 0.01) with { LogsPath = "PR_7/100-1" });
+
+        // Act
+        BuildSummarizer.Write(options.TelemetryRoot!, options.Identity! with { LogsPath = null }, "success", Created.AddSeconds(5), BuildTimeline.Unknown, "service");
+
+        // Assert
+        var build = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.BuildTable, "100-1.", TelemetryJsonContext.Default.BuildInfo));
+        Assert.Equal("PR_7/100-1", build.LogsPath);
+    }
+
     private static StageInfo Stage(string name, string machine, DateTimeOffset start, long durationMS, long cpuMS, long allocatedMS, long peak, double memory) => new()
     {
         BuildId = "100-1",

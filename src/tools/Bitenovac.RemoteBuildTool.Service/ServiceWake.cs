@@ -13,7 +13,7 @@ internal sealed class ServiceWake
     private readonly Lock _gate = new();
 
     /// <summary>
-    /// Gets the file of the socket that <c>remotebuildtool wake</c> connects to.
+    /// Gets the file of the socket that <c>remotebuildtool-service wake</c> connects to.
     /// </summary>
     /// <param name="host">The machine's settings.</param>
     /// <returns>The socket's path, in the service's work directory.</returns>

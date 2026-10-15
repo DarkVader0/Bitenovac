@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Bitenovac.RemoteBuildTool.Telemetry;
 
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteBuildTool.Service.Unit.Tests;
 
 public sealed partial class TelemetrySchemaTests
 {
@@ -48,7 +48,7 @@ public sealed partial class TelemetrySchemaTests
 
     private static IEnumerable<string> Columns(string table)
     {
-        using var stream = typeof(TelemetryWriter).Assembly.GetManifestResourceStream("Telemetry.schema.sql")!;
+        using var stream = typeof(TelemetryCompactor).Assembly.GetManifestResourceStream("Telemetry.schema.sql")!;
         using var reader = new StreamReader(stream);
         var sql = reader.ReadToEnd();
         var body = Table().Matches(sql).Single(match => match.Groups["name"].Value == table).Groups["body"].Value;

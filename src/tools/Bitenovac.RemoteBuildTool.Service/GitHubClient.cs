@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Bitenovac.RemoteBuildTool.Hashing;
 
 namespace Bitenovac.RemoteBuildTool.Service;
 
@@ -55,9 +56,22 @@ internal sealed class GitHubClient(HttpClient http, string repository)
         client.Timeout = TimeSpan.FromSeconds(30);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Bitenovac.RemoteBuildTool", "1"));
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Bitenovac.RemoteBuildTool", ToolVersion.Value));
         client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
         return client;
+    }
+
+    /// <summary>
+    /// Returns the repository's default branch.
+    /// </summary>
+    /// <param name="cancellationToken">Stops the request.</param>
+    /// <returns>The branch's name.</returns>
+    /// <exception cref="HttpRequestException">GitHub refused or could not be reached.</exception>
+    public async Task<string> DefaultBranchAsync(CancellationToken cancellationToken)
+    {
+        using var document = await GetJsonAsync($"repos/{repository}", cancellationToken);
+        return document.RootElement.GetProperty("default_branch").GetString()
+            ?? throw new HttpRequestException($"GitHub gave no default branch for {repository}.");
     }
 
     /// <summary>

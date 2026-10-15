@@ -34,7 +34,7 @@ internal sealed class PromotionService(
         foreach (var run in StagingRetention.Prune(host.StagingRoot, now))
             Report($"staged output of run {run} expired");
 
-        var promoted = await promoter.PromoteAsync(current.Branch, state.Current.PromotedPullRequests, now, Report, cancellationToken);
+        var promoted = await promoter.PromoteAsync(await settings.BranchAsync(current, cancellationToken), state.Current.PromotedPullRequests, now, Report, cancellationToken);
         state.Update(saved => saved with { PromotedPullRequests = promoted });
     }
 

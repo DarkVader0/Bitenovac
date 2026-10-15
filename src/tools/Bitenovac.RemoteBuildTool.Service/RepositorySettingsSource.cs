@@ -16,6 +16,16 @@ internal sealed class RepositorySettingsSource(GitHubClient github, TimeProvider
     private DateTimeOffset? _readAt;
 
     /// <summary>
+    /// Returns the branch the settings name, or the repository's default branch when they name none.
+    /// </summary>
+    /// <param name="settings">The settings.</param>
+    /// <param name="cancellationToken">Stops the request.</param>
+    /// <returns>The branch.</returns>
+    /// <exception cref="HttpRequestException">GitHub refused or could not be reached.</exception>
+    public async Task<string> BranchAsync(RepositorySettings settings, CancellationToken cancellationToken) =>
+        settings.Branch ?? await github.DefaultBranchAsync(cancellationToken);
+
+    /// <summary>
     /// Returns the settings, reading them from the default branch first when they are due.
     /// </summary>
     /// <param name="cancellationToken">Stops the read.</param>

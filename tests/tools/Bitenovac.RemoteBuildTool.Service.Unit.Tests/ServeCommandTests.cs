@@ -1,6 +1,6 @@
 using Bitenovac.RemoteBuildTool.Commands;
 
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteBuildTool.Service.Unit.Tests;
 
 public sealed class ServeCommandTests
 {

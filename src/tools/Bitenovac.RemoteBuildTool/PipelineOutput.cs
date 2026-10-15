@@ -63,11 +63,26 @@ internal sealed record PipelineOutput(TextWriter Out, TextWriter Error, bool Git
     /// <param name="column">The column in <paramref name="file"/>, if known.</param>
     public void WriteFailure(string message, string? file = null, int? line = null, int? column = null)
     {
-        FirstFailure ??= file is null ? message : $"{file}({line},{column}): {message}";
+        FirstFailure ??= $"{Location(file, line, column)}{message}";
+        Annotate("error", message, file, line, column);
+    }
 
+    /// <summary>
+    /// Writes something that does not fail the run but should be fixed, as a warning annotation
+    /// under GitHub Actions.
+    /// </summary>
+    /// <param name="message">What to fix.</param>
+    /// <param name="file">The repository-relative file the warning points at, if any.</param>
+    public void WriteWarning(string message, string? file = null) => Annotate("warning", message, file, null, null);
+
+    private static string Location(string? file, int? line, int? column) =>
+        file is null ? "" : line is null ? $"{file}: " : $"{file}({line},{column}): ";
+
+    private void Annotate(string level, string message, string? file, int? line, int? column)
+    {
         if (!GitHubActions)
         {
-            Error.WriteLine(file is null ? $"error: {message}" : $"error: {file}({line},{column}): {message}");
+            Error.WriteLine($"{level}: {Location(file, line, column)}{message}");
             return;
         }
 
@@ -79,7 +94,7 @@ internal sealed record PipelineOutput(TextWriter Out, TextWriter Error, bool Git
         if (column is not null)
             properties.Add(string.Create(CultureInfo.InvariantCulture, $"col={column}"));
 
-        var prefix = properties.Count == 0 ? "::error" : $"::error {string.Join(',', properties)}";
+        var prefix = properties.Count == 0 ? $"::{level}" : $"::{level} {string.Join(',', properties)}";
         Error.WriteLine($"{prefix}::{EscapeData(message)}");
     }
 
