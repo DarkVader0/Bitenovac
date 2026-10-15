@@ -40,6 +40,20 @@ public sealed class SeriesSheetTests
     }
 
     [Fact]
+    public void CreateSeries_ShouldShowEveryBlockAndEachContingencyPage_WhenNoBlocksAreGiven()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+        var contingencies = TestFactory.Calculate(plan).Contingencies;
+
+        // Act
+        var pdf = TestFactory.Read(DiveSheet.CreateSeries(plan, TestFactory.Now, AppVersion));
+
+        // Assert
+        Assert.Contains($"/Count {2 + contingencies.Count}", pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CreateSeries_ShouldMakeAnOverviewPageAndAPageForEachDive_WhenThePlanIsASeries()
     {
         // Arrange

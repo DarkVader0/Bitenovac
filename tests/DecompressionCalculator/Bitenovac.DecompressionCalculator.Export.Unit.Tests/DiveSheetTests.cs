@@ -275,6 +275,21 @@ public sealed class DiveSheetTests
     }
 
     [Fact]
+    public void Create_ShouldShowEveryBlockAndEachContingencyPage_WhenNoBlocksAreGiven()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+        var contingencies = TestFactory.Calculate(plan).Contingencies;
+
+        // Act
+        var pdf = TestFactory.Read(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion));
+
+        // Assert
+        Assert.Contains($"/Count {1 + contingencies.Count}", pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("NX50 lost"), pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Create_ShouldPrintNoContingencyAtAll_WhenTheContingenciesBlockIsHidden()
     {
         // Arrange
