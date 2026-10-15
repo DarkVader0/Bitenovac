@@ -280,4 +280,4 @@ tables do not hold: console output and binary logs.
 ## License
 
 MIT. Source and issues:
-[github.com/DarkVader0/Bitenovac-Decompression](https://github.com/DarkVader0/Bitenovac-Decompression/tree/master/src/RemoteBuildTool/Bitenovac.RemoteBuildTool).
+[github.com/DarkVader0/Bitenovac](https://github.com/DarkVader0/Bitenovac/tree/master/src/RemoteBuildTool/Bitenovac.RemoteBuildTool).

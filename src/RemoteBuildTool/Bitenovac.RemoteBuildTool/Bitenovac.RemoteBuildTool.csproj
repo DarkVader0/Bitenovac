@@ -18,8 +18,8 @@
         <Copyright>Copyright (c) 2026 Radivoje Milutinovic</Copyright>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageProjectUrl>https://github.com/DarkVader0/Bitenovac-Decompression/tree/master/src/RemoteBuildTool/Bitenovac.RemoteBuildTool</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/DarkVader0/Bitenovac-Decompression</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/DarkVader0/Bitenovac/tree/master/src/RemoteBuildTool/Bitenovac.RemoteBuildTool</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/DarkVader0/Bitenovac</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <IncludeSymbols>true</IncludeSymbols>
