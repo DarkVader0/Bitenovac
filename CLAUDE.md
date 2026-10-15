@@ -7,8 +7,8 @@
 * Never change packages.lock.json files by hand; they are rewritten by restore.
 * Keep model-specific parameters out of the Core library. Anything computable from the expanded
   profile and the equipment alone belongs in `Core/Calculations` and is shared by every model.
-* Libraries must stay Native AOT compatible. `IsAotCompatible` is set for every `IsLibrary`
-  project in `Directory.Build.props`; fix its trim and AOT warnings, never suppress them.
+* Libraries must stay Native AOT compatible. `Directory.Build.targets` sets `IsAotCompatible` for every
+  project that builds as a class library (`IsLibrary`); fix its trim and AOT warnings, never suppress them.
 
 ## Formatting
 

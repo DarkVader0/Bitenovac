@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <IsLibrary>true</IsLibrary>
         <Description>Profile charts, PDF dive sheets and text summaries of Bitenovac dive plans.</Description>
     </PropertyGroup>
 

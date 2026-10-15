@@ -5,7 +5,7 @@ namespace Bitenovac.RemoteBuildTool.Core.Graph;
 /// </summary>
 public sealed class ProjectGraph
 {
-    private readonly IReadOnlyDictionary<ProjectId, IReadOnlyList<ProjectId>> _dependencies;
+    private readonly Dictionary<ProjectId, IReadOnlyList<ProjectId>> _dependencies;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProjectGraph"/> class from a set of projects
@@ -30,12 +30,12 @@ public sealed class ProjectGraph
 
         foreach (var edge in edges)
         {
-            if (!map.ContainsKey(edge.Project))
+            if (!map.TryGetValue(edge.Project, out var dependencies))
                 throw new ArgumentException($"Edge declares an unknown project: '{edge.Project}'.", nameof(edges));
             if (!map.ContainsKey(edge.References))
                 throw new ArgumentException($"Edge references an unknown project: '{edge.References}'.", nameof(edges));
 
-            map[edge.Project].Add(edge.References);
+            dependencies.Add(edge.References);
         }
 
         Projects = map.Keys.OrderBy(p => p.Value, StringComparer.Ordinal).ToList();

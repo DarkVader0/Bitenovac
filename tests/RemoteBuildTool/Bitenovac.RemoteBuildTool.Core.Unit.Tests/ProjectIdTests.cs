@@ -71,4 +71,30 @@ public sealed class ProjectIdTests
         // Assert
         Assert.True(result > 0);
     }
+
+    [Theory]
+    [InlineData("a/A.csproj", "b/B.csproj", true, true, false, false)]
+    [InlineData("b/B.csproj", "a/A.csproj", false, false, true, true)]
+    [InlineData("a/A.csproj", "a/A.csproj", false, true, false, true)]
+    [InlineData(null, "a/A.csproj", true, true, false, false)]
+    [InlineData("a/A.csproj", null, false, false, true, true)]
+    [InlineData(null, null, false, true, false, true)]
+    public void Operators_ShouldOrderOrdinallyWithAMissingIdFirst_WhenComparingTwoIds(
+        string? left,
+        string? right,
+        bool less,
+        bool lessOrEqual,
+        bool greater,
+        bool greaterOrEqual)
+    {
+        // Arrange
+        var a = left is null ? null : new ProjectId(left);
+        var b = right is null ? null : new ProjectId(right);
+
+        // Act
+        var results = (a < b, a <= b, a > b, a >= b);
+
+        // Assert
+        Assert.Equal((less, lessOrEqual, greater, greaterOrEqual), results);
+    }
 }

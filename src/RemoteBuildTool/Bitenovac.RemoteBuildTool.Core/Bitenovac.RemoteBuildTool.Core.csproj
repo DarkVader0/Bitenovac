@@ -1,8 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <IsLibrary>true</IsLibrary>
-    </PropertyGroup>
-
     <ItemGroup>
         <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Core.Unit.Tests"/>
     </ItemGroup>

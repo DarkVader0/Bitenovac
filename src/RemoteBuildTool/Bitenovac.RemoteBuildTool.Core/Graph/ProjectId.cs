@@ -31,6 +31,42 @@ public sealed record ProjectId : IComparable<ProjectId>
     public int CompareTo(ProjectId? other) =>
         string.CompareOrdinal(Value, other?.Value);
 
+    /// <summary>
+    /// Determines whether one project sorts before another, ordinally by path; a missing project sorts first.
+    /// </summary>
+    /// <param name="left">The first project.</param>
+    /// <param name="right">The second project.</param>
+    /// <returns><see langword="true"/> when <paramref name="left"/> sorts before <paramref name="right"/>.</returns>
+    public static bool operator <(ProjectId? left, ProjectId? right) =>
+        left is null ? right is not null : left.CompareTo(right) < 0;
+
+    /// <summary>
+    /// Determines whether one project sorts before or with another, ordinally by path; a missing project sorts first.
+    /// </summary>
+    /// <param name="left">The first project.</param>
+    /// <param name="right">The second project.</param>
+    /// <returns><see langword="true"/> when <paramref name="left"/> does not sort after <paramref name="right"/>.</returns>
+    public static bool operator <=(ProjectId? left, ProjectId? right) =>
+        left is null || left.CompareTo(right) <= 0;
+
+    /// <summary>
+    /// Determines whether one project sorts after another, ordinally by path; a missing project sorts first.
+    /// </summary>
+    /// <param name="left">The first project.</param>
+    /// <param name="right">The second project.</param>
+    /// <returns><see langword="true"/> when <paramref name="left"/> sorts after <paramref name="right"/>.</returns>
+    public static bool operator >(ProjectId? left, ProjectId? right) =>
+        left is not null && left.CompareTo(right) > 0;
+
+    /// <summary>
+    /// Determines whether one project sorts after or with another, ordinally by path; a missing project sorts first.
+    /// </summary>
+    /// <param name="left">The first project.</param>
+    /// <param name="right">The second project.</param>
+    /// <returns><see langword="true"/> when <paramref name="left"/> does not sort before <paramref name="right"/>.</returns>
+    public static bool operator >=(ProjectId? left, ProjectId? right) =>
+        left is null ? right is null : left.CompareTo(right) >= 0;
+
     /// <inheritdoc/>
     public override string ToString() => Value;
 }
