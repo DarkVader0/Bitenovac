@@ -1,4 +1,7 @@
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
 @inject PreferencesStore Preferences
+@inject IJSRuntime Js
 
 <section class="card">
     <div class="field">
@@ -17,27 +20,19 @@
 
 <section class="card">
     <h2>Results</h2>
-    <p class="block-note">Show, hide and order the parts of a dive's results. The PDF follows.</p>
-    <ul class="block-list">
+    <p class="block-note">Switch the parts of a dive's results on or off, and drag them into the order you want. The PDF follows.</p>
+    <ul class="block-list" @ref="_list">
         @for (var index = 0; index < _preferences.Blocks.Count; index++)
         {
             var setting = _preferences.Blocks[index];
             var name = Name(setting.Block);
-            <li class="block-item">
-                <label class="field field-check">
-                    <input type="checkbox" checked="@setting.Visible" @onchange="args => ShowAsync(setting.Block, args.Value is true)"/>
-                    <span class="field-label">@name</span>
-                </label>
-                <span class="block-move">
-                    <button type="button" class="icon-button secondary" aria-label="@($"Move {name} up")" disabled="@(index == 0)"
-                            @onclick="() => MoveAsync(setting.Block, -1)">
-                        <Icon Name="IconName.Up"/>
-                    </button>
-                    <button type="button" class="icon-button secondary" aria-label="@($"Move {name} down")"
-                            disabled="@(index == _preferences.Blocks.Count - 1)" @onclick="() => MoveAsync(setting.Block, 1)">
-                        <Icon Name="IconName.Down"/>
-                    </button>
-                </span>
+            <li class="block-item" @key="setting.Block" data-block="@setting.Block">
+                <button type="button" class="block-handle" aria-label="@($"Move {name}; drag, or use the up and down arrow keys")">
+                    <Icon Name="IconName.Grip"/>
+                </button>
+                <span class="block-name">@name</span>
+                <button type="button" role="switch" class="switch" aria-label="@name" aria-checked="@(setting.Visible ? "true" : "false")"
+                        @onclick="() => ShowAsync(setting.Block, !setting.Visible)"></button>
             </li>
         }
     </ul>
@@ -52,8 +47,45 @@
     ];
 
     private UserPreferences _preferences = UserPreferences.Default;
+    private ElementReference _list;
+    private DotNetObjectReference<AppSettings>? _self;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _reorder;
 
     protected override async Task OnInitializedAsync() => _preferences = await Preferences.GetAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _self = DotNetObjectReference.Create(this);
+            _module = await Js.InvokeAsync<IJSObjectReference>("import", "./js/reorder.js");
+            _reorder = await _module.InvokeAsync<IJSObjectReference>("attach", _list, _self);
+        }
+    }
+
+    [JSInvokable]
+    public async Task Reorder(int from, int to)
+    {
+        await SaveAsync(_preferences.Move(_preferences.Blocks[from].Block, to - from));
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_reorder is not null)
+        {
+            await _reorder.InvokeVoidAsync("dispose");
+            await _reorder.DisposeAsync();
+        }
+
+        if (_module is not null)
+        {
+            await _module.DisposeAsync();
+        }
+
+        _self?.Dispose();
+    }
 
     private static string Name(ResultBlock block) => block switch
     {
@@ -67,8 +99,6 @@
     private Task ChooseThemeAsync(ThemePreference theme) => SaveAsync(_preferences with { Theme = theme });
 
     private Task ShowAsync(ResultBlock block, bool visible) => SaveAsync(_preferences.WithVisible(block, visible));
-
-    private Task MoveAsync(ResultBlock block, int offset) => SaveAsync(_preferences.Move(block, offset));
 
     private async Task SaveAsync(UserPreferences preferences)
     {

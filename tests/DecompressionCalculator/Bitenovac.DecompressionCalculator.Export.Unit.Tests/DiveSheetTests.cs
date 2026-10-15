@@ -271,6 +271,21 @@ public sealed class DiveSheetTests
         Assert.Contains(TestFactory.Shown(Formats.Clock(contingencies[1].Result.StopTime)), pdf, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Create_ShouldListTheContingencies_WhenEveryBlockIsShownByDefault(bool longPlan)
+    {
+        // Arrange
+        var plan = longPlan ? TestFactory.LongPlan() : TestFactory.DecompressionPlan();
+
+        // Act
+        var pdf = TestFactory.Read(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion));
+
+        // Assert
+        Assert.Contains(TestFactory.Shown("Contingency"), pdf, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Create_ShouldSayAContingencyCannotBePlanned_WhenItsGasIsLost()
     {
