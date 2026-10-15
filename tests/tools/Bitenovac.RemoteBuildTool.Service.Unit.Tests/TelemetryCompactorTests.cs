@@ -1,7 +1,7 @@
 using Bitenovac.RemoteBuildTool.Telemetry;
 using DuckDB.NET.Data;
 
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteBuildTool.Service.Unit.Tests;
 
 public sealed class TelemetryCompactorTests
 {

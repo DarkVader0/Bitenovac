@@ -180,41 +180,6 @@ public sealed class CommandLineTests : IDisposable
         Assert.DoesNotContain("InvalidOperationException", output.Error, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("serve")]
-    [InlineData("wake")]
-    public void Run_ShouldFailNamingTheSettings_WhenTheServiceCommandFindsNoHostSettings(string command)
-    {
-        // Arrange
-        using var repository = TestFactory.Directory();
-        PointAt(repository, repository.Combine("pr"));
-        _environment.Set("REMOTEBUILDTOOL_CONFIG", repository.Combine("config.json"));
-        var output = new CapturedOutput();
-
-        // Act
-        var exitCode = CommandLine.Run([command], output.Pipeline);
-
-        // Assert
-        Assert.Equal(1, exitCode);
-        Assert.Contains($"No service settings at {repository.Combine("config.json")}", output.Error, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData(null, ServeCommand.DefaultSettingsPath)]
-    [InlineData("", ServeCommand.DefaultSettingsPath)]
-    [InlineData("/srv/config.json", "/srv/config.json")]
-    public void SettingsPath_ShouldFallBackToTheDefault_WhenNoSettingsFileIsNamed(string? named, string expected)
-    {
-        // Arrange
-        string? Read(string name) => name == "REMOTEBUILDTOOL_CONFIG" ? named : null;
-
-        // Act
-        var path = CommandLine.SettingsPath(Read);
-
-        // Assert
-        Assert.Equal(expected, path);
-    }
-
     /// <summary>
     /// Points the environment variables this run reads at a temporary repository and stores.
     /// </summary>

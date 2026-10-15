@@ -15,4 +15,4 @@ jobs:
     timeout-minutes: 1
     steps:
       - name: Promote the merge into main now
-        run: docker exec remotebuildtool-service remotebuildtool wake
+        run: docker exec remotebuildtool-service remotebuildtool-service wake

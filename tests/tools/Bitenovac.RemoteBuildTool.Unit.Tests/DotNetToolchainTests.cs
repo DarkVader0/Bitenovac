@@ -268,6 +268,7 @@ public sealed class DotNetToolchainTests
             MinimumLineCoverage: 100,
             MinimumBranchCoverage: 100,
             CacheTestResults: true,
+            Skip: false,
             Path.GetFileNameWithoutExtension(relativePath),
             new Dictionary<string, string>(),
             []);

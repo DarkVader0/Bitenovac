@@ -67,6 +67,49 @@ public sealed class PipelineOutputTests
     }
 
     [Fact]
+    public void WriteWarning_ShouldWriteAPlainWarningLine_WhenNotUnderGitHubActions()
+    {
+        // Arrange
+        using var error = new StringWriter();
+        var output = new PipelineOutput(TextWriter.Null, error);
+
+        // Act
+        output.WriteWarning("coverage is not gated.");
+
+        // Assert
+        Assert.Equal($"warning: coverage is not gated.{NewLine}", error.ToString());
+        Assert.Null(output.FirstFailure);
+    }
+
+    [Fact]
+    public void WriteWarning_ShouldNameTheFile_WhenNotUnderGitHubActionsAndAFileIsGiven()
+    {
+        // Arrange
+        using var error = new StringWriter();
+        var output = new PipelineOutput(TextWriter.Null, error);
+
+        // Act
+        output.WriteWarning("skipped.", "src/A/A.csproj");
+
+        // Assert
+        Assert.Equal($"warning: src/A/A.csproj: skipped.{NewLine}", error.ToString());
+    }
+
+    [Fact]
+    public void WriteWarning_ShouldPointAWarningAnnotationAtTheFile_WhenUnderGitHubActions()
+    {
+        // Arrange
+        using var error = new StringWriter();
+        var output = new PipelineOutput(TextWriter.Null, error, GitHubActions: true);
+
+        // Act
+        output.WriteWarning("skipped.", "src/A/A.csproj");
+
+        // Assert
+        Assert.Equal($"::warning file=src/A/A.csproj::skipped.{NewLine}", error.ToString());
+    }
+
+    [Fact]
     public void WriteFailure_ShouldWriteAnEscapedAnnotation_WhenUnderGitHubActions()
     {
         // Arrange

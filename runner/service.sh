@@ -2,7 +2,7 @@
 #
 # Runs the RemoteBuildTool service on this machine: one container, restarted whenever it stops,
 # that fills main from merged pull requests, records every build, compacts telemetry, prunes logs
-# and rebuilds main every night. See "remotebuildtool serve".
+# and rebuilds main every night. See "remotebuildtool-service serve".
 #
 # Usage:
 #   sudo bash runner/service.sh start     (Re)create the container from the current runner image
@@ -85,5 +85,5 @@ run_args=(
 [[ -n "${SERVICE_CPUS:-}" ]] && run_args+=(--cpus "${SERVICE_CPUS}")
 [[ -n "${SERVICE_MEMORY:-}" ]] && run_args+=(--memory "${SERVICE_MEMORY}" --memory-swap "${SERVICE_MEMORY}")
 
-docker run "${run_args[@]}" "${IMAGE}" -c 'mkdir -p "${TMPDIR}" && exec remotebuildtool serve' > /dev/null
+docker run "${run_args[@]}" "${IMAGE}" -c 'mkdir -p "${TMPDIR}" && exec remotebuildtool-service serve' > /dev/null
 echo "Started ${CONTAINER} from ${IMAGE}."

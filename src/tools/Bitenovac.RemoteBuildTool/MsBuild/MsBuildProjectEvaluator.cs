@@ -98,6 +98,7 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
             MinimumLineCoverage: CoverageMinimum.Parse(project.GetPropertyValue("MinimumLineCoverage"), relativePath, "MinimumLineCoverage"),
             MinimumBranchCoverage: CoverageMinimum.Parse(project.GetPropertyValue("MinimumBranchCoverage"), relativePath, "MinimumBranchCoverage"),
             CacheTestResults: !string.Equals(project.GetPropertyValue("CacheTestResults"), "false", StringComparison.OrdinalIgnoreCase),
+            Skip: IsTrue(project.GetPropertyValue(ProjectSelection.SkipProperty)),
             CoverageName: project.GetPropertyValue("AssemblyName"),
             Properties: new Dictionary<string, string>
             {

@@ -4,7 +4,7 @@ using Bitenovac.RemoteBuildTool.Core.Planning;
 using Bitenovac.RemoteBuildTool.Service;
 using Bitenovac.RemoteBuildTool.Storage;
 
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteBuildTool.Service.Unit.Tests;
 
 public sealed class PullRequestPromoterTests
 {

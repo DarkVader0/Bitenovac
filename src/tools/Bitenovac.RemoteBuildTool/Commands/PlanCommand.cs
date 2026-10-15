@@ -43,17 +43,33 @@ internal static class PlanCommand
             configuration => configuration,
             _ => new Dictionary<ProjectId, EvaluatedProject>());
 
+        var evaluations = new List<(IToolchain Toolchain, Dictionary<string, IReadOnlyList<EvaluatedProject>> ByConfiguration)>();
         foreach (var (toolchain, relativePaths) in discovered)
         {
-            Dictionary<string, IReadOnlyList<EvaluatedProject>> byConfiguration;
             using (output.Section($"Evaluating {relativePaths.Count} {toolchain.Name} project(s)"))
             using (stage.Measure(StagePhase.Evaluation))
             {
-                byConfiguration = PipelineOptions.Configurations.ToDictionary(
+                evaluations.Add((toolchain, PipelineOptions.Configurations.ToDictionary(
                     configuration => configuration,
-                    configuration => toolchain.Evaluate(relativePaths, configuration));
+                    configuration => toolchain.Evaluate(relativePaths, configuration))));
             }
+        }
 
+        List<(string Configuration, EvaluatedProject Project)> all = [.. evaluations.SelectMany(evaluation => evaluation.ByConfiguration
+            .SelectMany(pair => pair.Value.Select(project => (pair.Key, project))))];
+        if (!ProjectSelection.CheckSkipped(all, output))
+            return stage.Complete(1);
+
+        ProjectSelection.WarnUngatedCoverage(all.Where(item => item.Configuration == "Debug" && !item.Project.Skip).Select(item => item.Project), output);
+
+        var kept = evaluations
+            .Select(evaluation => (evaluation.Toolchain, ByConfiguration: evaluation.ByConfiguration.ToDictionary(
+                pair => pair.Key,
+                pair => (IReadOnlyList<EvaluatedProject>)[.. pair.Value.Where(project => !project.Skip)])))
+            .Where(evaluation => evaluation.ByConfiguration.Values.Any(projects => projects.Count > 0));
+
+        foreach (var (toolchain, byConfiguration) in kept)
+        {
             var prepared = toolchain.Prepare(options, byConfiguration, output, stage);
             if (!prepared.Succeeded)
                 return stage.Complete(prepared.ExitCode);
@@ -144,8 +160,8 @@ internal static class PlanCommand
                 Properties: project.Properties,
                 IsTestProject: project.IsTestProject,
                 ExcludeFromCoverage: project.ExcludeFromCoverage,
-                MinimumLineCoverage: project.MinimumLineCoverage,
-                MinimumBranchCoverage: project.MinimumBranchCoverage,
+                MinimumLineCoverage: project.MinimumLineCoverage ?? 0,
+                MinimumBranchCoverage: project.MinimumBranchCoverage ?? 0,
                 CacheTestResults: project.CacheTestResults,
                 OwnHash: decision.Computed.OwnHash,
                 FullHash: decision.Computed.FullHash,

@@ -8,7 +8,7 @@ public sealed class CoverageMinimumTests
     private const int Precision = 6;
 
     [Fact]
-    public void Parse_ShouldBeZero_WhenTheProjectSetsNoMinimum()
+    public void Parse_ShouldBeNull_WhenTheProjectSetsNoMinimum()
     {
         // Arrange
         const string value = "";
@@ -17,7 +17,7 @@ public sealed class CoverageMinimumTests
         var minimum = CoverageMinimum.Parse(value, "src/A/A.csproj", "MinimumLineCoverage");
 
         // Assert
-        Assert.Equal(0, minimum, Precision);
+        Assert.Null(minimum);
     }
 
     [Theory]
@@ -31,7 +31,7 @@ public sealed class CoverageMinimumTests
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
 
         // Act
-        double minimum;
+        double? minimum;
         try
         {
             minimum = CoverageMinimum.Parse(value, "src/A/A.csproj", "MinimumLineCoverage");
@@ -42,7 +42,8 @@ public sealed class CoverageMinimumTests
         }
 
         // Assert
-        Assert.Equal(expected, minimum, Precision);
+        Assert.NotNull(minimum);
+        Assert.Equal(expected, minimum.Value, Precision);
     }
 
     [Theory]

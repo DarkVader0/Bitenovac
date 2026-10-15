@@ -7,6 +7,9 @@ namespace Bitenovac.RemoteBuildTool.Toolchains;
 /// </summary>
 /// <param name="Toolchain">The <see cref="IToolchain.Name"/> of the toolchain that owns the project.</param>
 /// <param name="CoverageName">The name the project's code is reported under in Cobertura reports.</param>
+/// <param name="MinimumLineCoverage">The line coverage the gate requires, or <see langword="null"/> when the project sets none.</param>
+/// <param name="MinimumBranchCoverage">The branch coverage the gate requires, or <see langword="null"/> when the project sets none.</param>
+/// <param name="Skip">Whether the project is left out of the run: not restored, built, tested or released.</param>
 /// <param name="Properties">
 /// The data that the owning toolchain needs again after <c>plan</c>, carried through the plan
 /// file. Nothing outside that toolchain reads it.
@@ -18,9 +21,10 @@ internal sealed record EvaluatedProject(
     IReadOnlyList<ProjectId> ProjectReferences,
     bool IsTestProject,
     bool ExcludeFromCoverage,
-    double MinimumLineCoverage,
-    double MinimumBranchCoverage,
+    double? MinimumLineCoverage,
+    double? MinimumBranchCoverage,
     bool CacheTestResults,
+    bool Skip,
     string CoverageName,
     IReadOnlyDictionary<string, string> Properties,
     IReadOnlyList<string> OwnHashInputs);

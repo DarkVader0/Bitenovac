@@ -5,8 +5,8 @@ A content-hashed build cache for .NET repositories on CI.
 RemoteBuildTool fingerprints every project from its own inputs and from what it depends on. A
 project whose fingerprint is already in the shared cache is restored instead of built, and its test
 results and coverage are reused instead of run again. Only what changed is built and tested, and
-coverage is gated per project. An optional service keeps the cache filled from merged pull requests
-and records every build as queryable telemetry.
+coverage is gated per project. An optional service, in its own package, keeps the cache filled
+from merged pull requests and records every build as queryable telemetry.
 
 ```
 remotebuildtool plan            what changed, and what the cache can serve
@@ -117,10 +117,11 @@ Everything is optional. Set these in a project file or in `Directory.Build.props
 | Property | Default | Meaning |
 |---|---|---|
 | `IsTestProject` | `false` | The project is a test project: `test` runs it. |
-| `MinimumLineCoverage` | none | The line coverage, from 0 to 100, the project must keep. Without it, coverage is measured and reported but never fails the gate. |
+| `MinimumLineCoverage` | none | The line coverage, from 0 to 100, the project must keep. Without it, coverage is measured and reported but never fails the gate, and `plan` warns; set `0` to measure without a gate on purpose. |
 | `MinimumBranchCoverage` | none | The same for branch coverage. |
 | `ExcludeFromCoverage` | `false` | Leave the project out of the gate. Usually set on test projects. |
 | `CacheTestResults` | `true` | Reuse the test project's result when it is a hit. Set `false` for a test project that must always run, such as one that depends on outside services. |
+| `RemoteBuildToolSkip` | `false` | Leave the project out entirely: it is not restored, built, tested or released, and `plan` warns that it is skipped. A project that stays cannot reference it. |
 
 Percentages are written with a period, such as `95.5`, on every machine.
 
@@ -146,8 +147,6 @@ below.
 | `promote` | Copies the run's entries into main and prunes what no entry uses any more. |
 | `release` | After `plan`, builds every project but the test projects in Release under the next release version and drops what can be deployed. |
 | `graph` | Prints the project graph with each project's hashes. |
-| `serve` | Runs the service; see The service below. |
-| `wake` | Asks the running service to promote merged pull requests now. |
 | `--version`, `--help` | Print the version or the help. |
 
 Every command exits with 0 on success and 1 on failure, and on GitHub Actions writes its
@@ -166,7 +165,6 @@ failures as annotations and a summary of the run.
 | `REMOTEBUILDTOOL_MAX_CPU` | every CPU | How many processes and MSBuild nodes a command runs at once. |
 | `REMOTEBUILDTOOL_LOGS_DIR` | none | Where MSBuild binary logs and the build graph are kept. |
 | `REMOTEBUILDTOOL_TELEMETRY_DIR` | none | Where every command writes its telemetry. |
-| `REMOTEBUILDTOOL_CONFIG` | `/etc/remotebuildtool/config.json` | The service's host settings. |
 
 These name the build in telemetry; on GitHub Actions they come from the run itself:
 
@@ -226,8 +224,8 @@ Something then has to put accepted work into main. Either:
 
 - **promote after the merge**: run the same pipeline on every push to the default branch and
   finish with `dotnet remotebuildtool promote`; or
-- **run the service** (below), which promotes what a pull request's own run already built
-  as soon as GitHub reports the pull request merged, without building it again.
+- **run the service** (see The service below), which promotes what a pull request's own run
+  already built as soon as GitHub reports the pull request merged, without building it again.
 
 A pull request should never promote: main must only hold what was merged.
 
@@ -248,63 +246,11 @@ that fails drops nothing and does not use up its number.
 
 ## The service
 
-`remotebuildtool serve` runs on a Linux machine beside the self-hosted runners and keeps main
-right without any workflow of its own. Each piece of its work runs on its own schedule:
-
-| Work | When | What |
-|---|---|---|
-| Promotion | at once when woken, otherwise every 15 minutes | For each pull request merged into the branch, promotes what its successful run staged: the merge queue's run on the merge commit, otherwise the pull request's own run. Deletes staged runs older than a day. |
-| Build records | every 2 minutes | Writes a `build` telemetry row for every workflow run GitHub finished, with its queue and preparation time. |
-| Housekeeping | daily, 03:30 UTC | Compacts earlier days' telemetry and deletes logs past their retention. |
-| Rebuild | daily, 01:00 UTC, and at once when main is empty | Builds and tests the branch from scratch, then switches main to it and records how every project compared with the cache. A step that runs past its limit is stopped. |
-
-For promotion, every pull request run must stage its store at
-`<stagingRoot>/<GITHUB_RUN_ID>-<GITHUB_RUN_ATTEMPT>`, that is
-`REMOTEBUILDTOOL_PR_STORE` under the staging directory the service reads. To promote within
-seconds of a merge, run `remotebuildtool wake` on the service's machine from a workflow triggered
-by `pull_request: types: [closed]`.
-
-**Host settings**, in `/etc/remotebuildtool/config.json` (or `REMOTEBUILDTOOL_CONFIG`):
-
-| Setting | Default | Meaning |
-|---|---|---|
-| `repository` | required | The repository, as `owner/name`. |
-| `gitHubToken` | required | A fine-grained token with read access to the repository's Contents, Pull requests and Actions. |
-| `gitHubApiUrl` | `https://api.github.com` | The API, for GitHub Enterprise Server. |
-| `cloneUrl` | the repository on GitHub | Where the rebuild clones from. |
-| `pool` | `service` | The pool the service's builds are recorded under. |
-| `machine` | the machine's name | The machine they are recorded under. |
-| `workRoot` | `/work` | The service's checkouts, state and wake socket. |
-| `mainStore` | `/mnt/main` | main. |
-| `stagingRoot` | `/mnt/staging` | Where pull request runs stage their stores. |
-| `logsRoot` | `/mnt/logs` | The logs share. |
-| `telemetryRoot` | `/mnt/telemetry` | The telemetry share. |
-| `maxCpu` | every CPU | `REMOTEBUILDTOOL_MAX_CPU` for the service's builds. |
-
-**Repository settings**, in `remotebuildtool.json` at the root of the default branch, all
-optional and read again as they change:
-
-```json
-{
-  "branch": "main",
-  "pollSeconds": 900,
-  "buildReportSeconds": 120,
-  "housekeeping": "03:30:00",
-  "rebuild": "01:00:00",
-  "rebuildStepMinutes": 20,
-  "logRetentionDays": { "PR_": 30, "Rebuild_": 30, "Official_": 365 }
-}
-```
-
-| Setting | Default | Meaning |
-|---|---|---|
-| `branch` | the repository's default branch | The branch whose merges fill main and which the rebuild builds. |
-| `pollSeconds` | `900` | How often to look for merges besides each wake. At least 10. |
-| `buildReportSeconds` | `120` | How often to record finished runs. At least 10. |
-| `housekeeping` | `03:30:00` | When housekeeping runs, in UTC. |
-| `rebuild` | `01:00:00` | When the rebuild runs, in UTC; `null` for never. An empty main is rebuilt regardless. |
-| `rebuildStepMinutes` | `20` | How long each step of the rebuild may run. At least 1. |
-| `logRetentionDays` | as above | How many days to keep each kind of log, by the prefix of its folder. |
+[Bitenovac.RemoteBuildTool.Service](https://www.nuget.org/packages/Bitenovac.RemoteBuildTool.Service)
+is an optional service that runs beside the self-hosted runners. It promotes merged pull requests
+into main, rebuilds main nightly, records every GitHub Actions run, and compacts telemetry for
+DuckDB. It is a separate package because DuckDB makes it large; install it at the same version as
+this one.
 
 ## Telemetry
 
@@ -320,16 +266,8 @@ With `REMOTEBUILDTOOL_TELEMETRY_DIR` set, every command writes its records as JS
 | `machine` | sample of the machine while a command runs |
 | `cache_comparison` | project the nightly rebuild compared with the cache |
 
-The service compacts each finished day into Parquet and keeps `telemetry.duckdb` in the
-telemetry directory: a view per table over the Parquet and today's raw lines, and ready-made
-queries such as `build_percentiles`, `stage_percentiles`, `cache_hit_rate`,
-`cache_miss_reasons`, `slowest_targets`, `flaky_tests`, `failing_tests`, `machine_load` and
-`cache_mismatches`. Open it with [DuckDB](https://duckdb.org):
-
-```sql
-FROM build_percentiles WHERE Queue = 'PR';
-FROM build_stages('16473829-1');
-```
+The service compacts each finished day into Parquet with DuckDB views and ready-made queries
+over it; see its README.
 
 Every row that names a build carries its `LogsPath`, its folder in the logs share, for what the
 tables do not hold: console output and binary logs.
@@ -338,9 +276,8 @@ tables do not hold: console output and binary logs.
 
 - .NET projects built with MSBuild only, one target framework each.
 - The stores are directories, so the jobs of a run need a shared filesystem.
-- The service reads GitHub, and runs on Linux.
 
 ## License
 
-MIT. Source, issues and the history of every release:
+MIT. Source and issues:
 [github.com/DarkVader0/Bitenovac-Decompression](https://github.com/DarkVader0/Bitenovac-Decompression/tree/master/src/tools/Bitenovac.RemoteBuildTool).

@@ -27,8 +27,6 @@ internal static class CommandLine
                 "promote" => PromoteCommand.Run(options, output),
                 "release" => ReleaseCommand.Run(options, output),
                 "graph" => GraphCommand.Run(options, output),
-                "serve" => ServeCommand.Run(output, SettingsPath(Environment.GetEnvironmentVariable)),
-                "wake" => WakeCommand.Run(output, SettingsPath(Environment.GetEnvironmentVariable)),
                 "--help" or "-h" => Usage(output),
                 "--version" => Version(output),
                 _ => Fail(output, $"Unknown command '{args[0]}'."),
@@ -39,14 +37,6 @@ internal static class CommandLine
             return Fail(output, exception.Message);
         }
     }
-
-    /// <summary>
-    /// Returns the service's host settings file: <c>REMOTEBUILDTOOL_CONFIG</c>, or the default when unset.
-    /// </summary>
-    /// <param name="read">Returns an environment variable's value, or <see langword="null"/> when it is unset.</param>
-    /// <returns>The settings file.</returns>
-    public static string SettingsPath(Func<string, string?> read) =>
-        read("REMOTEBUILDTOOL_CONFIG") is { Length: > 0 } settings ? settings : ServeCommand.DefaultSettingsPath;
 
     private static int WithConfiguration(string[] args, PipelineOutput output, Func<string, int> run)
     {
@@ -90,9 +80,6 @@ internal static class CommandLine
               remotebuildtool release           Build every project but the tests in Release under the next release
                                                 version and drop what can be deployed
               remotebuildtool graph             Print the project graph with each project's hashes
-              remotebuildtool serve             Run the service: promote merged pull requests into main, record
-                                                builds, compact telemetry, prune logs, rebuild main nightly
-              remotebuildtool wake              Ask the running service to promote merged pull requests now
               remotebuildtool --version         Print the version
               remotebuildtool --help            Print this help
 
@@ -106,6 +93,5 @@ internal static class CommandLine
               REMOTEBUILDTOOL_MAX_CPU         Processes and MSBuild nodes a command runs at once (default: every CPU)
               REMOTEBUILDTOOL_LOGS_DIR        Where binary logs and the build graph go (default: none kept)
               REMOTEBUILDTOOL_TELEMETRY_DIR   Where every command writes its telemetry (default: none written)
-              REMOTEBUILDTOOL_CONFIG          The service's host settings (default: {ServeCommand.DefaultSettingsPath})
             """);
 }

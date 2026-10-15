@@ -136,7 +136,7 @@ A failure is logged and the work runs again on its next turn; it never stops the
 
 **How a merge reaches it.** Each pull request merged into `master` starts the
 `GitHub webhook on PR merge` workflow on this machine's runner. Its one step runs
-`remotebuildtool wake` inside the service's container, which connects to the socket
+`remotebuildtool-service wake` inside the service's container, which connects to the socket
 `/work/wake.sock` the service listens on, and promotion takes its turn at once. Nothing on this
 machine is open to the internet: GitHub hands the job to the runner over the connection the runner
 already keeps. The 15-minute poll only catches a merge whose workflow did not run, such as one made

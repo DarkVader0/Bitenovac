@@ -21,7 +21,6 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/DarkVader0/Bitenovac-Decompression/tree/master/src/tools/Bitenovac.RemoteBuildTool</PackageProjectUrl>
-        <PackageReleaseNotes>https://github.com/DarkVader0/Bitenovac-Decompression/blob/master/src/tools/Bitenovac.RemoteBuildTool/CHANGELOG.md</PackageReleaseNotes>
         <RepositoryUrl>https://github.com/DarkVader0/Bitenovac-Decompression</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -39,6 +38,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Service"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Service.Unit.Tests"/>
         <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Unit.Tests"/>
         <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Integration.Tests"/>
     </ItemGroup>
@@ -47,12 +48,6 @@
         <PackageReference Include="Microsoft.Build.Locator"/>
         <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime"/>
         <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime"/>
-        <PackageReference Include="DuckDB.NET.Data.Full"/>
-        <PackageReference Include="Microsoft.Extensions.Hosting"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <EmbeddedResource Include="Telemetry/Sql/*.sql" LogicalName="Telemetry.%(Filename).sql"/>
     </ItemGroup>
 
 </Project>

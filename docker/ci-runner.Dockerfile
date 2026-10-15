@@ -42,6 +42,10 @@ RUN test -n "${REMOTEBUILDTOOL_VERSION}" || { echo "error: pass --build-arg REMO
     && dotnet tool install Bitenovac.RemoteBuildTool \
         --version "${REMOTEBUILDTOOL_VERSION}" \
         --tool-path /opt/remotebuildtool \
+        --add-source "${REMOTEBUILDTOOL_SOURCE}" \
+    && dotnet tool install Bitenovac.RemoteBuildTool.Service \
+        --version "${REMOTEBUILDTOOL_VERSION}" \
+        --tool-path /opt/remotebuildtool \
         --add-source "${REMOTEBUILDTOOL_SOURCE}"
 
 ENV PATH="/opt/remotebuildtool:${PATH}"

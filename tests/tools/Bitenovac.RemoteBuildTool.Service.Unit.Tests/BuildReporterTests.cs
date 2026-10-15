@@ -2,7 +2,7 @@ using System.Net;
 using Bitenovac.RemoteBuildTool.Service;
 using Bitenovac.RemoteBuildTool.Telemetry;
 
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteBuildTool.Service.Unit.Tests;
 
 public sealed class BuildReporterTests
 {
