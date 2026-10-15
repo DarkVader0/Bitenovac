@@ -26,8 +26,8 @@ internal static class CommandLine
                 "promote" => PromoteCommand.Run(options, output),
                 "release" => ReleaseCommand.Run(options, output),
                 "graph" => GraphCommand.Run(options, output),
-                "serve" => ServeCommand.Run(output, SettingsPath()),
-                "wake" => WakeCommand.Run(output, SettingsPath()),
+                "serve" => ServeCommand.Run(output, SettingsPath(Environment.GetEnvironmentVariable)),
+                "wake" => WakeCommand.Run(output, SettingsPath(Environment.GetEnvironmentVariable)),
                 "--help" or "-h" => Usage(output),
                 _ => Fail(output, $"Unknown command '{args[0]}'."),
             };
@@ -38,8 +38,13 @@ internal static class CommandLine
         }
     }
 
-    private static string SettingsPath() =>
-        Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_CONFIG") is { Length: > 0 } settings ? settings : ServeCommand.DefaultSettingsPath;
+    /// <summary>
+    /// Returns the service's host settings file: <c>REMOTEBUILDTOOL_CONFIG</c>, or the default when unset.
+    /// </summary>
+    /// <param name="read">Returns an environment variable's value, or <see langword="null"/> when it is unset.</param>
+    /// <returns>The settings file.</returns>
+    public static string SettingsPath(Func<string, string?> read) =>
+        read("REMOTEBUILDTOOL_CONFIG") is { Length: > 0 } settings ? settings : ServeCommand.DefaultSettingsPath;
 
     private static int WithConfiguration(string[] args, PipelineOutput output, Func<string, int> run)
     {
