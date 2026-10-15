@@ -65,10 +65,10 @@ git pull
 - **Runner token**: open https://github.com/DarkVader0/Bitenovac-Decompression/settings/actions/runners/new
   and copy the value after `--token`. It works for 1 hour and is needed only for setup.
 - **Service token**: on GitHub, your profile Settings → Developer settings → Fine-grained tokens →
-  Generate new token. Repository access: only this repository. Permissions: **Contents: Read** and
-  **Actions: Read**. Pick a long expiry; when it runs out, run setup again with a new one. The
-  service reads `master` and the finished workflow runs with it, for the build records' queue and
-  preparation times.
+  Generate new token. Repository access: only this repository. Permissions: **Contents: Read**,
+  **Pull requests: Read** and **Actions: Read**. Pick a long expiry; when it runs out, run setup
+  again with a new one. The service reads `master`, the pull requests merged into it, and the
+  finished workflow runs with it, for the build records' queue and preparation times.
 
 **3. Run setup** (Ubuntu)
 
