@@ -12,7 +12,7 @@
         <IsPackable>true</IsPackable>
         <IsAotCompatible>true</IsAotCompatible>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <RepositoryUrl>https://github.com/DarkVader0/Bitenovac-Decompression</RepositoryUrl>
+        <RepositoryUrl>https://github.com/DarkVader0/Bitenovac</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <Authors>Radivoje Milutinovic</Authors>
         <Company>Bitenovac</Company>

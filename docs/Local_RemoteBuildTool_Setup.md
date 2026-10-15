@@ -49,7 +49,7 @@ and **untick Ubuntu**. Setup installs its own Docker inside Ubuntu.
 First time:
 
 ```bash
-git clone https://github.com/DarkVader0/Bitenovac-Decompression.git ~/bitenovac
+git clone https://github.com/DarkVader0/Bitenovac.git ~/bitenovac
 ```
 
 Every time after that:
@@ -62,7 +62,7 @@ git pull
 
 **2. Get two tokens**
 
-- **Runner token**: open https://github.com/DarkVader0/Bitenovac-Decompression/settings/actions/runners/new
+- **Runner token**: open https://github.com/DarkVader0/Bitenovac/settings/actions/runners/new
   and copy the value after `--token`. It works for 1 hour and is needed only for setup.
 - **Service token**: on GitHub, your profile Settings → Developer settings → Fine-grained tokens →
   Generate new token. Repository access: only this repository. Permissions: **Contents: Read**,
@@ -227,7 +227,7 @@ API key that expires within the hour, so no key is ever stored.
 | Field | Value |
 |---|---|
 | Repository owner | `DarkVader0` |
-| Repository | `Bitenovac-Decompression` |
+| Repository | `Bitenovac` |
 | Workflow file | `deploy-remotebuildtool.yml` |
 | Environment | `nuget` |
 
