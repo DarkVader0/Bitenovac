@@ -29,9 +29,8 @@ public static class DiveSheet
 
     private static readonly PdfColor SafetyStopColor = PdfColor.FromRgb(232, 137, 12);
     private static readonly PdfColor SwitchColor = PdfColor.FromRgb(28, 128, 67);
-    private static readonly PdfColor Water = PdfColor.FromRgb(238, 245, 252);
-    private static readonly PdfColor DiveFill = PdfColor.FromRgb(214, 230, 245);
-    private static readonly PdfColor CeilingZone = PdfColor.FromRgb(240, 201, 201);
+    private static readonly PdfColor DiveFill = PdfColor.FromRgb(228, 238, 248);
+    private static readonly PdfColor CeilingZone = PdfColor.FromRgb(208, 156, 162);
 
     /// <summary>
     /// Returns one dive of the plan as the bytes of a PDF file.
@@ -456,45 +455,42 @@ public static class DiveSheet
         var page = sheet.Page;
         var area = new ChartArea(SheetWriter.Margin + 30, sheet.Y + 12, SheetWriter.ContentWidth - 34, height - 36);
 
-        page.Rectangle(area.Left, area.Top, area.Width, area.Height, Water);
         foreach (var depth in chart.DepthTicks)
         {
-            var y = chart.Y(depth, area);
-            page.Line(area.Left, y, area.Left + area.Width, y, 0.4, SheetWriter.Rule);
-            page.Text(area.Left - 5, y + 3, Formats.Number(depth), PdfFont.Helvetica, 7, SheetWriter.Muted, PdfAlign.Right);
+            page.Text(area.Left - 5, chart.Y(depth, area) + 3, Formats.Number(depth), PdfFont.Helvetica, 7, SheetWriter.Muted, PdfAlign.Right);
         }
 
         foreach (var minutes in chart.TimeTicks)
         {
-            var x = chart.X(minutes, area);
-            page.Line(x, area.Top, x, area.Top + area.Height, 0.4, SheetWriter.Rule);
-            page.Text(x, area.Top + area.Height + 10, Formats.Number(minutes), PdfFont.Helvetica, 7, SheetWriter.Muted, PdfAlign.Center);
+            page.Text(chart.X(minutes, area), area.Top + area.Height + 10, Formats.Number(minutes), PdfFont.Helvetica, 7, SheetWriter.Muted, PdfAlign.Center);
         }
 
         var points = chart.Points.Select(point => (chart.X(point.Minutes, area), chart.Y(point.Depth, area))).ToArray();
         page.Polygon(points, DiveFill);
 
         var ceiling = chart.Ceiling.Select(point => (chart.X(point.Minutes, area), chart.Y(point.Depth, area))).ToArray();
+        var surface = chart.Y(0, area);
         if (ceiling.Length > 0)
         {
-            page.Polygon([.. ceiling, (ceiling[^1].Item1, area.Top), (ceiling[0].Item1, area.Top)], CeilingZone);
+            page.Polygon([.. ceiling, (ceiling[^1].Item1, surface), (ceiling[0].Item1, surface)], CeilingZone);
         }
 
-        page.Polyline(points, 1.6, SheetWriter.Brand);
+        page.Polyline(points, 3, SheetWriter.Brand);
 
         if (ceiling.Length > 0)
         {
-            page.Polyline(ceiling, 1.2, SheetWriter.Danger);
+            page.Polyline(ceiling, 2.2, SheetWriter.Danger);
         }
 
         foreach (var stop in chart.Stops)
         {
             var y = chart.Y(stop.Depth, area);
-            page.Line(chart.X(stop.StartMinutes, area), y, chart.X(stop.EndMinutes, area), y, 1.6,
-                StopColor(stop));
+            var start = chart.X(stop.StartMinutes, area);
+            page.Line(start, y, chart.X(stop.EndMinutes, area), y, stop.IsGasSwitch ? 5 : 3, StopColor(stop));
             if (stop.IsGasSwitch)
             {
-                page.Text(chart.X(stop.StartMinutes, area) + 3, y - 5, stop.Gas, PdfFont.HelveticaBold, 7, SwitchColor);
+                page.Polygon([.. Enumerable.Range(0, 16).Select(step => (start + 4.5 * Math.Cos(step * Math.PI / 8), y + 4.5 * Math.Sin(step * Math.PI / 8)))], SwitchColor);
+                page.Text(start + 7, y - 8, stop.Gas, PdfFont.HelveticaBold, 7, SwitchColor);
             }
         }
 
