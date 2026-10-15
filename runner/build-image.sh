@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
 # Builds the runner image, with RemoteBuildTool and its service installed at the release named by
-# <VersionPrefix> in their csproj files.
+# <VersionPrefix> in src/RemoteBuildTool/Directory.Build.props.
 #
 # Usage:
 #   bash runner/build-image.sh [docker build options...]
 #
 # Environment:
-#   REMOTEBUILDTOOL_VERSION   Install this release instead of the one in the csproj.
+#   REMOTEBUILDTOOL_VERSION   Install this release instead of the one in src/RemoteBuildTool/Directory.Build.props.
 #   REMOTEBUILDTOOL_SOURCE    NuGet feed to install it from. Defaults to nuget.org.
 
 set -euo pipefail
@@ -17,9 +17,9 @@ readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 sdk_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${REPO_ROOT}/global.json" | head -n 1)"
 [[ -n "${sdk_version}" ]] || { printf 'error: could not read the SDK version from %s/global.json.\n' "${REPO_ROOT}" >&2; exit 1; }
 
-readonly TOOL_PROJECT="${REPO_ROOT}/src/tools/Bitenovac.RemoteBuildTool/Bitenovac.RemoteBuildTool.csproj"
-tool_version="${REMOTEBUILDTOOL_VERSION:-$(sed -n 's/.*<VersionPrefix>[[:space:]]*\([^<[:space:]]*\)[[:space:]]*<\/VersionPrefix>.*/\1/p' "${TOOL_PROJECT}" | head -n 1)}"
-[[ -n "${tool_version}" ]] || { printf 'error: could not read <VersionPrefix> from %s.\n' "${TOOL_PROJECT}" >&2; exit 1; }
+readonly TOOL_PROPS="${REPO_ROOT}/src/RemoteBuildTool/Directory.Build.props"
+tool_version="${REMOTEBUILDTOOL_VERSION:-$(sed -n 's/.*<VersionPrefix>[[:space:]]*\([^<[:space:]]*\)[[:space:]]*<\/VersionPrefix>.*/\1/p' "${TOOL_PROPS}" | head -n 1)}"
+[[ -n "${tool_version}" ]] || { printf 'error: could not read <VersionPrefix> from %s.\n' "${TOOL_PROPS}" >&2; exit 1; }
 
 build_args=(
     --build-arg "DOTNET_SDK_VERSION=${sdk_version}"

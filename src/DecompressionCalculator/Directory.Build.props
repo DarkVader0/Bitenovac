@@ -1,0 +1,14 @@
+<Project>
+
+    <PropertyGroup>
+        <IsLibrary Condition="'$(IsLibrary)' == '' AND !$(MSBuildProjectName.EndsWith('.Web')) AND !$(MSBuildProjectName.EndsWith('.Sandbox'))">true</IsLibrary>
+    </PropertyGroup>
+
+    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
+
+    <!-- Unconditional, so it outranks the drop version Official passes in: these libraries release together. -->
+    <PropertyGroup Condition="'$(IsLibrary)' == 'true'">
+        <VersionPrefix>10.4.0</VersionPrefix>
+    </PropertyGroup>
+
+</Project>

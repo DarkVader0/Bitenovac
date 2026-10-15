@@ -14,16 +14,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <IsLibrary Condition="'$(IsLibrary)' == '' AND ($(MSBuildProjectDirectory.Contains('src/libraries')) OR $(MSBuildProjectDirectory.Contains('src\libraries')))">true</IsLibrary>
         <IsLibrary Condition="'$(IsLibrary)' == ''">false</IsLibrary>
-    </PropertyGroup>
-
-    <!-- Unconditional, so it outranks the drop version Official passes in: the libraries release together. -->
-    <PropertyGroup Condition="'$(IsLibrary)' == 'true'">
-        <VersionPrefix>10.4.0</VersionPrefix>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(IsLibrary)' == 'false'">
-
     </PropertyGroup>
 
     <PropertyGroup>

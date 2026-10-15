@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsLibrary>true</IsLibrary>
+        <Description>Dive plan documents, validation, unit conversion and calculation for apps built on the Bitenovac decompression libraries.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\DecompressionAlgorithms\Bitenovac.DecompressionAlgorithms.Units\Bitenovac.DecompressionAlgorithms.Units.csproj"/>
+        <ProjectReference Include="..\..\DecompressionAlgorithms\Bitenovac.DecompressionAlgorithms.Core\Bitenovac.DecompressionAlgorithms.Core.csproj"/>
+        <ProjectReference Include="..\..\DecompressionAlgorithms\Bitenovac.DecompressionAlgorithms.BuhlmannZhl16c\Bitenovac.DecompressionAlgorithms.BuhlmannZhl16c.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Bitenovac.DecompressionCalculator.Model.Unit.Tests"/>
+    </ItemGroup>
+
+</Project>

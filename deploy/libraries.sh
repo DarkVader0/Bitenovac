@@ -11,7 +11,7 @@
 #   NUGET_API_KEY   Required. In CI this is the short-lived key NuGet/login exchanges for the
 #                   workflow's OIDC token (see .github/workflows/deploy-libraries.yml).
 #
-# The libraries share one version, set in Directory.Build.props. A package nuget.org already has at
+# Each product folder shares one version, set in its Directory.Build.props. A package nuget.org already has at
 # that version is skipped, so a deploy that stopped part way can be run again for the rest; one in
 # which every package is already published fails, so a forgotten bump still fails loudly.
 
@@ -91,6 +91,6 @@ exec docker run \
         done
 
         [[ ${pushed} -gt 0 ]] \
-            || fail "nuget.org already has every package of drop ${DROP}. Bump <VersionPrefix> in Directory.Build.props."
+            || fail "nuget.org already has every package of drop ${DROP}. Bump <VersionPrefix> in the product folder's Directory.Build.props."
         printf "==> Pushed %s of %s package(s); the rest were already on nuget.org.\n" "${pushed}" "${#found[@]}"
     '

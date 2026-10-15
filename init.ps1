@@ -225,7 +225,7 @@ try
         # package cache for the whole repository and smoke-tests RemoteBuildTool in one step. There
         # is no solution file to restore instead -- RemoteBuildTool discovers projects from the
         # filesystem.
-        & dotnet run --project 'src/tools/Bitenovac.RemoteBuildTool' -- plan
+        & dotnet run --project 'src/RemoteBuildTool/Bitenovac.RemoteBuildTool' -- plan
         if ($LASTEXITCODE -ne 0)
         {
             Stop-WithError 'dotnet run -- plan failed.'
@@ -235,13 +235,13 @@ try
 
     Write-Log 'Ready'
     @'
-  dotnet run --project src/tools/Bitenovac.RemoteBuildTool -- graph    What depends on what
-  dotnet run --project src/tools/Bitenovac.RemoteBuildTool -- plan     What this working tree would build
+  dotnet run --project src/RemoteBuildTool/Bitenovac.RemoteBuildTool -- graph    What depends on what
+  dotnet run --project src/RemoteBuildTool/Bitenovac.RemoteBuildTool -- plan     What this working tree would build
 
   bash docker/ci-local.sh                  The whole pipeline, in the runner image
   bash docker/ci-local.sh --cacheless      The same, ignoring the local cache
 
-  dotnet test .\tests\libraries\Bitenovac.DecompressionAlgorithms.Core.Unit.Tests\Bitenovac.DecompressionAlgorithms.Core.Unit.Tests.csproj
+  dotnet test .\tests\DecompressionAlgorithms\Bitenovac.DecompressionAlgorithms.Core.Unit.Tests\Bitenovac.DecompressionAlgorithms.Core.Unit.Tests.csproj
 '@ | Write-Host
 }
 finally

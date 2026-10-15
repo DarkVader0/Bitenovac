@@ -188,9 +188,8 @@ sudo bash runner/service.sh rebuild
 Pull requests and the service use the RemoteBuildTool release **installed in the runner image**,
 not the source in the pull request. To ship a change to RemoteBuildTool:
 
-1. Bump `<VersionPrefix>` in `src/tools/Bitenovac.RemoteBuildTool/Bitenovac.RemoteBuildTool.csproj`
-   and merge it. That is the only place the version lives: `runner/build-image.sh` reads it from
-   there.
+1. Bump `<VersionPrefix>` in `src/RemoteBuildTool/Directory.Build.props` and merge it. That is the
+   only place the version lives, for both packages: `runner/build-image.sh` reads it from there.
 2. Wait for the next Official build, or run one: Actions → Official → Run workflow. It keeps the
    package's own version rather than the date.
 3. Publish it from that drop: Actions → Deploy RemoteBuildTool → Run workflow. Leave the drop empty
@@ -248,11 +247,12 @@ NUGET_API_KEY=<KEY> bash deploy/remotebuildtool.sh [2026.10.11.001]
 
 ## Releasing the libraries
 
-The five libraries under `src/libraries` are published to nuget.org together, under one version:
-`<VersionPrefix>` in the library group of `Directory.Build.props`. The Web app restores them from
+The libraries under `src/DecompressionAlgorithms` and `src/DecompressionCalculator` are published to
+nuget.org together, each folder under its own version:
+`<VersionPrefix>` in the folder's `Directory.Build.props`. The Web app restores them from
 nuget.org at the version pinned in `Directory.Packages.props`, not from the source.
 
-1. Bump the shared `<VersionPrefix>` in `Directory.Build.props` and merge it.
+1. Bump the `<VersionPrefix>` of the folder you changed, in its `Directory.Build.props`, and merge it.
 2. Wait for the next Official build, or run one: Actions → Official → Run workflow. The packages
    keep the library version rather than the date.
 3. Publish them from that drop: Actions → Deploy libraries → Run workflow. Leave the drop empty for

@@ -50,6 +50,6 @@
 ## Running tests
 
 * To build and run tests, run `dotnet test` against a test project from the repository root, e.g.
-  `dotnet test .\tests\libraries\Bitenovac.DecompressionAlgorithms.Core.Unit.Tests\Bitenovac.DecompressionAlgorithms.Core.Unit.Tests.csproj`.
+  `dotnet test .\tests\DecompressionAlgorithms\Bitenovac.DecompressionAlgorithms.Core.Unit.Tests\Bitenovac.DecompressionAlgorithms.Core.Unit.Tests.csproj`.
 * Tests run on Microsoft.Testing.Platform, not VSTest. "No test projects were found" usually means
   the project path did not resolve.

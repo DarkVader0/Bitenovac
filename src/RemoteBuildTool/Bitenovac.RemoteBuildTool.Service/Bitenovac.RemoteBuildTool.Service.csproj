@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <RootNamespace>Bitenovac.RemoteBuildTool.Service</RootNamespace>
+    </PropertyGroup>
+
+    <!-- Released together with Bitenovac.RemoteBuildTool, at the version in the folder's Directory.Build.props: the service runs its commands. -->
+    <PropertyGroup>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>remotebuildtool-service</ToolCommandName>
+        <IsPackable>true</IsPackable>
+        <PackageId>Bitenovac.RemoteBuildTool.Service</PackageId>
+        <Title>RemoteBuildTool service</Title>
+        <Description>The optional service for Bitenovac.RemoteBuildTool. It fills the shared build cache from merged pull requests, rebuilds it nightly, records every build from GitHub Actions, and compacts build telemetry into Parquet that DuckDB can query. It includes every Bitenovac.RemoteBuildTool command.</Description>
+        <PackageTags>build-cache;ci;msbuild;dotnet-tool;build-telemetry;duckdb;github-actions</PackageTags>
+        <Authors>Radivoje Milutinovic</Authors>
+        <Company>Bitenovac</Company>
+        <Copyright>Copyright (c) 2026 Radivoje Milutinovic</Copyright>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/DarkVader0/Bitenovac-Decompression/tree/master/src/RemoteBuildTool/Bitenovac.RemoteBuildTool.Service</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/DarkVader0/Bitenovac-Decompression</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Bitenovac.RemoteBuildTool\Bitenovac.RemoteBuildTool.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Service.Unit.Tests"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Integration.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime"/>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime"/>
+        <PackageReference Include="DuckDB.NET.Data.Full"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Telemetry/Sql/*.sql" LogicalName="Telemetry.%(Filename).sql"/>
+    </ItemGroup>
+
+</Project>

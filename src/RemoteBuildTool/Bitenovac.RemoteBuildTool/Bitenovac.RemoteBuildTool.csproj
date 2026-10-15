@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <RootNamespace>Bitenovac.RemoteBuildTool</RootNamespace>
+    </PropertyGroup>
+
+    <!-- Versioned independently of the repository, in the folder's Directory.Build.props: CI runs a published release, not this source. -->
+    <PropertyGroup>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>remotebuildtool</ToolCommandName>
+        <IsPackable>true</IsPackable>
+        <PackageId>Bitenovac.RemoteBuildTool</PackageId>
+        <Title>RemoteBuildTool</Title>
+        <Description>A content-hashed build cache for .NET repositories on CI. It fingerprints every project from its own inputs and its dependencies, restores unchanged projects and their test results from a shared cache, builds and tests only what changed, and gates coverage per project. An optional service fills the cache from merged pull requests and records build telemetry.</Description>
+        <PackageTags>build-cache;ci;msbuild;dotnet-tool;incremental-build;test-cache;code-coverage;github-actions</PackageTags>
+        <Authors>Radivoje Milutinovic</Authors>
+        <Company>Bitenovac</Company>
+        <Copyright>Copyright (c) 2026 Radivoje Milutinovic</Copyright>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/DarkVader0/Bitenovac-Decompression/tree/master/src/RemoteBuildTool/Bitenovac.RemoteBuildTool</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/DarkVader0/Bitenovac-Decompression</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Bitenovac.RemoteBuildTool.Core\Bitenovac.RemoteBuildTool.Core.csproj"/>
+        <ProjectReference Include="..\Bitenovac.RemoteBuildTool.Testing\Bitenovac.RemoteBuildTool.Testing.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Service"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Service.Unit.Tests"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Unit.Tests"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Integration.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Build.Locator"/>
+        <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime"/>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime"/>
+    </ItemGroup>
+
+</Project>
