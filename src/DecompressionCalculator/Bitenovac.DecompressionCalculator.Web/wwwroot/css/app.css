@@ -1149,28 +1149,6 @@ body:has(.app-banner) {
 
 /* ---------------------------------------------------------------------- results -- */
 
-.results-chart-title {
-    display: none;
-}
-
-/* On a wide screen the stops come first and the chart closes the results; phones keep the chart
-   under the profile heading. */
-@media (min-width: 1024px) {
-    section.results {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .results-chart {
-        order: 1;
-        margin-top: 1rem;
-    }
-
-    .results-chart-title {
-        display: block;
-    }
-}
-
 .figures {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
@@ -1582,4 +1560,30 @@ tr.gas-warning td:first-child {
 
 .contingency[open] > summary {
     margin-bottom: 0.75rem;
+}
+
+.block-note {
+    margin: 0 0 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.block-list {
+    display: grid;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.block-item {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.block-move {
+    display: flex;
+    gap: 0.25rem;
 }

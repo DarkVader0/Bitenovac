@@ -1,3 +1,6 @@
+@implements IDisposable
+@inject PreferencesStore Preferences
+
 <section class="card results">
     <h2>@Title</h2>
 
@@ -7,15 +10,6 @@
     }
     else
     {
-        <h3>Profile</h3>
-        <div class="results-chart">
-            <h3 class="results-chart-title">Profile chart</h3>
-            <ProfileChartView Result="Result" Units="Units"/>
-        </div>
-        <ProfileTable Result="Result" Units="Units"/>
-
-        <Figures Result="Result"/>
-
         @if (!Result.IsValid)
         {
             <div class="alert alert-danger">
@@ -37,21 +31,46 @@
             <p class="alert alert-warning">A cylinder does not hold the reserve gas the plan requires.</p>
         }
 
-        <h3>Gas</h3>
-        <GasTable Result="Result" Units="Units"/>
-
-        @if (Result.Contingencies.Count > 0)
+        @foreach (var block in _blocks)
         {
-            <h3>Contingencies</h3>
-            @foreach (var contingency in Result.Contingencies)
+            switch (block)
             {
-                <ContingencyView Contingency="contingency" Units="Units"/>
+                case ResultBlock.Figures:
+                    <Figures Result="Result"/>
+                    break;
+                case ResultBlock.Profile:
+                    <h3>Profile</h3>
+                    <ProfileTable Result="Result" Units="Units"/>
+                    break;
+                case ResultBlock.Gas:
+                    <h3>Gas</h3>
+                    <GasTable Result="Result" Units="Units"/>
+                    break;
+                case ResultBlock.Chart:
+                    <h3>Profile chart</h3>
+                    <ProfileChartView Result="Result" Units="Units"/>
+                    break;
+                case ResultBlock.Contingencies:
+                    <h3>Contingencies</h3>
+                    @foreach (var contingency in Result.Contingencies)
+                    {
+                        <ContingencyView Contingency="contingency" Units="Units"/>
+                    }
+
+                    break;
             }
+        }
+
+        @if (_blocks.Count == 0)
+        {
+            <p class="block-note">Every part of the results is hidden. Show them again in Settings, under App.</p>
         }
     }
 </section>
 
 @code {
+    private IReadOnlyList<ResultBlock> _blocks = UserPreferences.Default.VisibleBlocks();
+
     [Parameter, EditorRequired]
     public DiveResult Result { get; set; } = default!;
 
@@ -62,4 +81,18 @@
     public UnitSystem Units { get; set; }
 
     private UnitLabels Labels => UnitLabels.For(Units);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _blocks = (await Preferences.GetAsync()).VisibleBlocks();
+        Preferences.Changed += OnChanged;
+    }
+
+    public void Dispose() => Preferences.Changed -= OnChanged;
+
+    private void OnChanged() => _ = InvokeAsync(async () =>
+    {
+        _blocks = (await Preferences.GetAsync()).VisibleBlocks();
+        StateHasChanged();
+    });
 }

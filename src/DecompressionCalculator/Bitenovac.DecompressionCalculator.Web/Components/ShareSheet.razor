@@ -1,4 +1,5 @@
 @inject ShareService Share
+@inject PreferencesStore Preferences
 
 <div class="drawer-backdrop" @onclick="OnClose"></div>
 <aside class="share-sheet" role="dialog" aria-modal="true" aria-label="Share plan" @onkeydown="CloseOnEscape">
@@ -24,6 +25,7 @@
 
 @code {
     private bool _canShareFiles;
+    private IReadOnlyList<ResultBlock> _blocks = UserPreferences.Default.VisibleBlocks();
     private string? _status;
 
     [Parameter, EditorRequired]
@@ -47,9 +49,10 @@
     protected override async Task OnInitializedAsync()
     {
         _canShareFiles = await Share.CanShareFilesAsync();
+        _blocks = (await Preferences.GetAsync()).VisibleBlocks();
     }
 
-    private byte[] Sheet() => DiveSheet.Create(Plan, Dive, DateTime.UtcNow, AppVersion.Current);
+    private byte[] Sheet() => DiveSheet.Create(Plan, Dive, DateTime.UtcNow, AppVersion.Current, _blocks);
 
     private async Task SharePdfAsync()
     {

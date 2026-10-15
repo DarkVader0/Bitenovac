@@ -33,12 +33,15 @@ public static class DiveSheet
     private static readonly PdfColor CeilingZone = PdfColor.FromRgb(240, 201, 201);
 
     /// <summary>
-    /// Returns one dive of the plan as the bytes of a one-page PDF file.
+    /// Returns one dive of the plan as the bytes of a PDF file.
     /// </summary>
     /// <param name="plan">The plan, which is calculated for the sheet.</param>
     /// <param name="dive">The zero-based index of the dive to export.</param>
     /// <param name="exportedAt">When the sheet is made, in UTC; printed on the sheet and stored as its creation time.</param>
     /// <param name="appVersion">The version of the app that made the sheet, printed beside its title.</param>
+    /// <param name="blocks">
+    /// The result blocks to show, in order; <see langword="null"/> for every block in the default order.
+    /// </param>
     /// <returns>The PDF file.</returns>
     /// <exception cref="ArgumentNullException">
     /// <paramref name="plan"/> or <paramref name="appVersion"/> is <see langword="null"/>.
@@ -46,14 +49,16 @@ public static class DiveSheet
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="dive"/> is not a dive of the plan.</exception>
     /// <remarks>
     /// <para>
-    /// The profile and the gas come first, at a size that keeps them on the page; the chart fills the
-    /// space left below them, and is left out when there is too little.
+    /// Warnings come first, then the blocks in the order given. They are sized to fit one page: the profile's rows
+    /// shrink first, no further than a size worth reading beside the chart, and the chart then takes what is left,
+    /// between a smallest and a largest height. A block that does not fit moves to the next page, so none is ever left out.
     /// </para>
     /// <para>
     /// A plan with issues is exported with the issues listed instead of its results.
     /// </para>
     /// </remarks>
-    public static byte[] Create(DivePlanDocument plan, int dive, DateTime exportedAt, string appVersion)
+    public static byte[] Create(
+        DivePlanDocument plan, int dive, DateTime exportedAt, string appVersion, IReadOnlyList<ResultBlock>? blocks = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(appVersion);
@@ -85,7 +90,7 @@ public static class DiveSheet
         }
         else
         {
-            WriteDive(sheet, plan, calculation.Dives[dive], labels);
+            WriteDive(sheet, plan, calculation.Dives[dive], labels, blocks ?? UserPreferences.Default.VisibleBlocks());
         }
 
         return sheet.Build(title, exportedAt);
@@ -113,7 +118,8 @@ public static class DiveSheet
         }
     }
 
-    private static void WriteDive(SheetWriter sheet, DivePlanDocument plan, DiveResult result, UnitLabels labels)
+    private static void WriteDive(
+        SheetWriter sheet, DivePlanDocument plan, DiveResult result, UnitLabels labels, IReadOnlyList<ResultBlock> blocks)
     {
         sheet.Advance(Gap / 2);
         if (result.FailureMessage is { } failure)
@@ -122,27 +128,106 @@ public static class DiveSheet
             return;
         }
 
-        WriteFigures(sheet, result);
         WriteWarnings(sheet, result, labels);
 
-        var profileRows = result.Profile.Count + 1;
-        var gasHeight = (result.Cylinders.Count + 1) * GasRowHeight;
-        var besideChart = (sheet.Remaining - gasHeight - 2 * Gap - SmallestChart) / profileRows;
-        var withChart = besideChart >= SmallestRowBesideChart;
-        var rowHeight = withChart
-            ? Math.Min(besideChart, LargestRow)
-            : Math.Clamp((sheet.Remaining - gasHeight - Gap) / profileRows, SmallestRow, LargestRow);
-
-        WriteProfile(sheet, result, labels, rowHeight);
-        sheet.Advance(Gap);
-        WriteGas(sheet, result, labels);
-
-        if (withChart)
+        var pages = Paginate(blocks, result, sheet.Remaining, sheet.Capacity);
+        for (var index = 0; index < pages.Count; index++)
         {
-            sheet.Advance(Gap);
-            WriteChart(sheet, ProfileChart.Create(result, plan.Units), labels, Math.Min(sheet.Remaining, LargestChart));
+            if (index > 0)
+            {
+                sheet.NewPage();
+            }
+
+            WritePage(sheet, plan, result, labels, pages[index]);
         }
     }
+
+    /// <remarks>
+    /// Blocks keep their order. A block that does not fit at its smallest, with the others already on the page,
+    /// starts the next page; a block taller than a page of its own stays where it is and runs off it.
+    /// </remarks>
+    private static List<List<ResultBlock>> Paginate(
+        IReadOnlyList<ResultBlock> blocks, DiveResult result, double firstPage, double laterPages)
+    {
+        var pages = new List<List<ResultBlock>> { new() };
+        var capacity = firstPage;
+
+        foreach (var block in blocks)
+        {
+            var page = pages[^1];
+            if (page.Count > 0 && Smallest([.. page, block], result) > capacity)
+            {
+                pages.Add([block]);
+                capacity = laterPages;
+            }
+            else
+            {
+                page.Add(block);
+            }
+        }
+
+        return pages;
+    }
+
+    private static void WritePage(SheetWriter sheet, DivePlanDocument plan, DiveResult result, UnitLabels labels, List<ResultBlock> blocks)
+    {
+        var spare = Math.Max(0, sheet.Remaining - Smallest(blocks, result));
+        var rows = result.Profile.Count + 1;
+        var rowHeight = SmallestRowOn(blocks);
+        if (blocks.Contains(ResultBlock.Profile))
+        {
+            var larger = Math.Min(rowHeight + spare / rows, LargestRow);
+            spare -= (larger - rowHeight) * rows;
+            rowHeight = larger;
+        }
+
+        var chartHeight = Math.Min(SmallestChart + spare, LargestChart);
+
+        for (var index = 0; index < blocks.Count; index++)
+        {
+            if (index > 0)
+            {
+                sheet.Advance(Gap);
+            }
+
+            switch (blocks[index])
+            {
+                case ResultBlock.Figures:
+                    WriteFigures(sheet, result);
+                    break;
+                case ResultBlock.Profile:
+                    WriteProfile(sheet, result, labels, rowHeight);
+                    break;
+                case ResultBlock.Gas:
+                    WriteGas(sheet, result, labels);
+                    break;
+                case ResultBlock.Chart:
+                    WriteChart(sheet, ProfileChart.Create(result, plan.Units), labels, chartHeight);
+                    break;
+                case ResultBlock.Contingencies:
+                    WriteContingencies(sheet, result, plan.Units);
+                    break;
+            }
+        }
+    }
+
+    /// <remarks>
+    /// The profile is read underwater, so beside the chart its rows keep a size worth reading; on a page of its
+    /// own they may shrink further.
+    /// </remarks>
+    private static double SmallestRowOn(List<ResultBlock> blocks) =>
+        blocks.Contains(ResultBlock.Chart) ? SmallestRowBesideChart : SmallestRow;
+
+    private static double Smallest(List<ResultBlock> blocks, DiveResult result) =>
+        blocks.Sum(block => block switch
+        {
+            ResultBlock.Figures => FigureHeight,
+            ResultBlock.Profile => (result.Profile.Count + 1) * SmallestRowOn(blocks),
+            ResultBlock.Gas => (result.Cylinders.Count + 1) * GasRowHeight,
+            ResultBlock.Chart => SmallestChart,
+            ResultBlock.Contingencies => (result.Contingencies.Count + 1) * GasRowHeight,
+            _ => 0
+        }) + Gap * Math.Max(0, blocks.Count - 1);
 
     private static void WriteFigures(SheetWriter sheet, DiveResult result)
     {
@@ -164,7 +249,7 @@ public static class DiveSheet
             sheet.Page.Text(left + 6, sheet.Y + 24, figures[index].Value, PdfFont.HelveticaBold, 11, SheetWriter.Text);
         }
 
-        sheet.Advance(FigureHeight + Gap / 2);
+        sheet.Advance(FigureHeight);
     }
 
     private static void WriteWarnings(SheetWriter sheet, DiveResult result, UnitLabels labels)
@@ -240,6 +325,32 @@ public static class DiveSheet
 
         sheet.Table(columns, rows, _ => false, GasRowHeight, 8.5);
     }
+
+    private static void WriteContingencies(SheetWriter sheet, DiveResult result, UnitSystem units)
+    {
+        var labels = UnitLabels.For(units);
+        SheetColumn[] columns =
+        [
+            new("Contingency", 150), new("Runtime (min)", 95, PdfAlign.Right, Emphasis: true), new("TTS (min)", 85, PdfAlign.Right),
+            new("Stops (min)", 95, PdfAlign.Right), new("CNS (%)", 106, PdfAlign.Right)
+        ];
+        var rows = result.Contingencies
+            .Select(contingency => contingency.Result.Succeeded
+                ? new[]
+                {
+                    ContingencyName(contingency, labels), Formats.Clock(contingency.Result.TotalRuntime),
+                    Formats.Clock(TimeToSurface(contingency.Result)), Formats.Clock(contingency.Result.StopTime),
+                    Formats.Number(contingency.Result.CnsPercent)
+                }
+                : [ContingencyName(contingency, labels), "cannot be planned", string.Empty, string.Empty, string.Empty])
+            .ToArray();
+
+        sheet.Table(columns, rows, _ => false, GasRowHeight, 8.5);
+    }
+
+    private static string ContingencyName(Contingency contingency, UnitLabels labels) => contingency.Kind == ContingencyKind.LostGas
+        ? $"{contingency.LostGas} lost"
+        : $"+{Formats.Number(contingency.ExtraMinutes)} min, +{Formats.Number(contingency.ExtraDepth)} {labels.Depth}";
 
     private static void WriteChart(SheetWriter sheet, ProfileChart chart, UnitLabels labels, double height)
     {

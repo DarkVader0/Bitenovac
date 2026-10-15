@@ -1,13 +1,13 @@
-@inject ThemeService Theme
+@inject PreferencesStore Preferences
 
 <section class="card">
     <div class="field">
         <span class="field-label">Theme</span>
         <div class="button-row">
-            @foreach (var (theme, label) in Choices)
+            @foreach (var (theme, label) in Themes)
             {
-                <button type="button" class="@(theme == _theme ? null : "secondary")" aria-pressed="@(theme == _theme ? "true" : "false")"
-                        @onclick="() => ChooseAsync(theme)">
+                <button type="button" class="@(theme == _preferences.Theme ? null : "secondary")"
+                        aria-pressed="@(theme == _preferences.Theme ? "true" : "false")" @onclick="() => ChooseThemeAsync(theme)">
                     @label
                 </button>
             }
@@ -15,21 +15,64 @@
     </div>
 </section>
 
+<section class="card">
+    <h2>Results</h2>
+    <p class="block-note">Show, hide and order the parts of a dive's results. The PDF follows.</p>
+    <ul class="block-list">
+        @for (var index = 0; index < _preferences.Blocks.Count; index++)
+        {
+            var setting = _preferences.Blocks[index];
+            var name = Name(setting.Block);
+            <li class="block-item">
+                <label class="field field-check">
+                    <input type="checkbox" checked="@setting.Visible" @onchange="args => ShowAsync(setting.Block, args.Value is true)"/>
+                    <span class="field-label">@name</span>
+                </label>
+                <span class="block-move">
+                    <button type="button" class="icon-button secondary" aria-label="@($"Move {name} up")" disabled="@(index == 0)"
+                            @onclick="() => MoveAsync(setting.Block, -1)">
+                        <Icon Name="IconName.Up"/>
+                    </button>
+                    <button type="button" class="icon-button secondary" aria-label="@($"Move {name} down")"
+                            disabled="@(index == _preferences.Blocks.Count - 1)" @onclick="() => MoveAsync(setting.Block, 1)">
+                        <Icon Name="IconName.Down"/>
+                    </button>
+                </span>
+            </li>
+        }
+    </ul>
+</section>
+
 @code {
-    private static readonly (AppTheme Theme, string Label)[] Choices =
+    private static readonly (ThemePreference Theme, string Label)[] Themes =
     [
-        (AppTheme.Light, "Light"),
-        (AppTheme.Dark, "Dark"),
-        (AppTheme.System, "Match system")
+        (ThemePreference.Light, "Light"),
+        (ThemePreference.Dark, "Dark"),
+        (ThemePreference.System, "Match system")
     ];
 
-    private AppTheme _theme;
+    private UserPreferences _preferences = UserPreferences.Default;
 
-    protected override async Task OnInitializedAsync() => _theme = await Theme.GetAsync();
+    protected override async Task OnInitializedAsync() => _preferences = await Preferences.GetAsync();
 
-    private async Task ChooseAsync(AppTheme theme)
+    private static string Name(ResultBlock block) => block switch
     {
-        _theme = theme;
-        await Theme.SetAsync(theme);
+        ResultBlock.Figures => "Runtime, TTS, CNS and OTU",
+        ResultBlock.Profile => "Profile",
+        ResultBlock.Gas => "Gas",
+        ResultBlock.Chart => "Profile chart",
+        _ => "Contingencies"
+    };
+
+    private Task ChooseThemeAsync(ThemePreference theme) => SaveAsync(_preferences with { Theme = theme });
+
+    private Task ShowAsync(ResultBlock block, bool visible) => SaveAsync(_preferences.WithVisible(block, visible));
+
+    private Task MoveAsync(ResultBlock block, int offset) => SaveAsync(_preferences.Move(block, offset));
+
+    private async Task SaveAsync(UserPreferences preferences)
+    {
+        _preferences = preferences;
+        await Preferences.SaveAsync(preferences);
     }
 }

@@ -12,5 +12,6 @@ builder.Services.AddScoped<PlanStore>();
 builder.Services.AddScoped<ShareService>();
 builder.Services.AddScoped<PwaService>();
 builder.Services.AddScoped<ThemeService>();
+builder.Services.AddScoped<PreferencesStore>();
 
 await builder.Build().RunAsync();

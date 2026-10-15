@@ -99,6 +99,69 @@ public sealed class SheetWriterTests
     }
 
     [Fact]
+    public void Capacity_ShouldReachTheBottomMargin_WhenThereIsNoFootnote()
+    {
+        // Arrange
+        var sheet = new SheetWriter();
+
+        // Act
+        var capacity = sheet.Capacity;
+
+        // Assert
+        Assert.Equal(PdfPage.Height - 2 * SheetWriter.Margin, capacity, Precision);
+    }
+
+    [Fact]
+    public void Capacity_ShouldStopAboveTheFootnote_WhenThereIsOne()
+    {
+        // Arrange
+        var sheet = new SheetWriter();
+        var text = string.Join(' ', Enumerable.Repeat("warning", 40));
+
+        // Act
+        sheet.Footnote(text, PdfFont.Helvetica, 8, SheetWriter.Text);
+
+        // Assert
+        Assert.Equal(sheet.Remaining, sheet.Capacity, Precision);
+    }
+
+    [Fact]
+    public void NewPage_ShouldStartAtTheTopMarginWithTheSameFootnote_WhenTheSheetHasOne()
+    {
+        // Arrange
+        var sheet = new SheetWriter();
+        var text = string.Join(' ', Enumerable.Range(0, 60).Select(static number => $"warning{number}"));
+        sheet.Footnote(text, PdfFont.Helvetica, 8, SheetWriter.Text);
+        sheet.Advance(300);
+        var lines = SheetWriter.Wrap(text, PdfFont.Helvetica, 8, SheetWriter.ContentWidth);
+
+        // Act
+        sheet.NewPage();
+        var pdf = TestFactory.Read(sheet.Build("Two pages", TestFactory.Now));
+
+        // Assert
+        Assert.Equal(SheetWriter.Margin, sheet.Y, Precision);
+        Assert.Equal(sheet.Capacity, sheet.Remaining, Precision);
+        Assert.Contains("/Count 2", pdf, StringComparison.Ordinal);
+        Assert.All(lines, line => Assert.Equal(2, Regex.Count(pdf, Regex.Escape(TestFactory.Shown(line)))));
+    }
+
+    [Fact]
+    public void NewPage_ShouldStartAtTheTopMarginWithNoFootnote_WhenTheSheetHasNone()
+    {
+        // Arrange
+        var sheet = new SheetWriter();
+        sheet.Advance(300);
+
+        // Act
+        sheet.NewPage();
+
+        // Assert
+        Assert.Equal(SheetWriter.Margin, sheet.Y, Precision);
+        Assert.Equal(PdfPage.Height - 2 * SheetWriter.Margin, sheet.Remaining, Precision);
+    }
+
+    [Fact]
     public void Table_ShouldShadeTheChosenRowsAndPrintTheEmphasisedColumnInBold_WhenRowsAreWritten()
     {
         // Arrange

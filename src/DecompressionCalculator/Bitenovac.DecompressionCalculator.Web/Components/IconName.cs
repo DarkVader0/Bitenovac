@@ -51,6 +51,16 @@ public enum IconName
     Close,
 
     /// <summary>
+    /// Moves an item up a list.
+    /// </summary>
+    Up,
+
+    /// <summary>
+    /// Moves an item down a list.
+    /// </summary>
+    Down,
+
+    /// <summary>
     /// Installs the app.
     /// </summary>
     Install,

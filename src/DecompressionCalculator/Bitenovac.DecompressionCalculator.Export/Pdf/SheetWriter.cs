@@ -27,6 +27,7 @@ internal sealed class SheetWriter
 
     private readonly PdfDocument _document = new();
     private double _end = Bottom;
+    private (string Text, PdfFont Font, double Size, PdfColor Color)? _footnote;
 
     public SheetWriter()
     {
@@ -35,9 +36,9 @@ internal sealed class SheetWriter
     }
 
     /// <summary>
-    /// Gets the page.
+    /// Gets the page being written, the last one added.
     /// </summary>
-    public PdfPage Page { get; }
+    public PdfPage Page { get; private set; }
 
     /// <summary>
     /// Gets the vertical position the next block starts at.
@@ -54,9 +55,11 @@ internal sealed class SheetWriter
     /// </summary>
     /// <remarks>
     /// The footnote takes its height off <see cref="Remaining"/>, so what is written after it stops above it.
+    /// Every page added later carries the same footnote.
     /// </remarks>
     public void Footnote(string text, PdfFont font, double size, PdfColor color)
     {
+        _footnote = (text, font, size, color);
         var lineHeight = size * 1.35;
         var lines = Wrap(text, font, size, ContentWidth);
         var top = _end - lines.Count * lineHeight;
@@ -69,6 +72,28 @@ internal sealed class SheetWriter
 
         _end = top - 8;
     }
+
+    /// <summary>
+    /// Gets the height of a fresh page between the top margin and the footnote.
+    /// </summary>
+    public double Capacity => _footnote is { } footnote ? FootnoteTop(footnote.Text, footnote.Font, footnote.Size) - 8 - Margin : Bottom - Margin;
+
+    /// <summary>
+    /// Starts a new page: writing continues at its top margin, under the footnote of the first page if it has one.
+    /// </summary>
+    public void NewPage()
+    {
+        Page = _document.AddPage();
+        Y = Margin;
+        _end = Bottom;
+        if (_footnote is { } footnote)
+        {
+            Footnote(footnote.Text, footnote.Font, footnote.Size, footnote.Color);
+        }
+    }
+
+    private static double FootnoteTop(string text, PdfFont font, double size) =>
+        Bottom - Wrap(text, font, size, ContentWidth).Count * size * 1.35;
 
     /// <summary>
     /// Moves down by <paramref name="height"/> points.
