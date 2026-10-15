@@ -8,8 +8,10 @@ public sealed class SeriesSheetTests
 {
     private const string AppVersion = "2026.10.13.001";
 
+    private static readonly ResultBlock[] OnePageBlocks = [ResultBlock.Figures, ResultBlock.Profile, ResultBlock.Gas, ResultBlock.Chart];
+
     private static string Series(DivePlanDocument plan, IReadOnlyList<ResultBlock>? blocks = null) =>
-        TestFactory.Read(DiveSheet.CreateSeries(plan, TestFactory.Now, AppVersion, blocks));
+        TestFactory.Read(DiveSheet.CreateSeries(plan, TestFactory.Now, AppVersion, blocks ?? OnePageBlocks));
 
     [Fact]
     public void CreateSeries_ShouldThrowArgumentNullException_WhenThePlanIsNull()

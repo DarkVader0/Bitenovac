@@ -141,7 +141,24 @@ public static class DiveSheet
         }
         else
         {
-            WriteDive(sheet, plan, calculation.Dives[dive], UnitLabels.For(plan.Units), blocks);
+            var labels = UnitLabels.For(plan.Units);
+            var result = calculation.Dives[dive];
+            List<ResultBlock> shown = [.. blocks.Where(static block => block != ResultBlock.Contingencies)];
+            WriteDive(sheet, plan, result, labels, shown);
+
+            if (blocks.Contains(ResultBlock.Contingencies))
+            {
+                foreach (var contingency in result.Contingencies)
+                {
+                    sheet.NewPage();
+                    WriteTitle(sheet, Title(plan), $"{Which(plan, dive)} · Contingency · {Summary.Date(exportedAt)} UTC · Bitenovac {appVersion}");
+                    sheet.Paragraph(ContingencyName(contingency, labels), PdfFont.HelveticaBold, 10, SheetWriter.Text);
+                    sheet.Paragraph(ContingencyMeaning(contingency, labels), PdfFont.Helvetica, 8.5, SheetWriter.Muted);
+                    sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan, plan.SettingsFor(dive))}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
+                    sheet.Paragraph(interval + Summary.Inputs(input, plan.Units), PdfFont.Helvetica, 8.5, SheetWriter.Text);
+                    WriteDive(sheet, plan, contingency.Result, labels, shown);
+                }
+            }
         }
     }
 
@@ -308,9 +325,6 @@ public static class DiveSheet
                 case ResultBlock.Chart:
                     WriteChart(sheet, ProfileChart.Create(result, plan.Units), labels, chartHeight);
                     break;
-                case ResultBlock.Contingencies:
-                    WriteContingencies(sheet, result, plan.Units);
-                    break;
             }
         }
     }
@@ -329,7 +343,6 @@ public static class DiveSheet
             ResultBlock.Profile => (result.Profile.Count + 1) * SmallestRowOn(blocks),
             ResultBlock.Gas => (result.Cylinders.Count + 1) * GasRowHeight,
             ResultBlock.Chart => SmallestChart,
-            ResultBlock.Contingencies => (result.Contingencies.Count + 1) * GasRowHeight,
             _ => 0
         }) + Gap * Math.Max(0, blocks.Count - 1);
 
@@ -430,27 +443,9 @@ public static class DiveSheet
         sheet.Table(columns, rows, _ => false, GasRowHeight, 8.5);
     }
 
-    private static void WriteContingencies(SheetWriter sheet, DiveResult result, UnitSystem units)
-    {
-        var labels = UnitLabels.For(units);
-        SheetColumn[] columns =
-        [
-            new("Contingency", 150), new("Runtime (min)", 95, PdfAlign.Right, Emphasis: true), new("TTS (min)", 85, PdfAlign.Right),
-            new("Stops (min)", 95, PdfAlign.Right), new("CNS (%)", 106, PdfAlign.Right)
-        ];
-        var rows = result.Contingencies
-            .Select(contingency => contingency.Result.Succeeded
-                ? new[]
-                {
-                    ContingencyName(contingency, labels), Formats.Clock(contingency.Result.TotalRuntime),
-                    Formats.Clock(TimeToSurface(contingency.Result)), Formats.Clock(contingency.Result.StopTime),
-                    Formats.Number(contingency.Result.CnsPercent)
-                }
-                : [ContingencyName(contingency, labels), "cannot be planned", string.Empty, string.Empty, string.Empty])
-            .ToArray();
-
-        sheet.Table(columns, rows, _ => false, GasRowHeight, 8.5);
-    }
+    private static string ContingencyMeaning(Contingency contingency, UnitLabels labels) => contingency.Kind == ContingencyKind.LostGas
+        ? $"The plan above with the {contingency.LostGas} cylinders lost: the dive is planned again without them."
+        : $"The plan above with its deepest level {Formats.Number(contingency.ExtraDepth)} {labels.Depth} deeper and {Formats.Number(contingency.ExtraMinutes)} min longer.";
 
     private static string ContingencyName(Contingency contingency, UnitLabels labels) => contingency.Kind == ContingencyKind.LostGas
         ? $"{contingency.LostGas} lost"

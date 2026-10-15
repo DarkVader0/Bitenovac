@@ -1657,6 +1657,14 @@ tr.gas-warning td:first-child {
     transform: translateX(1.25rem);
 }
 
+.switch:hover {
+    background-color: var(--border);
+}
+
+.switch[aria-checked="true"]:hover {
+    background-color: var(--brand-bright);
+}
+
 .switch:focus-visible,
 .block-handle:focus-visible {
     outline: 2px solid var(--brand-bright);
