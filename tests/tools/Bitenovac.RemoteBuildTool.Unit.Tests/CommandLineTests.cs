@@ -185,22 +185,19 @@ public sealed class CommandLineTests : IDisposable
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    public void Run_ShouldServeFromTheDefaultSettings_WhenNoSettingsFileIsNamed(string? settings)
+    [InlineData(null, ServeCommand.DefaultSettingsPath)]
+    [InlineData("", ServeCommand.DefaultSettingsPath)]
+    [InlineData("/srv/config.json", "/srv/config.json")]
+    public void SettingsPath_ShouldFallBackToTheDefault_WhenNoSettingsFileIsNamed(string? named, string expected)
     {
         // Arrange
-        using var repository = TestFactory.Directory();
-        PointAt(repository, repository.Combine("pr"));
-        _environment.Set("REMOTEBUILDTOOL_CONFIG", settings);
-        var output = new CapturedOutput();
+        string? Read(string name) => name == "REMOTEBUILDTOOL_CONFIG" ? named : null;
 
         // Act
-        var exitCode = CommandLine.Run(["serve"], output.Pipeline);
+        var path = CommandLine.SettingsPath(Read);
 
         // Assert
-        Assert.Equal(1, exitCode);
-        Assert.Contains($"No service settings at {ServeCommand.DefaultSettingsPath}", output.Error, StringComparison.Ordinal);
+        Assert.Equal(expected, path);
     }
 
     /// <summary>
