@@ -159,6 +159,12 @@ internal sealed record RepositorySettings
     public TimeOnly? Rebuild { get; set; } = new(1, 0);
 
     /// <summary>
+    /// Gets or sets how many minutes each step of the rebuild may run before it is stopped, with
+    /// everything it started, and the rebuild ends as timed out; main is left as it was.
+    /// </summary>
+    public int RebuildStepMinutes { get; set; } = 20;
+
+    /// <summary>
     /// Gets or sets how many days to keep the logs of each kind of build, by the prefix of its folder.
     /// </summary>
     public IReadOnlyDictionary<string, int> LogRetentionDays { get; set; } = new Dictionary<string, int>(StringComparer.Ordinal)
@@ -197,6 +203,8 @@ internal sealed record RepositorySettings
             throw new InvalidOperationException($"{source}: 'pollSeconds' and 'buildReportSeconds' must be at least 10.");
         if (settings.Branch.Length == 0)
             throw new InvalidOperationException($"{source}: 'branch' must not be empty.");
+        if (settings.RebuildStepMinutes < 1)
+            throw new InvalidOperationException($"{source}: 'rebuildStepMinutes' must be at least 1.");
 
         return settings;
     }

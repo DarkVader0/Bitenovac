@@ -115,6 +115,7 @@ public sealed class ServiceSettingsTests
         Assert.Equal(120, settings.BuildReportSeconds);
         Assert.Equal(new TimeOnly(3, 30), settings.Housekeeping);
         Assert.Equal(new TimeOnly(1, 0), settings.Rebuild);
+        Assert.Equal(20, settings.RebuildStepMinutes);
         Assert.Equal(365, settings.LogRetentionDays["Official_"]);
     }
 
@@ -130,6 +131,7 @@ public sealed class ServiceSettingsTests
               "buildReportSeconds": 300,
               "housekeeping": "04:15:00",
               "rebuild": null,
+              "rebuildStepMinutes": 45,
               "logRetentionDays": { "PR_": 7 }
             }
             """);
@@ -143,6 +145,7 @@ public sealed class ServiceSettingsTests
         Assert.Equal(300, settings.BuildReportSeconds);
         Assert.Equal(new TimeOnly(4, 15), settings.Housekeeping);
         Assert.Null(settings.Rebuild);
+        Assert.Equal(45, settings.RebuildStepMinutes);
         Assert.Equal(7, Assert.Single(settings.LogRetentionDays).Value);
     }
 
@@ -150,6 +153,7 @@ public sealed class ServiceSettingsTests
     [InlineData("""{ "pollSeconds": 5 }""")]
     [InlineData("""{ "buildReportSeconds": 0 }""")]
     [InlineData("""{ "branch": "" }""")]
+    [InlineData("""{ "rebuildStepMinutes": 0 }""")]
     [InlineData("""{ "housekeeping": "late" }""")]
     public void RepositorySettingsLoad_ShouldThrow_WhenTheFileIsInvalid(string content)
     {

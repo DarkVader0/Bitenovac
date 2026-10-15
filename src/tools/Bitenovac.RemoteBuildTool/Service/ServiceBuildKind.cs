@@ -19,11 +19,18 @@ internal sealed record ServiceBuildKind(
     Func<PipelineOptions, PipelineOutput, CancellationToken, Task<int>>? Finish = null)
 {
     /// <summary>
+    /// Gets how long each step may run before it is stopped and the build ends as timed out; no
+    /// limit unless set.
+    /// </summary>
+    public TimeSpan StepTimeout { get; init; } = Timeout.InfiniteTimeSpan;
+
+    /// <summary>
     /// Builds and tests both configurations of a commit from scratch, then switches main to it.
     /// </summary>
     /// <param name="switchMain">Switches main to the rebuild; see <see cref="MainStoreWriter.SwitchAsync"/>.</param>
+    /// <param name="stepTimeout">How long each step may run.</param>
     /// <returns>The kind of build.</returns>
-    public static ServiceBuildKind Rebuild(Func<PipelineOptions, PipelineOutput, CancellationToken, Task<int>> switchMain) => new("Rebuild", "Rebuild", Cacheless: true,
+    public static ServiceBuildKind Rebuild(Func<PipelineOptions, PipelineOutput, CancellationToken, Task<int>> switchMain, TimeSpan stepTimeout) => new("Rebuild", "Rebuild", Cacheless: true,
     [
         ["plan"],
         ["build", "Debug"],
@@ -31,5 +38,8 @@ internal sealed record ServiceBuildKind(
         ["build", "Release"],
         ["test", "Release"],
     ],
-    switchMain);
+    switchMain)
+    {
+        StepTimeout = stepTimeout,
+    };
 }

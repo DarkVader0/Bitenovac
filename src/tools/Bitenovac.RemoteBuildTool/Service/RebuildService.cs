@@ -62,7 +62,7 @@ internal sealed class RebuildService(
         var head = await github.BranchHeadAsync(current.Branch, cancellationToken);
         Report($"rebuild of {head} started");
 
-        var kind = ServiceBuildKind.Rebuild((options, output, token) => writer.SwitchAsync(options, output, now, token));
+        var kind = ServiceBuildKind.Rebuild((options, output, token) => writer.SwitchAsync(options, output, now, token), TimeSpan.FromMinutes(current.RebuildStepMinutes));
         var info = await builds.RunAsync(kind, _workspace, current.Branch, head, now, cancellationToken);
         Report(string.Create(CultureInfo.InvariantCulture,
             $"rebuild of {head}: {info.Result} in {info.StageTimeMS / 1000.0:0.0} s; logs in {info.LogsPath}"));
