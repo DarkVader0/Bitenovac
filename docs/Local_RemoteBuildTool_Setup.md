@@ -127,12 +127,20 @@ One container, `remotebuildtool-service`, restarted whenever it stops. Each piec
 
 | Work | When | What |
 |---|---|---|
-| Promotion | every minute | for each pull request merged into `master`, promotes what its build staged into main: the merge queue's build of the merge commit, otherwise the pull request's own last successful build. Then deletes staged builds older than 24 hours |
+| Promotion | on each merge, and every 15 minutes | for each pull request merged into `master`, promotes what its build staged into main: the merge queue's build of the merge commit, otherwise the pull request's own last successful build. Then deletes staged builds older than 24 hours |
 | Build records | every 2 minutes | a `build` telemetry row for every workflow run GitHub finished, with its queue and preparation time |
 | Housekeeping | daily, 03:30 UTC | compacts the telemetry of earlier days and deletes logs past their retention |
 | Rebuild | daily, 01:00 UTC, and at once when main is empty | builds and tests `master` in Debug and Release from scratch and switches main to it; see [Nightly rebuild](#nightly-rebuild) |
 
 A failure is logged and the work runs again on its next turn; it never stops the service.
+
+**How a merge reaches it.** Each pull request merged into `master` starts the
+`GitHub webhook on PR merge` workflow on this machine's runner. Its one step runs
+`remotebuildtool wake` inside the service's container, which connects to the socket
+`/work/wake.sock` the service listens on, and promotion takes its turn at once. Nothing on this
+machine is open to the internet: GitHub hands the job to the runner over the connection the runner
+already keeps. The 15-minute poll only catches a merge whose workflow did not run, such as one made
+while the service was stopped.
 
 **How the cache fills.** Every PR and merge queue run keeps its artifact store in the
 `bitenovac-staging` volume (on the share at `/srv/bitenovac/staging`), one folder per run attempt.
@@ -147,13 +155,13 @@ nightly rebuild writes main.
 - `/etc/remotebuildtool/config.json` on this machine, written by setup: the repository, the service
   token, where the stores are, the pool. Readable by the runners' account only.
 - `remotebuildtool.json` at the root of the default branch, all optional: the branch whose merges
-  fill main, how often to look, the daily times, and how long to keep each kind of log. The
-  service reads it every minute.
+  fill main, how often to look besides each merge, the daily times, and how long to keep each kind
+  of log. The service reads it at most once per poll.
 
 ```json
 {
   "branch": "master",
-  "pollSeconds": 60,
+  "pollSeconds": 900,
   "buildReportSeconds": 120,
   "housekeeping": "03:30:00",
   "rebuild": "01:00:00",

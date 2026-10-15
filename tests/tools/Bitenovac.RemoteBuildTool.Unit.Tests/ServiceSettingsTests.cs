@@ -111,7 +111,7 @@ public sealed class ServiceSettingsTests
 
         // Assert
         Assert.Equal("master", settings.Branch);
-        Assert.Equal(60, settings.PollSeconds);
+        Assert.Equal(900, settings.PollSeconds);
         Assert.Equal(120, settings.BuildReportSeconds);
         Assert.Equal(new TimeOnly(3, 30), settings.Housekeeping);
         Assert.Equal(new TimeOnly(1, 0), settings.Rebuild);

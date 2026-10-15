@@ -1,6 +1,6 @@
 {
   "branch": "master",
-  "pollSeconds": 60,
+  "pollSeconds": 900,
   "buildReportSeconds": 120,
   "housekeeping": "03:30:00",
   "rebuild": "01:00:00",

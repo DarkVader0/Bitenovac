@@ -3,13 +3,14 @@ using Microsoft.Extensions.Logging;
 namespace Bitenovac.RemoteBuildTool.Service;
 
 /// <summary>
-/// Represents the work done every poll: staged output older than a day is deleted, and the staged
-/// output of each newly merged pull request is promoted into main.
+/// Represents the work done every poll, and at once when a merge wakes it: staged output older than
+/// a day is deleted, and the staged output of each newly merged pull request is promoted into main.
 /// </summary>
 /// <param name="host">The machine's settings.</param>
 /// <param name="settings">The repository's settings.</param>
 /// <param name="state">What the service has done.</param>
 /// <param name="promoter">Promotes merged pull requests.</param>
+/// <param name="wake">The requests for a turn now, made on each merge.</param>
 /// <param name="time">The clock.</param>
 /// <param name="logger">Where the work reports.</param>
 internal sealed class PromotionService(
@@ -17,6 +18,7 @@ internal sealed class PromotionService(
     RepositorySettingsSource settings,
     ServiceStateStore state,
     PullRequestPromoter promoter,
+    ServiceWake wake,
     TimeProvider time,
     ILogger<PromotionService> logger) : ServiceWork(time, logger)
 {
@@ -39,4 +41,7 @@ internal sealed class PromotionService(
     /// <inheritdoc/>
     protected override async Task<TimeSpan> IntervalAsync(CancellationToken cancellationToken) =>
         TimeSpan.FromSeconds((await settings.GetAsync(cancellationToken)).PollSeconds);
+
+    /// <inheritdoc/>
+    protected override Task WokenAsync(CancellationToken cancellationToken) => wake.WaitAsync(cancellationToken);
 }
