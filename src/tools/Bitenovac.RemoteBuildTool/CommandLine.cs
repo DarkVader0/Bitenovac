@@ -26,7 +26,8 @@ internal static class CommandLine
                 "promote" => PromoteCommand.Run(options, output),
                 "release" => ReleaseCommand.Run(options, output),
                 "graph" => GraphCommand.Run(options, output),
-                "serve" => ServeCommand.Run(output, Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_CONFIG") is { Length: > 0 } settings ? settings : ServeCommand.DefaultSettingsPath),
+                "serve" => ServeCommand.Run(output, SettingsPath()),
+                "wake" => WakeCommand.Run(output, SettingsPath()),
                 "--help" or "-h" => Usage(output),
                 _ => Fail(output, $"Unknown command '{args[0]}'."),
             };
@@ -36,6 +37,9 @@ internal static class CommandLine
             return Fail(output, exception.Message);
         }
     }
+
+    private static string SettingsPath() =>
+        Environment.GetEnvironmentVariable("REMOTEBUILDTOOL_CONFIG") is { Length: > 0 } settings ? settings : ServeCommand.DefaultSettingsPath;
 
     private static int WithConfiguration(string[] args, PipelineOutput output, Func<string, int> run)
     {
@@ -75,6 +79,7 @@ internal static class CommandLine
               remotebuildtool graph             Print the graph with each target's hashes
               remotebuildtool serve             Run the service: fill main from merged pull requests, record
                                                 builds, compact telemetry, prune logs, rebuild main daily
+              remotebuildtool wake              Ask the running service to promote merged pull requests now
 
             Environment:
               REMOTEBUILDTOOL_REPO_ROOT       Repository root (default: current directory)

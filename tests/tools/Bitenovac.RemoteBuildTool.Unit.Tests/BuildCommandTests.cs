@@ -72,7 +72,7 @@ public sealed class BuildCommandTests
     }
 
     [Fact]
-    public void Run_ShouldRebuildAHit_WhenMainNoLongerHoldsIt()
+    public void Run_ShouldRebuildAndStageAHit_WhenMainNoLongerHoldsIt()
     {
         // Arrange
         using var directory = TestFactory.Directory();
@@ -90,6 +90,7 @@ public sealed class BuildCommandTests
         Assert.Equal(0, exitCode);
         Assert.Equal(["src/A/A.csproj"], toolchain.Built);
         Assert.Contains("rebuild src/A/A.csproj: main's entry could not be materialised", output.Out, StringComparison.Ordinal);
+        Assert.True(new LocalVolumeArtifactStore(options.PrStoreRoot).Contains(TestFactory.Id("src/A/A.csproj"), "Debug"));
     }
 
     private static PipelineOptions WarmMain(TemporaryDirectory directory)

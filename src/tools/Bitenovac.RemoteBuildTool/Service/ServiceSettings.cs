@@ -17,7 +17,7 @@ internal sealed record HostSettings
     public string Repository { get; set; } = "";
 
     /// <summary>
-    /// Gets or sets the GitHub token: read access to the repository's contents and Actions.
+    /// Gets or sets the GitHub token: read access to the repository's contents, pull requests and Actions.
     /// </summary>
     public string GitHubToken { get; set; } = "";
 
@@ -137,9 +137,10 @@ internal sealed record RepositorySettings
     public string Branch { get; set; } = "master";
 
     /// <summary>
-    /// Gets or sets how often to look for pull requests merged into <see cref="Branch"/>, in seconds.
+    /// Gets or sets how often to look for pull requests merged into <see cref="Branch"/>, in seconds;
+    /// a fallback, since each merge wakes the service at once.
     /// </summary>
-    public int PollSeconds { get; set; } = 60;
+    public int PollSeconds { get; set; } = 900;
 
     /// <summary>
     /// Gets or sets how often to record the builds GitHub finished, in seconds.

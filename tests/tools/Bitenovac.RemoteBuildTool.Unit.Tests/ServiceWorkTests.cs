@@ -61,7 +61,7 @@ public sealed class ServiceWorkTests
         service.Time.Now = Morning.AddHours(3);
 
         // Act
-        foreach (var work in service.Provider.GetServices<IHostedService>().Cast<ServiceWork>())
+        foreach (var work in service.Provider.GetServices<IHostedService>().OfType<ServiceWork>())
             await work.RunTurnAsync(TestContext.Current.CancellationToken);
 
         // Assert
@@ -166,7 +166,7 @@ public sealed class ServiceWorkTests
         foreach (var work in hosted)
             await work.StartAsync(TestContext.Current.CancellationToken);
         var waited = new List<bool>();
-        foreach (var _ in hosted)
+        foreach (var _ in hosted.OfType<ServiceWork>())
             waited.Add(await service.Time.Waiting.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
 
         // Act
@@ -176,7 +176,7 @@ public sealed class ServiceWorkTests
         // Assert
         Assert.All(waited, Assert.True);
         Assert.All(hosted.Cast<BackgroundService>(), work => Assert.True(work.ExecuteTask!.IsCompleted));
-        Assert.Equal(4, hosted.Count);
+        Assert.Equal(5, hosted.Count);
     }
 
     [Fact]
@@ -198,6 +198,26 @@ public sealed class ServiceWorkTests
         // Assert
         Assert.True(first && second);
         Assert.True(rebuild.ExecuteTask!.IsCompletedSuccessfully);
+    }
+
+    [Fact]
+    public async Task PromotionService_ShouldTakeItsTurnAtOnce_WhenAMergeWakesIt()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        await using var service = Create(directory, new FakeGitHub());
+        var promotion = service.Work<PromotionService>();
+        await promotion.StartAsync(TestContext.Current.CancellationToken);
+        var waiting = await service.Time.Waiting.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+
+        // Act
+        service.Provider.GetRequiredService<ServiceWake>().Request();
+        var waitingAgain = await service.Time.Waiting.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        await promotion.StopAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(waiting && waitingAgain);
+        Assert.True(promotion.ExecuteTask!.IsCompletedSuccessfully);
     }
 
     private static void Stage(TemporaryDirectory directory, string buildId, string store = "staging")

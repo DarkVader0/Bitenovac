@@ -57,6 +57,13 @@ internal abstract class ServiceWork(TimeProvider time, ILogger logger) : Backgro
     protected abstract Task<TimeSpan> IntervalAsync(CancellationToken cancellationToken);
 
     /// <summary>
+    /// Waits until the work is asked for a turn before its wait ends; never, unless overridden.
+    /// </summary>
+    /// <param name="cancellationToken">Stops the wait.</param>
+    /// <returns>A task that completes once a turn is asked for.</returns>
+    protected virtual Task WokenAsync(CancellationToken cancellationToken) => Task.Delay(Timeout.Infinite, cancellationToken);
+
+    /// <summary>
     /// Reports what the work did.
     /// </summary>
     /// <param name="message">What it did.</param>
@@ -70,11 +77,20 @@ internal abstract class ServiceWork(TimeProvider time, ILogger logger) : Backgro
             while (true)
             {
                 await RunTurnAsync(stoppingToken);
-                await Task.Delay(await IntervalAsync(stoppingToken), time, stoppingToken);
+                await WaitForNextTurnAsync(stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
         }
+    }
+
+    private async Task WaitForNextTurnAsync(CancellationToken stoppingToken)
+    {
+        var interval = await IntervalAsync(stoppingToken);
+        using var waiting = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        await Task.WhenAny(Task.Delay(interval, time, waiting.Token), WokenAsync(waiting.Token));
+        await waiting.CancelAsync();
+        stoppingToken.ThrowIfCancellationRequested();
     }
 }

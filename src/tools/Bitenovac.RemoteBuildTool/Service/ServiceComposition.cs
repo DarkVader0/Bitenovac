@@ -30,11 +30,13 @@ internal static class ServiceComposition
         services.AddSingleton<PullRequestPromoter>();
         services.AddSingleton<BuildReporter>();
         services.AddSingleton<ServiceBuild>();
+        services.AddSingleton<ServiceWake>();
 
         services.AddHostedService<PromotionService>();
         services.AddHostedService<BuildReportService>();
         services.AddHostedService<HousekeepingService>();
         services.AddHostedService<RebuildService>();
+        services.AddHostedService<WakeListener>();
         return services;
     }
 }

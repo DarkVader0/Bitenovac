@@ -23,8 +23,8 @@
 #   --memory SIZE      Memory each agent's job containers may use, in docker's notation (6g).
 #                      Unlimited by default.
 #   --api-token TOKEN  GitHub token the RemoteBuildTool service reads the repository and its
-#                      workflow runs with: a fine-grained token with read access to Contents and
-#                      Actions. Without it the service is not installed, and nothing fills main.
+#                      workflow runs with: a fine-grained token with read access to Contents,
+#                      Pull requests and Actions. Without it the service is not installed, and nothing fills main.
 #   --repo URL        Repository to serve. Defaults to the origin remote of this checkout.
 #   --labels LIST      Comma separated labels the workflow selects on.
 #                      Defaults to self-hosted,linux,x64,bitenovac.

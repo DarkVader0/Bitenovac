@@ -257,9 +257,10 @@ internal static class TestCommand
                 continue;
             }
 
-            var source = entry.Hit ? mainStore : prStore;
-
-            if (!source.TryGet(project, configuration, projectDirectory, out _, [.. outputDirectories.Select(directory => directory + "/")]))
+            // A hit main lost after the plan was rebuilt and staged by 'build', like a miss.
+            IReadOnlyCollection<string> prefixes = [.. outputDirectories.Select(directory => directory + "/")];
+            if (!(entry.Hit && mainStore.TryGet(project, configuration, projectDirectory, out _, prefixes))
+                && !prStore.TryGet(project, configuration, projectDirectory, out _, prefixes))
             {
                 output.WriteFailure($"no build output available for {entry.ProjectPath}. Run 'build {configuration}' first.");
                 return false;

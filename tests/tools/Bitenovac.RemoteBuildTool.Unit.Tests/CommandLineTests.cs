@@ -165,8 +165,10 @@ public sealed class CommandLineTests : IDisposable
         Assert.DoesNotContain("InvalidOperationException", output.Error, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Run_ShouldFailNamingTheSettings_WhenServeFindsNoHostSettings()
+    [Theory]
+    [InlineData("serve")]
+    [InlineData("wake")]
+    public void Run_ShouldFailNamingTheSettings_WhenTheServiceCommandFindsNoHostSettings(string command)
     {
         // Arrange
         using var repository = TestFactory.Directory();
@@ -175,7 +177,7 @@ public sealed class CommandLineTests : IDisposable
         var output = new CapturedOutput();
 
         // Act
-        var exitCode = CommandLine.Run(["serve"], output.Pipeline);
+        var exitCode = CommandLine.Run([command], output.Pipeline);
 
         // Assert
         Assert.Equal(1, exitCode);
