@@ -193,6 +193,14 @@ button.secondary:hover {
     align-items: start;
 }
 
+.field-pair {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem 1rem;
+    align-items: start;
+}
+
 .field {
     display: flex;
     flex-direction: column;
@@ -1188,8 +1196,15 @@ body:has(.app-banner) {
 .figures dd {
     margin: 0;
     font-size: 1.25rem;
+    white-space: nowrap;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+}
+
+.figures small {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 400;
 }
 
 .alert {
@@ -1360,7 +1375,25 @@ tr.gas-warning td:first-child {
     }
 
     .figures {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.35rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .figures div {
+        padding: 0.3rem 0.4rem;
+    }
+
+    .figures dt {
+        font-size: 0.7rem;
+    }
+
+    .figures dd {
+        font-size: 0.95rem;
+    }
+
+    .figures small {
+        font-size: 0.65rem;
     }
 
     .gas td,

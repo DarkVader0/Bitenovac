@@ -153,7 +153,7 @@ public sealed class ProfileChartTests
     }
 
     [Fact]
-    public void Create_ShouldLabelTimeInEqualStepsFromZeroToTheRuntimeRoundedUp_WhenTheDiveWasPlanned()
+    public void Create_ShouldLabelTimeInEqualStepsFromZeroAndEndAtTheRuntimeRoundedUpToAMinute_WhenTheDiveWasPlanned()
     {
         // Arrange
         var result = TestFactory.Calculate(TestFactory.DecompressionPlan());
@@ -166,7 +166,8 @@ public sealed class ProfileChartTests
         var step = chart.TimeTicks[1];
         Assert.Equal(0, chart.TimeTicks[0], Precision);
         Assert.Equal(chart.TimeTicks.Select((_, index) => index * step), chart.TimeTicks);
-        Assert.True(chart.MaximumMinutes >= runtime && chart.MaximumMinutes - step < runtime);
+        Assert.Equal(Math.Ceiling(runtime), chart.MaximumMinutes, Precision);
+        Assert.True(chart.TimeTicks[^1] <= chart.MaximumMinutes && chart.TimeTicks[^1] + step > chart.MaximumMinutes);
         Assert.True(chart.TimeTicks.Count - 1 <= 6);
     }
 
