@@ -1,0 +1,11 @@
+<dl class="figures">
+    <div><dt>Runtime</dt><dd>@Display.Clock(Result.TotalRuntime)<small> min</small></dd></div>
+    <div><dt>TTS</dt><dd>@Display.Clock(ResultFigures.TimeToSurface(Result))<small> min</small></dd></div>
+    <div><dt>CNS</dt><dd>@Display.Number(Result.CnsPercent) %</dd></div>
+    <div><dt>OTU</dt><dd>@Display.Number(Result.OxygenToleranceUnits)</dd></div>
+</dl>
+
+@code {
+    [Parameter, EditorRequired]
+    public DiveResult Result { get; set; } = default!;
+}

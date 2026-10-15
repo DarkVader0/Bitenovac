@@ -1551,3 +1551,35 @@ tr.gas-warning td:first-child {
     color: var(--text-muted);
     font-size: 0.875rem;
 }
+
+.contingency {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.contingency summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    align-items: baseline;
+    cursor: pointer;
+}
+
+.contingency-name {
+    font-weight: 600;
+}
+
+.contingency-summary {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.contingency-failed {
+    color: var(--danger);
+}
+
+.contingency[open] > summary {
+    margin-bottom: 0.75rem;
+}

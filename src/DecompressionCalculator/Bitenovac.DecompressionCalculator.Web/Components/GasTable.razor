@@ -1,0 +1,74 @@
+<div class="table-scroll">
+    <table class="gas">
+        <caption>@Caption</caption>
+        <thead>
+        <tr>
+            <th>Gas</th>
+            <th>Use</th>
+            <th class="number">Pressure</th>
+            <th class="number">Used</th>
+            <th class="number">Reserve</th>
+            <th class="number">Left</th>
+            @if (RunsShort)
+            {
+                <th class="number">Missing</th>
+            }
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var cylinder in Result.Cylinders)
+        {
+            <tr class="@State(cylinder)">
+                <td class="gas-name">@cylinder.Gas</td>
+                <td>@Display.Name(cylinder.Purpose)</td>
+                <td class="number">@Display.Number(cylinder.StartPressure) → <span class="gas-end">@Display.Number(cylinder.EndPressure)</span></td>
+                <td class="number">@Display.Number(cylinder.GasUsed)</td>
+                <td class="number">@Display.Number(cylinder.RequiredReserve)</td>
+                <td class="number gas-left">@Display.Number(cylinder.ProjectedRemaining)</td>
+                @if (RunsShort)
+                {
+                    <td class="number gas-short">@(cylinder.Shortfall > 0 ? Display.Number(cylinder.Shortfall) : "–")</td>
+                }
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public DiveResult Result { get; set; } = default!;
+
+    [Parameter]
+    public UnitSystem Units { get; set; }
+
+    private UnitLabels Labels => UnitLabels.For(Units);
+
+    private bool RunsShort => Result.Cylinders.Any(static cylinder => cylinder.Shortfall > 0);
+
+    private string Caption
+    {
+        get
+        {
+            var caption = $"Pressure in {Labels.Pressure}, gas in {Labels.GasVolume} at the surface.";
+            if (Result.Cylinders.Any(static cylinder => State(cylinder) == "gas-error"))
+            {
+                caption += " Red: the cylinder runs out.";
+            }
+
+            if (Result.Cylinders.Any(static cylinder => State(cylinder) == "gas-warning"))
+            {
+                caption += " Orange: the reserve is not met.";
+            }
+
+            return caption;
+        }
+    }
+
+    private static string? State(CylinderRow cylinder) => cylinder switch
+    {
+        { IsExhausted: true } or { Shortfall: > 0 } => "gas-error",
+        { ReserveSatisfied: false } => "gas-warning",
+        _ => null
+    };
+}

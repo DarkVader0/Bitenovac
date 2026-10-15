@@ -1,0 +1,57 @@
+<div class="table-scroll">
+    <table class="profile">
+        <caption>Depth at the end of each phase in @Labels.Depth, time and runtime in minutes</caption>
+        <colgroup>
+            <col class="col-phase"/>
+            <col/>
+            <col/>
+            <col/>
+            <col/>
+            @if (ShowsApparatus)
+            {
+                <col class="col-apparatus"/>
+            }
+        </colgroup>
+        <thead>
+        <tr>
+            <th><span class="visually-hidden">Phase</span></th>
+            <th class="number">Depth</th>
+            <th class="number">Time</th>
+            <th class="number">Runtime</th>
+            <th>Gas</th>
+            @if (ShowsApparatus)
+            {
+                <th>Apparatus</th>
+            }
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var phase in Result.Profile)
+        {
+            <tr class="@(phase.Kind is SegmentKind.Stop or SegmentKind.SafetyStop or SegmentKind.GasSwitch ? "row-stop" : null)">
+                <td class="phase"><PhaseIcon Kind="phase.Kind"/></td>
+                <td class="number">@Display.Number(phase.EndDepth)</td>
+                <td class="number">@Display.Clock(phase.Duration)</td>
+                <td class="number">@Display.Clock(phase.Runtime)</td>
+                <td>@phase.Gas</td>
+                @if (ShowsApparatus)
+                {
+                    <td>@phase.Circuit</td>
+                }
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public DiveResult Result { get; set; } = default!;
+
+    [Parameter]
+    public UnitSystem Units { get; set; }
+
+    private UnitLabels Labels => UnitLabels.For(Units);
+
+    private bool ShowsApparatus => Result.Profile.Any(static phase => phase.Circuit != BreathingLoop.OpenCircuit.ToString());
+}

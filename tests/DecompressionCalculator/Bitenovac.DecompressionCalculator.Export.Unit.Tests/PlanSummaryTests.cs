@@ -46,6 +46,56 @@ public sealed class PlanSummaryTests
     }
 
     [Fact]
+    public void Text_ShouldListEachContingencyWithItsRuntimeStopsAndCns_WhenTheDiveCarriesADecoGas()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+        var contingencies = TestFactory.Calculate(plan).Contingencies;
+        var extended = contingencies[0].Result;
+        var lost = contingencies[1].Result;
+
+        // Act
+        var lines = PlanSummary.Text(plan, TestFactory.Now).Split(Environment.NewLine);
+
+        // Assert
+        var start = Array.IndexOf(lines, "Contingencies:");
+        Assert.True(start > 0);
+        Assert.StartsWith($"- +3 min, +3 m: runtime {Formats.Minutes(extended.TotalRuntime)} · stops ", lines[start + 1], StringComparison.Ordinal);
+        Assert.StartsWith($"- NX50 lost: runtime {Formats.Minutes(lost.TotalRuntime)} · stops ", lines[start + 2], StringComparison.Ordinal);
+        Assert.EndsWith($" · CNS {Formats.Number(lost.CnsPercent)} %", lines[start + 2], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Text_ShouldSayNoDecompressionStops_WhenAContingencyNeedsNone()
+    {
+        // Arrange
+        var plan = TestFactory.NoStopPlan();
+
+        // Act
+        var text = PlanSummary.Text(plan, TestFactory.Now);
+
+        // Assert
+        Assert.Contains($"{Environment.NewLine}- +3 min, +3 m: runtime ", text, StringComparison.Ordinal);
+        Assert.Contains("no decompression stops", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Text_ShouldSayAContingencyCannotBePlanned_WhenItsGasIsLost()
+    {
+        // Arrange
+        var plan = TestFactory.Plan() with
+        {
+            Dives = [new DiveInput(0, new OpenCircuitInput(), [new LevelInput(12, 10)], [new CylinderInput(50, 0, 11, 0, 200, CylinderPurpose.DecoGas)])]
+        };
+
+        // Act
+        var text = PlanSummary.Text(plan, TestFactory.Now);
+
+        // Assert
+        Assert.Contains("- NX50 lost: cannot be planned: No gas is left to breathe.", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Text_ShouldSayThereAreNoStopsAndTheReserveIsNotMet_WhenAShortDiveRunsLowOnGas()
     {
         // Arrange

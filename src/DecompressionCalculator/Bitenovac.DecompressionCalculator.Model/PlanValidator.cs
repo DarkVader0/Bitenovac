@@ -121,6 +121,9 @@ public static class PlanValidator
             RequireNotNegative(settings.OxygenBreakIntervalMinutes, $"{prefix}.{nameof(PlannerSettings.OxygenBreakIntervalMinutes)}", "The time between oxygen breaks", issues);
             RequireNotNegative(settings.OxygenBreakDurationMinutes, $"{prefix}.{nameof(PlannerSettings.OxygenBreakDurationMinutes)}", "The oxygen break", issues);
         }
+
+        RequireNotNegative(settings.ContingencyExtraMinutes, $"{prefix}.{nameof(PlannerSettings.ContingencyExtraMinutes)}", "The contingency time", issues);
+        RequireNotNegative(settings.ContingencyExtraDepth, $"{prefix}.{nameof(PlannerSettings.ContingencyExtraDepth)}", "The contingency depth", issues);
     }
 
     private static void ValidateDives(IReadOnlyList<DiveInput> dives, UnitSystem units, List<ValidationIssue> issues)

@@ -58,7 +58,8 @@ public static class PlanConverter
         AscentRateToStops = ConvertDepth(settings.AscentRateToStops, from, to),
         AscentRateShallow = ConvertDepth(settings.AscentRateShallow, from, to),
         BottomSac = ConvertGasRate(settings.BottomSac, from, to),
-        DecoSac = ConvertGasRate(settings.DecoSac, from, to)
+        DecoSac = ConvertGasRate(settings.DecoSac, from, to),
+        ContingencyExtraDepth = ConvertDepth(settings.ContingencyExtraDepth, from, to)
     };
 
     private static DiveInput ConvertDive(DiveInput dive, UnitSystem from, UnitSystem to) => dive with

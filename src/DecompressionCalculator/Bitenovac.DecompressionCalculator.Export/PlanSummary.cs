@@ -110,6 +110,35 @@ public static class PlanSummary
         {
             text.AppendLine("Warning: an ascent between levels passes the decompression ceiling.");
         }
+
+        if (result.Contingencies.Count > 0)
+        {
+            text.AppendLine("Contingencies:");
+            foreach (var contingency in result.Contingencies)
+            {
+                text.AppendLine(CultureInfo.InvariantCulture, $"- {Contingency(contingency, labels)}");
+            }
+        }
+    }
+
+    private static string Contingency(Contingency contingency, UnitLabels labels)
+    {
+        var name = contingency.Kind == ContingencyKind.LostGas
+            ? $"{contingency.LostGas} lost"
+            : $"+{Formats.Number(contingency.ExtraMinutes)} min, +{Formats.Number(contingency.ExtraDepth)} {labels.Depth}";
+        var result = contingency.Result;
+        if (!result.Succeeded)
+        {
+            return $"{name}: cannot be planned: {result.FailureMessage}";
+        }
+
+        var stops = result.Profile
+            .Where(static phase => phase.Kind == SegmentKind.Stop)
+            .Select(phase => Stop(phase, labels))
+            .ToArray();
+        return $"{name}: runtime {Formats.Minutes(result.TotalRuntime)} · " +
+               (stops.Length > 0 ? $"stops {string.Join(", ", stops)}" : "no decompression stops") +
+               $" · CNS {Formats.Number(result.CnsPercent)} %";
     }
 
     private static string Stop(ProfileRow stop, UnitLabels labels) =>
