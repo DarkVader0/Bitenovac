@@ -1,4 +1,5 @@
 using Bitenovac.RemoteBuildTool.Commands;
+using Bitenovac.RemoteBuildTool.Hashing;
 
 namespace Bitenovac.RemoteBuildTool.Unit.Tests;
 
@@ -35,6 +36,20 @@ public sealed class CommandLineTests : IDisposable
 
         // Assert
         Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public void Run_ShouldPrintTheVersion_WhenItIsAskedFor()
+    {
+        // Arrange
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["--version"], output.Pipeline);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal($"{ToolVersion.Value}{Environment.NewLine}", output.Out);
     }
 
     [Fact]

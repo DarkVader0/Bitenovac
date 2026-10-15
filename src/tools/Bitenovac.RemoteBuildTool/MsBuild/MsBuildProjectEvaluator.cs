@@ -95,9 +95,9 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
             ProjectReferences: projectReferences,
             IsTestProject: IsTrue(project.GetPropertyValue("IsTestProject")),
             ExcludeFromCoverage: IsTrue(project.GetPropertyValue("ExcludeFromCoverage")),
-            MinimumLineCoverage: double.Parse(project.GetPropertyValue("MinimumLineCoverage")),
-            MinimumBranchCoverage: double.Parse(project.GetPropertyValue("MinimumBranchCoverage")),
-            CacheTestResults: IsTrue(project.GetPropertyValue("CacheTestResults")),
+            MinimumLineCoverage: CoverageMinimum.Parse(project.GetPropertyValue("MinimumLineCoverage"), relativePath, "MinimumLineCoverage"),
+            MinimumBranchCoverage: CoverageMinimum.Parse(project.GetPropertyValue("MinimumBranchCoverage"), relativePath, "MinimumBranchCoverage"),
+            CacheTestResults: !string.Equals(project.GetPropertyValue("CacheTestResults"), "false", StringComparison.OrdinalIgnoreCase),
             CoverageName: project.GetPropertyValue("AssemblyName"),
             Properties: new Dictionary<string, string>
             {

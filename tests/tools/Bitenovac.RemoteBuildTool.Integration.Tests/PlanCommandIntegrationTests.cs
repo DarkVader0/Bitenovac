@@ -1,4 +1,5 @@
 using Bitenovac.RemoteBuildTool.Commands;
+using Bitenovac.RemoteBuildTool.Planning;
 
 namespace Bitenovac.RemoteBuildTool.Integration.Tests;
 
@@ -18,6 +19,51 @@ public sealed class PlanCommandIntegrationTests
         // Assert
         Assert.Equal(1, exitCode);
         Assert.False(File.Exists(fixture.Options.PlanFile));
+    }
+
+    [Fact]
+    public void Run_ShouldMeasureButNotGateAndCacheTheTests_WhenAProjectSetsNoPolicy()
+    {
+        // Arrange
+        using var fixture = FixtureRepository.Create();
+        fixture.Write(FixtureRepository.LibraryProject, """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <MinimumLineCoverage></MinimumLineCoverage>
+                    <MinimumBranchCoverage></MinimumBranchCoverage>
+                    <CacheTestResults></CacheTestResults>
+                </PropertyGroup>
+            </Project>
+            """);
+
+        // Act
+        var exitCode = PlanCommand.Run(fixture.Options, _output.Pipeline);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        var library = PlanState.Load(fixture.Options.PlanFile).For("Debug").Single(entry => entry.ProjectPath == FixtureRepository.LibraryProject);
+        Assert.Equal((0d, 0d, true), (library.MinimumLineCoverage, library.MinimumBranchCoverage, library.CacheTestResults));
+    }
+
+    [Fact]
+    public void Run_ShouldNameTheProject_WhenItsMinimumIsNotAPercentage()
+    {
+        // Arrange
+        using var fixture = FixtureRepository.Create();
+        fixture.Write(FixtureRepository.LibraryProject, """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <MinimumLineCoverage>95,5</MinimumLineCoverage>
+                </PropertyGroup>
+            </Project>
+            """);
+
+        // Act
+        Action act = () => PlanCommand.Run(fixture.Options, _output.Pipeline);
+
+        // Assert
+        var exception = Assert.Throws<InvalidOperationException>(act);
+        Assert.Equal("src/Lib/Lib.csproj: MinimumLineCoverage must be a percentage from 0 to 100, such as 95.5; it is '95,5'.", exception.Message);
     }
 
     [Fact]

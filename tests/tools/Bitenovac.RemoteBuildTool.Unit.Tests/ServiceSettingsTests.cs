@@ -110,7 +110,7 @@ public sealed class ServiceSettingsTests
         var settings = RepositorySettings.Load(directory.Path);
 
         // Assert
-        Assert.Equal("master", settings.Branch);
+        Assert.Null(settings.Branch);
         Assert.Equal(900, settings.PollSeconds);
         Assert.Equal(120, settings.BuildReportSeconds);
         Assert.Equal(new TimeOnly(3, 30), settings.Housekeeping);

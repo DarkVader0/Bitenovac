@@ -36,6 +36,36 @@ public sealed class GitHubClientTests
     }
 
     [Fact]
+    public async Task DefaultBranchAsync_ShouldReturnTheBranch_WhenGitHubNamesOne()
+    {
+        // Arrange
+        var github = new FakeGitHub();
+        github.Respond("/repos/owner/repo", """{ "default_branch": "main" }""");
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+
+        // Act
+        var branch = await new GitHubClient(http, "owner/repo").DefaultBranchAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal("main", branch);
+    }
+
+    [Fact]
+    public async Task DefaultBranchAsync_ShouldThrow_WhenGitHubNamesNone()
+    {
+        // Arrange
+        var github = new FakeGitHub();
+        github.Respond("/repos/owner/repo", """{ "default_branch": null }""");
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+
+        // Act
+        Func<Task> act = () => new GitHubClient(http, "owner/repo").DefaultBranchAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        await Assert.ThrowsAsync<HttpRequestException>(act);
+    }
+
+    [Fact]
     public async Task BranchHeadAsync_ShouldThrow_WhenGitHubGivesNoCommit()
     {
         // Arrange

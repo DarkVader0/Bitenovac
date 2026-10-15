@@ -300,7 +300,7 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
 
         if (offenders.Count > 0)
         {
-            output.WriteFailure("these projects declare <TargetFrameworks>. Set a single <TargetFramework>, or change RepositoryTargetFramework in Directory.Build.props.");
+            output.WriteFailure("these projects declare <TargetFrameworks>; RemoteBuildTool builds one target framework per project. Set a single <TargetFramework> instead.");
             foreach (var project in offenders)
                 output.WriteError($"  {project.Id}");
             return 1;

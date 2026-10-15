@@ -132,9 +132,10 @@ internal sealed record RepositorySettings
     public const string FileName = "remotebuildtool.json";
 
     /// <summary>
-    /// Gets or sets the branch whose merged pull requests fill main and whose head the daily rebuild builds.
+    /// Gets or sets the branch whose merged pull requests fill main and whose head the daily rebuild
+    /// builds, or <see langword="null"/> for the repository's default branch.
     /// </summary>
-    public string Branch { get; set; } = "master";
+    public string? Branch { get; set; }
 
     /// <summary>
     /// Gets or sets how often to look for pull requests merged into <see cref="Branch"/>, in seconds;
@@ -201,7 +202,7 @@ internal sealed record RepositorySettings
         var settings = HostSettings.Deserialize(text, source, ServiceJsonContext.Default.RepositorySettings);
         if (settings.PollSeconds < 10 || settings.BuildReportSeconds < 10)
             throw new InvalidOperationException($"{source}: 'pollSeconds' and 'buildReportSeconds' must be at least 10.");
-        if (settings.Branch.Length == 0)
+        if (settings.Branch is { Length: 0 })
             throw new InvalidOperationException($"{source}: 'branch' must not be empty.");
         if (settings.RebuildStepMinutes < 1)
             throw new InvalidOperationException($"{source}: 'rebuildStepMinutes' must be at least 1.");
