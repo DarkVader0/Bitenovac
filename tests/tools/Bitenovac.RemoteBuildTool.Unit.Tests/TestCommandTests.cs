@@ -39,13 +39,15 @@ public sealed class TestCommandTests
         Assert.Equal(0, exitCode);
     }
 
-    [Fact]
-    public void Run_ShouldFail_WhenNoStoreHoldsTheSelectedProjectsOutput()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Run_ShouldFail_WhenNoStoreHoldsTheSelectedProjectsOutput(bool hit)
     {
         // Arrange
         using var directory = TestFactory.Directory();
         var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
-        var entry = TestFactory.Entry("src/A/A.csproj", fullPath: directory.Combine("src/A/A.csproj"));
+        var entry = TestFactory.Entry("src/A/A.csproj", fullPath: directory.Combine("src/A/A.csproj"), hit: hit);
         TestFactory.Plan("Debug", entry).Save(options.PlanFile);
 
         // Act
@@ -163,6 +165,23 @@ public sealed class TestCommandTests
         // Assert
         Assert.Equal(0, exitCode);
         Assert.Equal("left by build", File.ReadAllText(directory.Combine("src/A/bin/Debug/A.dll")));
+    }
+
+    [Fact]
+    public void Run_ShouldTakeAHitFromTheRunStore_WhenMainLostItAfterThePlan()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        Stage(options, options.PrStoreRoot, hit: true);
+        using var registry = new FakeToolchain().Registry();
+
+        // Act
+        var exitCode = TestCommand.Run(options, "Debug", TestFactory.Silence(), registry);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal("assembly", File.ReadAllText(directory.Combine("tests/A/bin/Debug/A.Tests.dll")));
     }
 
     [Fact]

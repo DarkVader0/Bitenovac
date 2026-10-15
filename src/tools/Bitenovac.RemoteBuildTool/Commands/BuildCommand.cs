@@ -80,7 +80,7 @@ internal static class BuildCommand
         int staged;
         using (output.Section($"Staging rebuilt projects ({configuration})"))
         using (stage.Measure(StagePhase.Store))
-            staged = StageMisses(entries, configuration, prStore, toolchains);
+            staged = StageRebuilt(toBuild, configuration, prStore, toolchains);
 
         foreach (var entry in entries)
             MaterialisedMarker.Write(options.RepositoryRoot, new ProjectId(entry.ProjectPath), configuration, entry.FullHash);
@@ -149,16 +149,18 @@ internal static class BuildCommand
     /// Stages the output of every rebuilt project in this run's own store.
     /// </summary>
     /// <remarks>
-    /// Cache hits are not staged, because later stages read them from <c>main</c>.
+    /// Cache hits are not staged, because later stages read them from <c>main</c>. A hit main lost
+    /// after the plan is rebuilt, so it is staged like a miss, and later stages and promotion take
+    /// it from here.
     /// </remarks>
-    private static int StageMisses(IReadOnlyList<PlanEntry> entries, string configuration, LocalVolumeArtifactStore prStore, ToolchainRegistry toolchains)
+    private static int StageRebuilt(IReadOnlyList<PlanEntry> entries, string configuration, LocalVolumeArtifactStore prStore, ToolchainRegistry toolchains)
     {
         var staged = 0;
         var inputsDirectory = Directory.CreateTempSubdirectory("bitenovac-remotebuildtool-inputs-").FullName;
 
         try
         {
-            foreach (var entry in entries.Where(entry => !entry.Hit))
+            foreach (var entry in entries)
             {
                 var projectDirectory = Path.GetDirectoryName(entry.FullPath)!;
                 var inputsFile = Path.Combine(inputsDirectory, $"{staged}.txt");
