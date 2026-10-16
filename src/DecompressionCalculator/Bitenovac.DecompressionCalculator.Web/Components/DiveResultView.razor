@@ -31,6 +31,11 @@
             <p class="alert alert-warning">A cylinder does not hold the reserve gas the plan requires.</p>
         }
 
+        @foreach (var warning in GasWarnings.For(Result, Units))
+        {
+            <p class="alert alert-warning">@warning</p>
+        }
+
         @foreach (var block in _blocks)
         {
             switch (block)
@@ -45,6 +50,10 @@
                 case ResultBlock.Gas:
                     <h3>Gas</h3>
                     <GasTable Result="Result" Units="Units"/>
+                    break;
+                case ResultBlock.GasChecks:
+                    <h3>Gas checks</h3>
+                    <GasChecksTable Result="Result" Units="Units"/>
                     break;
                 case ResultBlock.Chart:
                     <h3>Profile chart</h3>

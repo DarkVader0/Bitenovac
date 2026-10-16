@@ -56,6 +56,11 @@ public enum IconName
     Grip,
 
     /// <summary>
+    /// Opens the gas calculators.
+    /// </summary>
+    Calculator,
+
+    /// <summary>
     /// Installs the app.
     /// </summary>
     Install,

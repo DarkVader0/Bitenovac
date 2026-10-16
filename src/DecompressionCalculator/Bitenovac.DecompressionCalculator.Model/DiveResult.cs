@@ -226,6 +226,17 @@ public sealed class DiveResult
     /// </summary>
     public IReadOnlyList<Contingency> Contingencies { get; internal set; } = [];
 
+    /// <summary>
+    /// Gets each gas as it is breathed on each level and at the deepest depth it is used, with its oxygen partial
+    /// pressure, equivalent narcotic depth and density.
+    /// </summary>
+    public IReadOnlyList<GasCheckRow> GasChecks { get; internal set; } = [];
+
+    /// <summary>
+    /// Gets the gas switches that risk isobaric counterdiffusion.
+    /// </summary>
+    public IReadOnlyList<CounterdiffusionRow> Counterdiffusion { get; internal set; } = [];
+
     internal static DiveResult Failed(int index, string message) =>
         new(index, message, false, TimeSpan.Zero, TimeSpan.Zero, 0, 0, 0, false, [], [], [], []);
 

@@ -31,7 +31,12 @@ public enum ResultBlock
     /// <summary>
     /// The dive planned again for what could go wrong.
     /// </summary>
-    Contingencies
+    Contingencies,
+
+    /// <summary>
+    /// Each gas on each level and at its deepest: oxygen partial pressure, equivalent narcotic depth and density.
+    /// </summary>
+    GasChecks
 }
 
 /// <summary>
@@ -82,7 +87,7 @@ public sealed record UserPreferences
     public const string DefaultLanguage = "en";
 
     private static readonly ResultBlock[] DefaultOrder =
-        [ResultBlock.Figures, ResultBlock.Profile, ResultBlock.Gas, ResultBlock.Chart, ResultBlock.Contingencies];
+        [ResultBlock.Figures, ResultBlock.Profile, ResultBlock.Gas, ResultBlock.GasChecks, ResultBlock.Chart, ResultBlock.Contingencies];
 
     private readonly ResultBlockSetting[] _blocks;
 

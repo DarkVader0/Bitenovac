@@ -248,7 +248,7 @@ public static class DiveSheet
             return;
         }
 
-        WriteWarnings(sheet, result, labels);
+        WriteWarnings(sheet, result, labels, plan.Units);
 
         var pages = Paginate(blocks, result, sheet.Remaining, sheet.Capacity);
         for (var index = 0; index < pages.Count; index++)
@@ -321,6 +321,9 @@ public static class DiveSheet
                 case ResultBlock.Gas:
                     WriteGas(sheet, result, labels);
                     break;
+                case ResultBlock.GasChecks:
+                    WriteGasChecks(sheet, result, labels);
+                    break;
                 case ResultBlock.Chart:
                     WriteChart(sheet, ProfileChart.Create(result, plan.Units), labels, chartHeight);
                     break;
@@ -341,6 +344,7 @@ public static class DiveSheet
             ResultBlock.Figures => FigureHeight,
             ResultBlock.Profile => (result.Profile.Count + 1) * SmallestRowOn(blocks),
             ResultBlock.Gas => (result.Cylinders.Count + 1) * GasRowHeight,
+            ResultBlock.GasChecks => (result.GasChecks.Count + 1) * GasRowHeight,
             ResultBlock.Chart => SmallestChart,
             _ => 0
         }) + Gap * Math.Max(0, blocks.Count - 1);
@@ -368,7 +372,7 @@ public static class DiveSheet
         sheet.Advance(FigureHeight);
     }
 
-    private static void WriteWarnings(SheetWriter sheet, DiveResult result, UnitLabels labels)
+    private static void WriteWarnings(SheetWriter sheet, DiveResult result, UnitLabels labels, UnitSystem units)
     {
         foreach (var violation in result.Violations)
         {
@@ -388,6 +392,11 @@ public static class DiveSheet
         if (!result.ReserveSatisfied)
         {
             sheet.Paragraph("A cylinder does not hold the reserve gas the plan requires.", PdfFont.HelveticaBold, 8.5, SheetWriter.Danger);
+        }
+
+        foreach (var warning in GasWarnings.For(result, units))
+        {
+            sheet.Paragraph(warning, PdfFont.HelveticaBold, 8.5, SheetWriter.Danger);
         }
     }
 
@@ -449,6 +458,24 @@ public static class DiveSheet
     private static string ContingencyName(Contingency contingency, UnitLabels labels) => contingency.Kind == ContingencyKind.LostGas
         ? $"{contingency.LostGas} lost"
         : $"+{Formats.Number(contingency.ExtraMinutes)} min, +{Formats.Number(contingency.ExtraDepth)} {labels.Depth}";
+
+    private static void WriteGasChecks(SheetWriter sheet, DiveResult result, UnitLabels labels)
+    {
+        SheetColumn[] columns =
+        [
+            new("Gas", 90), new($"Depth ({labels.Depth})", 95, PdfAlign.Right), new("PO2 (bar)", 100, PdfAlign.Right),
+            new($"END ({labels.Depth})", 105, PdfAlign.Right), new("Density (g/L)", 141, PdfAlign.Right, Emphasis: true)
+        ];
+        var rows = result.GasChecks
+            .Select(static check => new[]
+            {
+                check.Gas, Formats.Number(check.Depth), Formats.Number(check.OxygenPressure, 2),
+                Formats.Number(check.EquivalentNarcoticDepth), Formats.Number(check.Density, 1)
+            })
+            .ToArray();
+
+        sheet.Table(columns, rows, row => result.GasChecks[row].IsTooDense, GasRowHeight, 8.5);
+    }
 
     private static void WriteChart(SheetWriter sheet, ProfileChart chart, UnitLabels labels, double height)
     {

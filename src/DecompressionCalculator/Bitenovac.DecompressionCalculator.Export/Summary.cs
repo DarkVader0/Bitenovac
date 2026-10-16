@@ -37,7 +37,8 @@ internal static class Summary
         return $"{Names.Of(settings.Salinity)} · altitude {Formats.Number(settings.Altitude)} {labels.Depth} · " +
                $"SAC {Formats.Number(settings.BottomSac, gasRateDecimals)} / {Formats.Number(settings.DecoSac, gasRateDecimals)} {labels.GasRate} · " +
                $"PO2 {Formats.Number(settings.BottomPo2, 1)} / {Formats.Number(settings.DecoPo2, 1)} bar · " +
-               $"last stop {lastStop} · safety stop {(settings.SafetyStop ? "on" : "off")}";
+               $"last stop {lastStop} · safety stop {(settings.SafetyStop ? "on" : "off")} · " +
+               $"O2 {(settings.OxygenNarcotic ? "narcotic" : "not narcotic")} in END";
     }
 
     public static string Inputs(DiveInput dive, UnitSystem units)

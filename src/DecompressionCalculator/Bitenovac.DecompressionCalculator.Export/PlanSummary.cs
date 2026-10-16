@@ -111,6 +111,11 @@ public static class PlanSummary
             text.AppendLine("Warning: an ascent between levels passes the decompression ceiling.");
         }
 
+        foreach (var warning in GasWarnings.For(result, plan.Units))
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"Warning: {warning}");
+        }
+
         text.AppendLine("Contingencies:");
         foreach (var contingency in result.Contingencies)
         {

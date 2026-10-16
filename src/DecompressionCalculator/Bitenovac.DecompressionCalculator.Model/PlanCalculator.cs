@@ -135,11 +135,19 @@ public static class PlanCalculator
         return [.. contingencies];
     }
 
+    private static DiveResult Checked(DiveResult result, int index, DecoPlan decoPlan, DivePlanRequest request, DivePlanDocument plan)
+    {
+        (result.GasChecks, result.Counterdiffusion) =
+            GasChecks.For(decoPlan.ExpandedSegments, request.Settings, plan.SettingsFor(index).OxygenNarcotic, plan.Units);
+        return result;
+    }
+
     private static DiveResult PlanWithoutTimeline(int index, DivePlanRequest request, DivePlanDocument plan)
     {
         try
         {
-            return DiveResult.From(index, new DivePlanner(AlgorithmCatalog.Create(plan.Algorithm)).CreatePlan(request), [], plan.Units);
+            var decoPlan = new DivePlanner(AlgorithmCatalog.Create(plan.Algorithm)).CreatePlan(request);
+            return Checked(DiveResult.From(index, decoPlan, [], plan.Units), index, decoPlan, request, plan);
         }
         catch (InvalidOperationException exception)
         {
@@ -153,7 +161,7 @@ public static class PlanCalculator
         {
             var decoPlan = new DivePlanner(AlgorithmCatalog.Create(plan.Algorithm)).CreatePlan(request);
             var timeline = DiveTrace.Calculate(AlgorithmCatalog.Create(plan.Algorithm), request, decoPlan, plan.Units);
-            return DiveResult.From(index, decoPlan, timeline, plan.Units);
+            return Checked(DiveResult.From(index, decoPlan, timeline, plan.Units), index, decoPlan, request, plan);
         }
         catch (InvalidOperationException exception)
         {

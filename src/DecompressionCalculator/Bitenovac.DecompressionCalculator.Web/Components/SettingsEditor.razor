@@ -48,6 +48,8 @@
             <NumberField Label="Gas switch time" Unit="min" Value="Value.GasSwitchMinutes"
                          Issue="@Issues[nameof(PlannerSettings.GasSwitchMinutes)]"
                          ValueChanged="value => ChangeAsync(Value with { GasSwitchMinutes = value })"/>
+            <CheckField Label="Count oxygen as narcotic in END" Value="Value.OxygenNarcotic"
+                        ValueChanged="value => ChangeAsync(Value with { OxygenNarcotic = value })"/>
         </div>
     </details>
 

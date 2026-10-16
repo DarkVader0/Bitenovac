@@ -34,6 +34,9 @@ namespace Bitenovac.DecompressionCalculator.Model;
 /// <param name="OxygenBreaks">Whether oxygen breaks are planned during long oxygen stops.</param>
 /// <param name="ContingencyExtraMinutes">The time added to the deepest level in the contingency plan, in minutes.</param>
 /// <param name="ContingencyExtraDepth">The depth added to the deepest level in the contingency plan, in meters or feet.</param>
+/// <param name="OxygenNarcotic">
+/// Whether oxygen counts as narcotic wherever an equivalent narcotic depth is given; on by default, the cautious choice.
+/// </param>
 public sealed record PlannerSettings(
     double Altitude,
     Salinity Salinity,
@@ -61,7 +64,8 @@ public sealed record PlannerSettings(
     bool SwitchAtRequiredStop,
     bool OxygenBreaks,
     double ContingencyExtraMinutes = 3,
-    double ContingencyExtraDepth = 3)
+    double ContingencyExtraDepth = 3,
+    bool OxygenNarcotic = true)
 {
     /// <summary>
     /// Returns the default settings for a unit system.
@@ -111,5 +115,6 @@ public sealed record PlannerSettings(
         SwitchAtRequiredStop: false,
         OxygenBreaks: false,
         ContingencyExtraMinutes: 3,
-        ContingencyExtraDepth: 3);
+        ContingencyExtraDepth: 3,
+        OxygenNarcotic: true);
 }
