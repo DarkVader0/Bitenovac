@@ -669,4 +669,10 @@
     <data name="Language" xml:space="preserve">
         <value>Language</value>
     </data>
+    <data name="MatchDevice" xml:space="preserve">
+        <value>Match device</value>
+    </data>
+    <data name="BackToPlan" xml:space="preserve">
+        <value>Back to the dive planner</value>
+    </data>
 </root>

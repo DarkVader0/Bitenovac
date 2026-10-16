@@ -47,19 +47,21 @@
     <script src="js/loading.js"></script>
     <script src="_framework/blazor.webassembly.js" autostart="false"></script>
     <script>
-        // The language the diver chose is loaded before the app starts, so its resources are in place from the first render.
+        // The language is set before the app starts, so its resources are in place from the first render.
         (() => {
             const languages = ["en", "de"];
-            let language = "en";
+            const fromDevice = (navigator.languages ?? [navigator.language]).map(tag => tag.split("-")[0]).find(tag => languages.includes(tag));
+            let chosen = null;
             try {
-                const saved = JSON.parse(localStorage.getItem("bitenovac.preferences") ?? "null")?.language;
-                if (languages.includes(saved)) {
-                    language = saved;
+                const saved = JSON.parse(localStorage.getItem("bitenovac.preferences") ?? "null");
+                if (saved?.version >= 2 && languages.includes(saved.language)) {
+                    chosen = saved.language;
                 }
             } catch {
-                language = "en";
+                chosen = null;
             }
 
+            const language = chosen ?? fromDevice ?? "en";
             document.documentElement.lang = language;
             Blazor.start({ applicationCulture: language });
         })();

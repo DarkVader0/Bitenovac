@@ -669,4 +669,10 @@
     <data name="Language" xml:space="preserve">
         <value>Sprache</value>
     </data>
+    <data name="MatchDevice" xml:space="preserve">
+        <value>Gerätesprache</value>
+    </data>
+    <data name="BackToPlan" xml:space="preserve">
+        <value>Zurück zum Tauchplaner</value>
+    </data>
 </root>

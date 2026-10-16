@@ -15,14 +15,14 @@ public sealed class UserPreferencesTests
 
         // Assert
         Assert.Equal(AllBlocks, preferences.VisibleBlocks());
-        Assert.Equal((UserPreferences.CurrentVersion, ThemePreference.Light, "en"), (preferences.Version, preferences.Theme, preferences.Language));
+        Assert.Equal((UserPreferences.CurrentVersion, ThemePreference.Light, (string?)null), (preferences.Version, preferences.Theme, preferences.Language));
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("  ")]
-    public void Constructor_ShouldUseTheDefaultLanguage_WhenNoLanguageIsGiven(string? language)
+    public void Constructor_ShouldMatchTheDevice_WhenNoLanguageIsGiven(string? language)
     {
         // Arrange
 
@@ -30,7 +30,7 @@ public sealed class UserPreferencesTests
         var preferences = new UserPreferences(language: language);
 
         // Assert
-        Assert.Equal(UserPreferences.DefaultLanguage, preferences.Language);
+        Assert.Null(preferences.Language);
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public sealed class UserPreferencesTests
         Assert.False(different);
         Assert.NotEqual(first with { Theme = ThemePreference.Dark }, first);
         Assert.NotEqual(first with { Language = "sr" }, first);
-        Assert.NotEqual(first with { Version = 2 }, first);
+        Assert.NotEqual(first with { Version = UserPreferences.CurrentVersion + 1 }, first);
     }
 
     [Fact]
@@ -200,7 +200,7 @@ public sealed class UserPreferencesTests
         var json = UserPreferencesJson.Serialize(UserPreferences.Default with { Theme = ThemePreference.Dark });
 
         // Assert
-        Assert.StartsWith("{\"version\":1,\"theme\":\"Dark\",\"language\":\"en\",\"blocks\":[{\"block\":\"Figures\",\"visible\":true}", json, StringComparison.Ordinal);
+        Assert.StartsWith("{\"version\":2,\"theme\":\"Dark\",\"language\":null,\"blocks\":[{\"block\":\"Figures\",\"visible\":true}", json, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -246,8 +246,35 @@ public sealed class UserPreferencesTests
         // Assert
         Assert.Equal(UserPreferences.CurrentVersion, preferences.Version);
         Assert.Equal(ThemePreference.System, preferences.Theme);
-        Assert.Equal("en", preferences.Language);
+        Assert.Null(preferences.Language);
         Assert.Equal(new ResultBlockSetting(ResultBlock.Gas, false), preferences.Blocks[0]);
         Assert.Equal(6, preferences.Blocks.Count);
+    }
+
+    [Fact]
+    public void Deserialize_ShouldDropTheLanguage_WhenAnOlderDocumentOnlyHeldTheDefault()
+    {
+        // Arrange
+        const string json = "{\"version\":1,\"theme\":\"Light\",\"language\":\"en\"}";
+
+        // Act
+        var preferences = UserPreferencesJson.Deserialize(json);
+
+        // Assert
+        Assert.Null(preferences.Language);
+        Assert.Equal(UserPreferences.CurrentVersion, preferences.Version);
+    }
+
+    [Fact]
+    public void Deserialize_ShouldKeepTheLanguage_WhenTheDocumentIsCurrent()
+    {
+        // Arrange
+        const string json = "{\"version\":2,\"theme\":\"Light\",\"language\":\"de\"}";
+
+        // Act
+        var preferences = UserPreferencesJson.Deserialize(json);
+
+        // Assert
+        Assert.Equal("de", preferences.Language);
     }
 }

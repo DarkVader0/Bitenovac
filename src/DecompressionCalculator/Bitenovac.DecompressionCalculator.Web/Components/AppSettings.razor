@@ -17,8 +17,8 @@
             }
         </div>
     </div>
-    <SelectField TValue="string" Label="@WebText.Language" Options="AppLanguages.Tags" Text="AppLanguages.Name"
-                 Value="_preferences.Language" ValueChanged="ChooseLanguageAsync"/>
+    <SelectField TValue="string" Label="@WebText.Language" Options="AppLanguages.Choices" Text="AppLanguages.Name"
+                 Value="_preferences.Language ?? AppLanguages.MatchDevice" ValueChanged="ChooseLanguageAsync"/>
 </section>
 
 <section class="card">
@@ -104,7 +104,7 @@
 
     private async Task ChooseLanguageAsync(string language)
     {
-        await SaveAsync(_preferences with { Language = language });
+        await SaveAsync(_preferences with { Language = language == AppLanguages.MatchDevice ? null : language });
         Navigation.Refresh(forceReload: true);
     }
 

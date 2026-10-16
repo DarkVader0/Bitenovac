@@ -5,10 +5,24 @@ namespace Bitenovac.DecompressionCalculator.Web.Planning;
 /// </summary>
 internal static class AppLanguages
 {
+    /// <summary>
+    /// The choice that follows the device's language; stored as no language at all.
+    /// </summary>
+    public const string MatchDevice = "";
+
     private static readonly (string Tag, string Name)[] Languages = [("en", "English"), ("de", "Deutsch")];
 
-    public static IReadOnlyList<string> Tags { get; } = [.. Languages.Select(static language => language.Tag)];
+    /// <summary>
+    /// Gets the choices in the order they are offered: matching the device first, then each language.
+    /// </summary>
+    public static IReadOnlyList<string> Choices { get; } = [MatchDevice, .. Languages.Select(static language => language.Tag)];
 
-    /// <remarks>Each language is named in itself, so a diver can find their own in a list they cannot read.</remarks>
-    public static string Name(string tag) => Languages.FirstOrDefault(language => language.Tag == tag).Name ?? tag;
+    /// <summary>
+    /// Returns the name of a choice, each language named in itself, so a diver can find their own in a list they cannot read.
+    /// </summary>
+    /// <param name="choice">The choice.</param>
+    /// <returns>The name shown for the choice.</returns>
+    public static string Name(string choice) => choice == MatchDevice
+        ? WebText.MatchDevice
+        : Languages.FirstOrDefault(language => language.Tag == choice).Name ?? choice;
 }
