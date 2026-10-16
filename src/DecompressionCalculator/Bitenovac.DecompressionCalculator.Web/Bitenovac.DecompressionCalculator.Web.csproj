@@ -2,6 +2,7 @@
     
     <PropertyGroup>
         <ExcludeFromCoverage>true</ExcludeFromCoverage>
+        <SatelliteResourceLanguages>en;de</SatelliteResourceLanguages>
         <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
         <WasmFingerprintAssets>false</WasmFingerprintAssets>
     </PropertyGroup>
@@ -18,7 +19,7 @@
                           StronglyTypedNamespace="Bitenovac.DecompressionCalculator.Web" StronglyTypedClassName="WebText"
                           StronglyTypedFileName="$(IntermediateOutputPath)WebText.Designer.cs"
                           ManifestResourceName="Bitenovac.DecompressionCalculator.Web.WebText"/>
-    </ItemGroup>
+        <EmbeddedResource Update="Resources\WebText.de.resx" ManifestResourceName="Bitenovac.DecompressionCalculator.Web.WebText.de"/>    </ItemGroup>
 
     <ItemGroup>
         <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js"/>
