@@ -1019,7 +1019,7 @@ body:has(.app-banner) {
 
 @media (min-width: 1440px) and (hover: hover) and (pointer: fine) {
     main.content:has(> .settings-panel) {
-        grid-template-columns: 17rem minmax(0, 64rem) 24rem;
+        grid-template-columns: 24rem minmax(0, 64rem) 24rem;
     }
 
     main.content:has(> .settings-panel) > * {
@@ -1047,6 +1047,10 @@ body:has(.app-banner) {
 
     .plans-button,
     .another-plan {
+        display: none;
+    }
+
+    .plan-header .gas-tools-button {
         display: none;
     }
 }
