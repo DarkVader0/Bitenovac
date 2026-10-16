@@ -1,46 +1,46 @@
 <div class="drawer-backdrop" @onclick="OnClose"></div>
-<aside class="share-sheet gas-tools" role="dialog" aria-modal="true" aria-label="Gas tools" @onkeydown="CloseOnEscape">
+<aside class="share-sheet gas-tools" role="dialog" aria-modal="true" aria-label="@WebText.GasTools" @onkeydown="CloseOnEscape">
     <div class="drawer-header">
-        <h2>Gas tools</h2>
-        <button type="button" class="secondary" @onclick="OnClose"><Icon Name="IconName.Close"/>Close</button>
+        <h2>@WebText.GasTools</h2>
+        <button type="button" class="secondary" @onclick="OnClose"><Icon Name="IconName.Close"/>@WebText.Close</button>
     </div>
     <p class="block-note">
-        Worked out in this dive's environment (@Names.Of(Settings.Salinity), altitude @Display.Number(Settings.Altitude) @Labels.Depth).
-        Oxygen @(Settings.OxygenNarcotic ? "counts" : "does not count") as narcotic in END; change it in the plan settings, under Gas.
+        @Localized.Format(WebText.ToolsEnvironment, Names.Of(Settings.Salinity), Display.Number(Settings.Altitude), Labels.Depth)
+        @(Settings.OxygenNarcotic ? WebText.ToolsNarcoticOn : WebText.ToolsNarcoticOff)
     </p>
 
     <section class="gas-tool">
-        <h3>Maximum operating depth</h3>
+        <h3>@WebText.MaximumOperatingDepth</h3>
         <div class="field-pair">
-            <NumberField Label="O₂" Unit="%" Value="_modOxygen" ValueChanged="value => _modOxygen = value"/>
-            <NumberField Label="PO₂ limit" Unit="bar" Value="_modPo2" ValueChanged="value => _modPo2 = value"/>
+            <NumberField Label="@WebText.O2Subscript" Unit="%" Value="_modOxygen" ValueChanged="value => _modOxygen = value"/>
+            <NumberField Label="@WebText.Po2Limit" Unit="bar" Value="_modPo2" ValueChanged="value => _modPo2 = value"/>
         </div>
         <p class="gas-tool-result" role="status">
-            MOD <strong>@Result(() => $"{Display.Number(Math.Floor(GasMath.MaximumOperatingDepth(_modOxygen, _modPo2, Settings, Units)))} {Labels.Depth}")</strong>
+            @WebText.Mod <strong>@Result(() => $"{Display.Number(Math.Floor(GasMath.MaximumOperatingDepth(_modOxygen, _modPo2, Settings, Units)))} {Labels.Depth}")</strong>
         </p>
     </section>
 
     <section class="gas-tool">
-        <h3>Equivalent narcotic depth</h3>
+        <h3>@WebText.EquivalentNarcoticDepth</h3>
         <div class="field-pair">
-            <NumberField Label="O₂" Unit="%" Value="_endOxygen" ValueChanged="value => _endOxygen = value"/>
-            <NumberField Label="He" Unit="%" Value="_endHelium" ValueChanged="value => _endHelium = value"/>
+            <NumberField Label="@WebText.O2Subscript" Unit="%" Value="_endOxygen" ValueChanged="value => _endOxygen = value"/>
+            <NumberField Label="@WebText.He" Unit="%" Value="_endHelium" ValueChanged="value => _endHelium = value"/>
         </div>
-        <NumberField Label="Depth" Unit="@Labels.Depth" Value="_endDepth" ValueChanged="value => _endDepth = value"/>
+        <NumberField Label="@WebText.Depth" Unit="@Labels.Depth" Value="_endDepth" ValueChanged="value => _endDepth = value"/>
         <p class="gas-tool-result" role="status">
-            END <strong>@Result(() => $"{Display.Number(Math.Ceiling(GasMath.EquivalentNarcoticDepth(_endOxygen, _endHelium, _endDepth, Settings, Units)))} {Labels.Depth}")</strong>
-            · density <strong>@Result(() => $"{Display.Number(GasMath.Density(_endOxygen, _endHelium, _endDepth, Settings, Units), 1)} g/L")</strong>
+            @WebText.End <strong>@Result(() => $"{Display.Number(Math.Ceiling(GasMath.EquivalentNarcoticDepth(_endOxygen, _endHelium, _endDepth, Settings, Units)))} {Labels.Depth}")</strong>
+            · @WebText.DensityLower <strong>@Result(() => $"{Display.Number(GasMath.Density(_endOxygen, _endHelium, _endDepth, Settings, Units), 1)} g/L")</strong>
         </p>
     </section>
 
     <section class="gas-tool">
-        <h3>Best mix</h3>
-        <NumberField Label="Deepest depth" Unit="@Labels.Depth" Value="_mixDepth" ValueChanged="value => _mixDepth = value"/>
+        <h3>@WebText.BestMix</h3>
+        <NumberField Label="@WebText.DeepestDepth" Unit="@Labels.Depth" Value="_mixDepth" ValueChanged="value => _mixDepth = value"/>
         <div class="field-pair">
-            <NumberField Label="PO₂ limit" Unit="bar" Value="_mixPo2" ValueChanged="value => _mixPo2 = value"/>
-            <NumberField Label="END limit" Unit="@Labels.Depth" Value="_mixEnd" ValueChanged="value => _mixEnd = value"/>
+            <NumberField Label="@WebText.Po2Limit" Unit="bar" Value="_mixPo2" ValueChanged="value => _mixPo2 = value"/>
+            <NumberField Label="@WebText.EndLimit" Unit="@Labels.Depth" Value="_mixEnd" ValueChanged="value => _mixEnd = value"/>
         </div>
-        <p class="gas-tool-result" role="status">Best mix <strong>@Result(BestMixText)</strong></p>
+        <p class="gas-tool-result" role="status">@WebText.BestMix <strong>@Result(BestMixText)</strong></p>
     </section>
 </aside>
 

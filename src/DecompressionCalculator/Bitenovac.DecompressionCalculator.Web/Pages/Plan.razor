@@ -6,9 +6,9 @@
 
 @if (_missing)
 {
-    <h1>Plan not found</h1>
-    <p>This plan is not saved in this browser.</p>
-    <a href="plans">Show saved plans</a>
+    <h1>@WebText.PlanNotFound</h1>
+    <p>@WebText.PlanNotSaved</p>
+    <a href="plans">@WebText.ShowSavedPlans</a>
     return;
 }
 
@@ -20,23 +20,23 @@
 <PlanSidebar Current="_plan"/>
 
 <header class="plan-header no-print">
-    <a class="icon-button plans-button" href="plans" title="Plans" aria-label="Plans">
+    <a class="icon-button plans-button" href="plans" title="@WebText.Plans" aria-label="@WebText.Plans">
         <Icon Name="IconName.Plans"/>
     </a>
-    <input class="plan-name" type="text" aria-label="Plan name" value="@_plan.Name"
+    <input class="plan-name" type="text" aria-label="@WebText.PlanName" value="@_plan.Name"
            @onchange="args => ChangeAsync(_plan with { Name = args.Value as string ?? string.Empty })"/>
-    <button type="button" class="icon-button" title="Gas tools" aria-label="Gas tools" @onclick="() => _toolsOpen = true">
+    <button type="button" class="icon-button" title="@WebText.GasTools" aria-label="@WebText.GasTools" @onclick="() => _toolsOpen = true">
         <Icon Name="IconName.Calculator"/>
     </button>
-    <button type="button" class="icon-button" title="Share" aria-label="Share" @onclick="() => _shareOpen = true">
+    <button type="button" class="icon-button" title="@WebText.Share" aria-label="@WebText.Share" @onclick="() => _shareOpen = true">
         <Icon Name="IconName.Share"/>
     </button>
-    <button type="button" class="icon-button settings-button" title="Settings" aria-label="Settings" aria-expanded="@_settingsOpen"
+    <button type="button" class="icon-button settings-button" title="@WebText.Settings" aria-label="@WebText.Settings" aria-expanded="@_settingsOpen"
             @onclick="() => _settingsOpen = true">
         <Icon Name="IconName.Settings"/>
         @if (SettingsHaveIssues)
         {
-            <span class="badge" aria-label="Settings need attention"></span>
+            <span class="badge" aria-label="@WebText.SettingsNeedAttention"></span>
         }
     </button>
 </header>
@@ -53,22 +53,22 @@
 @if (_view.PlanIssues.Count > 0)
 {
     <section class="card results">
-        <h2>Settings are invalid</h2>
+        <h2>@WebText.SettingsInvalid</h2>
         <div class="alert alert-danger">
-            <p>No dive can be planned until these are fixed:</p>
+            <p>@WebText.NoDiveUntilFixed</p>
             <ul>
                 @foreach (var issue in _view.PlanIssues)
                 {
                     <li>@IssueText.Describe(issue)</li>
                 }
             </ul>
-            <button type="button" class="secondary" @onclick="OpenPlanSettings">Open settings</button>
+            <button type="button" class="secondary" @onclick="OpenPlanSettings">@WebText.OpenSettings</button>
         </div>
     </section>
 }
 else
 {
-    var title = _plan.Dives.Count > 1 || !string.IsNullOrWhiteSpace(_plan.Dives[_selected].Name) ? $"Results · {DiveNames[_selected]}" : "Results";
+    var title = _plan.Dives.Count > 1 || !string.IsNullOrWhiteSpace(_plan.Dives[_selected].Name) ? Localized.Format(WebText.ResultsOf, DiveNames[_selected]) : WebText.Results;
     @if (_view.Results[_selected] is { } result)
     {
         <DiveResultView Result="result" Units="_plan.Units" Title="@title"/>
@@ -80,7 +80,7 @@ else
             @if (_view.IssuesOf(_selected) is { Count: > 0 } issues)
             {
                 <div class="alert alert-danger">
-                    <p>@(_plan.Dives.Count > 1 ? $"{DiveNames[_selected]} is invalid:" : "The dive is invalid:")</p>
+                    <p>@(_plan.Dives.Count > 1 ? Localized.Format(WebText.DiveIsInvalid, DiveNames[_selected]) : WebText.TheDiveIsInvalid)</p>
                     <ul>
                         @foreach (var issue in issues)
                         {
@@ -93,10 +93,9 @@ else
             {
                 <div class="alert alert-warning">
                     <p>
-                        This dive can't be planned until @DiveNames[blocking] is fixed: every dive is planned on
-                        the nitrogen and helium left from the dives before it.
+                        @Localized.Format(WebText.BlockedByEarlierDive, DiveNames[blocking])
                     </p>
-                    <button type="button" class="secondary" @onclick="() => _selected = blocking">Go to @DiveNames[blocking]</button>
+                    <button type="button" class="secondary" @onclick="() => _selected = blocking">@Localized.Format(WebText.GoTo, DiveNames[blocking])</button>
                 </div>
             }
         </section>
@@ -124,20 +123,20 @@ else
 }
 
 <aside class="drawer settings-panel @(_settingsOpen ? "open" : null)" role="@(_settingsOpen ? "dialog" : "complementary")"
-       aria-modal="@(_settingsOpen ? "true" : null)" aria-label="Settings" @onkeydown="CloseOnEscape">
+       aria-modal="@(_settingsOpen ? "true" : null)" aria-label="@WebText.Settings" @onkeydown="CloseOnEscape">
     <div class="drawer-header">
-        <h2>Settings</h2>
-        <button type="button" class="settings-done" @onclick="() => _settingsOpen = false">Done</button>
+        <h2>@WebText.Settings</h2>
+        <button type="button" class="settings-done" @onclick="() => _settingsOpen = false">@WebText.Done</button>
     </div>
 
-    <nav class="dive-tabs settings-tabs" aria-label="Settings">
+    <nav class="dive-tabs settings-tabs" aria-label="@WebText.Settings">
         <button type="button" class="dive-tab @(_appSettings ? null : "selected")" aria-current="@(_appSettings ? null : "true")"
                 @onclick="() => _appSettings = false">
-            Plan
+            @WebText.Plan
         </button>
         <button type="button" class="dive-tab @(_appSettings ? "selected" : null)" aria-current="@(_appSettings ? "true" : null)"
                 @onclick="() => _appSettings = true">
-            App
+            @WebText.App
         </button>
     </nav>
 
@@ -150,23 +149,23 @@ else
         <section class="card">
             <div class="field-grid">
                 <div class="field">
-                    <span class="field-label">Units</span>
+                    <span class="field-label">@WebText.Units</span>
                     <div class="button-row">
                         <button type="button" class="@(_plan.Units == UnitSystem.Metric ? null : "secondary")"
                                 aria-pressed="@(_plan.Units == UnitSystem.Metric ? "true" : "false")"
                                 @onclick="() => ChangeAsync(PlanConverter.Convert(_plan, UnitSystem.Metric))">
-                            Metric
+                            @WebText.Metric
                         </button>
                         <button type="button" class="@(_plan.Units == UnitSystem.Imperial ? null : "secondary")"
                                 aria-pressed="@(_plan.Units == UnitSystem.Imperial ? "true" : "false")"
                                 @onclick="() => ChangeAsync(PlanConverter.Convert(_plan, UnitSystem.Imperial))">
-                            Imperial
+                            @WebText.Imperial
                         </button>
                     </div>
                 </div>
                 <div class="field another-plan">
-                    <span class="field-label">Another plan</span>
-                    <button type="button" class="secondary" @onclick="() => StartOverAsync(_plan.Units)"><Icon Name="IconName.Add"/>New plan</button>
+                    <span class="field-label">@WebText.AnotherPlan</span>
+                    <button type="button" class="secondary" @onclick="() => StartOverAsync(_plan.Units)"><Icon Name="IconName.Add"/>@WebText.NewPlan</button>
                 </div>
             </div>
         </section>

@@ -1,21 +1,21 @@
 <div class="field-grid">
-    <SelectField TValue="string" Label="Breathing apparatus" Options="Modes" Text="Name" Value="Mode" Issue="@Issues.Self"
+    <SelectField TValue="string" Label="@WebText.BreathingApparatus" Options="Modes" Text="Name" Value="Mode" Issue="@Issues.Self"
                  ValueChanged="SelectAsync"/>
 
     @switch (Value)
     {
         case ClosedCircuitInput closed:
             <div class="field-pair">
-                <NumberField Label="Bottom setpoint" Unit="bar" Value="closed.BottomSetpoint"
+                <NumberField Label="@WebText.BottomSetpoint" Unit="bar" Value="closed.BottomSetpoint"
                              Issue="@Issues[nameof(ClosedCircuitInput.BottomSetpoint)]"
                              ValueChanged="value => ChangeAsync(closed with { BottomSetpoint = value })"/>
-                <NumberField Label="Deco setpoint" Unit="bar" Value="closed.DecoSetpoint"
+                <NumberField Label="@WebText.DecoSetpoint" Unit="bar" Value="closed.DecoSetpoint"
                              Issue="@Issues[nameof(ClosedCircuitInput.DecoSetpoint)]"
                              ValueChanged="value => ChangeAsync(closed with { DecoSetpoint = value })"/>
             </div>
             break;
         case SemiClosedCircuitInput semiClosed:
-            <NumberField Label="Dump ratio" Value="semiClosed.DumpRatio" Issue="@Issues[nameof(SemiClosedCircuitInput.DumpRatio)]"
+            <NumberField Label="@WebText.DumpRatio" Value="semiClosed.DumpRatio" Issue="@Issues[nameof(SemiClosedCircuitInput.DumpRatio)]"
                          ValueChanged="value => ChangeAsync(semiClosed with { DumpRatio = value })"/>
             break;
     }
@@ -45,9 +45,9 @@
 
     private static string Name(string mode) => mode switch
     {
-        ClosedCircuitInput.ModeId => "Closed-circuit rebreather (CCR)",
-        SemiClosedCircuitInput.ModeId => "Semi-closed rebreather (SCR)",
-        _ => "Open circuit"
+        ClosedCircuitInput.ModeId => WebText.CircuitClosed,
+        SemiClosedCircuitInput.ModeId => WebText.CircuitSemiClosed,
+        _ => WebText.CircuitOpen
     };
 
     private Task SelectAsync(string mode) => mode switch

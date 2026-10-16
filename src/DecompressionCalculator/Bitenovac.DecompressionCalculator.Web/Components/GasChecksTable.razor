@@ -1,13 +1,13 @@
 <div class="table-scroll">
     <table class="gas-checks">
-        <caption>Each gas on each level and at its deepest. Density above @Display.Number(GasMath.DensityLimit, 1) g/L is marked.</caption>
+        <caption>@Localized.Format(WebText.GasChecksCaption, Display.Number(GasMath.DensityLimit, 1))</caption>
         <thead>
         <tr>
-            <th>Gas</th>
-            <th class="number">Depth</th>
-            <th class="number">PO₂</th>
-            <th class="number">END</th>
-            <th class="number">Density</th>
+            <th>@WebText.Gas</th>
+            <th class="number">@WebText.Depth</th>
+            <th class="number">@WebText.Po2</th>
+            <th class="number">@WebText.End</th>
+            <th class="number">@WebText.Density</th>
         </tr>
         </thead>
         <tbody>

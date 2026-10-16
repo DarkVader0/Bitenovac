@@ -2,10 +2,11 @@
 @implements IAsyncDisposable
 @inject PreferencesStore Preferences
 @inject IJSRuntime Js
+@inject NavigationManager Navigation
 
 <section class="card">
     <div class="field">
-        <span class="field-label">Theme</span>
+        <span class="field-label">@WebText.Theme</span>
         <div class="button-row">
             @foreach (var (theme, label) in Themes)
             {
@@ -16,18 +17,20 @@
             }
         </div>
     </div>
+    <SelectField TValue="string" Label="@WebText.Language" Options="AppLanguages.Tags" Text="AppLanguages.Name"
+                 Value="_preferences.Language" ValueChanged="ChooseLanguageAsync"/>
 </section>
 
 <section class="card">
-    <h2>Results</h2>
-    <p class="block-note">Switch the parts of a dive's results on or off, and drag them into the order you want. The PDF follows.</p>
+    <h2>@WebText.Results</h2>
+    <p class="block-note">@WebText.BlocksNote</p>
     <ul class="block-list" @ref="_list">
         @for (var index = 0; index < _preferences.Blocks.Count; index++)
         {
             var setting = _preferences.Blocks[index];
             var name = Name(setting.Block);
             <li class="block-item" @key="setting.Block" data-block="@setting.Block">
-                <button type="button" class="block-handle" aria-label="@($"Move {name}; drag, or use the up and down arrow keys")">
+                <button type="button" class="block-handle" aria-label="@Localized.Format(WebText.MoveBlock, name)">
                     <Icon Name="IconName.Grip"/>
                 </button>
                 <span class="block-name">@name</span>
@@ -41,9 +44,9 @@
 @code {
     private static readonly (ThemePreference Theme, string Label)[] Themes =
     [
-        (ThemePreference.Light, "Light"),
-        (ThemePreference.Dark, "Dark"),
-        (ThemePreference.System, "Match system")
+        (ThemePreference.Light, WebText.ThemeLight),
+        (ThemePreference.Dark, WebText.ThemeDark),
+        (ThemePreference.System, WebText.ThemeSystem)
     ];
 
     private UserPreferences _preferences = UserPreferences.Default;
@@ -89,15 +92,21 @@
 
     private static string Name(ResultBlock block) => block switch
     {
-        ResultBlock.Figures => "Runtime, TTS, CNS and OTU",
-        ResultBlock.Profile => "Profile",
-        ResultBlock.Gas => "Gas",
-        ResultBlock.Chart => "Profile chart",
-        ResultBlock.GasChecks => "Gas checks: END, PO₂ and density",
-        _ => "Contingencies"
+        ResultBlock.Figures => WebText.BlockFigures,
+        ResultBlock.Profile => WebText.Profile,
+        ResultBlock.Gas => WebText.Gas,
+        ResultBlock.Chart => WebText.ProfileChart,
+        ResultBlock.GasChecks => WebText.BlockGasChecks,
+        _ => WebText.Contingencies
     };
 
     private Task ChooseThemeAsync(ThemePreference theme) => SaveAsync(_preferences with { Theme = theme });
+
+    private async Task ChooseLanguageAsync(string language)
+    {
+        await SaveAsync(_preferences with { Language = language });
+        Navigation.Refresh(forceReload: true);
+    }
 
     private Task ShowAsync(ResultBlock block, bool visible) => SaveAsync(_preferences.WithVisible(block, visible));
 

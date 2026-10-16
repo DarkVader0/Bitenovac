@@ -12,4 +12,11 @@
         <InternalsVisibleTo Include="Bitenovac.DecompressionCalculator.Export.Unit.Tests"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <EmbeddedResource Update="Resources\ExportText.resx" Generator="MSBuild:Compile" StronglyTypedLanguage="CSharp"
+                          StronglyTypedNamespace="Bitenovac.DecompressionCalculator.Export" StronglyTypedClassName="ExportText"
+                          StronglyTypedFileName="$(IntermediateOutputPath)ExportText.Designer.cs"
+                          ManifestResourceName="Bitenovac.DecompressionCalculator.Export.ExportText"/>
+    </ItemGroup>
+
 </Project>

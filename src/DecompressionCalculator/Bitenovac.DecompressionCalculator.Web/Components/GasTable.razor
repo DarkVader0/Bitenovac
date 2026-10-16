@@ -3,15 +3,15 @@
         <caption>@Caption</caption>
         <thead>
         <tr>
-            <th>Gas</th>
-            <th>Use</th>
-            <th class="number">Pressure</th>
-            <th class="number">Used</th>
-            <th class="number">Reserve</th>
-            <th class="number">Left</th>
+            <th>@WebText.Gas</th>
+            <th>@WebText.Use</th>
+            <th class="number">@WebText.Pressure</th>
+            <th class="number">@WebText.Used</th>
+            <th class="number">@WebText.Reserve</th>
+            <th class="number">@WebText.Left</th>
             @if (RunsShort)
             {
-                <th class="number">Missing</th>
+                <th class="number">@WebText.Missing</th>
             }
         </tr>
         </thead>
@@ -50,15 +50,15 @@
     {
         get
         {
-            var caption = $"Pressure in {Labels.Pressure}, gas in {Labels.GasVolume} at the surface.";
+            var caption = Localized.Format(WebText.GasCaption, Labels.Pressure, Labels.GasVolume);
             if (Result.Cylinders.Any(static cylinder => State(cylinder) == "gas-error"))
             {
-                caption += " Red: the cylinder runs out.";
+                caption += WebText.GasCaptionRunsOut;
             }
 
             if (Result.Cylinders.Any(static cylinder => State(cylinder) == "gas-warning"))
             {
-                caption += " Orange: the reserve is not met.";
+                caption += WebText.GasCaptionReserve;
             }
 
             return caption;

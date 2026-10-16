@@ -2,11 +2,11 @@
 @inject PlanStore Store
 @inject NavigationManager Navigation
 
-<PageTitle>Plans · Bitenovac</PageTitle>
+<PageTitle>@Localized.Format(WebText.PlansTitle, "Bitenovac")</PageTitle>
 
 <header class="plan-header">
-    <h1 class="page-title">Plans</h1>
-    <button type="button" @onclick="NewAsync"><Icon Name="IconName.Add"/>New plan</button>
+    <h1 class="page-title">@WebText.Plans</h1>
+    <button type="button" @onclick="NewAsync"><Icon Name="IconName.Add"/>@WebText.NewPlan</button>
 </header>
 
 @if (_plans is null)
@@ -16,7 +16,7 @@
 
 @if (_plans.Count == 0)
 {
-    <p class="empty">No saved plans yet.</p>
+    <p class="empty">@WebText.NoSavedPlans</p>
 }
 else
 {
@@ -25,22 +25,22 @@ else
         {
             <li class="plan-item">
                 <a class="plan-link" href="@($"plan/{plan.Id:D}")">
-                    <span class="plan-item-name">@(string.IsNullOrWhiteSpace(plan.Name) ? "Untitled plan" : plan.Name)</span>
+                    <span class="plan-item-name">@(string.IsNullOrWhiteSpace(plan.Name) ? WebText.UntitledPlan : plan.Name)</span>
                     <span class="plan-item-meta">@PlanCopies.Describe(plan)</span>
-                    <span class="plan-item-meta">Changed @plan.ModifiedAt.ToLocalTime().ToString("g")</span>
+                    <span class="plan-item-meta">@Localized.Format(WebText.ChangedAt, plan.ModifiedAt.ToLocalTime().ToString("g"))</span>
                 </a>
                 @if (_confirmDelete == plan.Id)
                 {
                     <div class="button-row">
-                        <button type="button" class="danger" @onclick="() => DeleteAsync(plan.Id)">Delete</button>
-                        <button type="button" class="secondary" @onclick="() => _confirmDelete = null">Cancel</button>
+                        <button type="button" class="danger" @onclick="() => DeleteAsync(plan.Id)">@WebText.Delete</button>
+                        <button type="button" class="secondary" @onclick="() => _confirmDelete = null">@WebText.Cancel</button>
                     </div>
                 }
                 else
                 {
                     <div class="button-row">
-                        <button type="button" class="secondary" @onclick="() => DuplicateAsync(plan)"><Icon Name="IconName.Copy"/>Duplicate</button>
-                        <button type="button" class="secondary" @onclick="() => _confirmDelete = plan.Id"><Icon Name="IconName.Remove"/>Delete</button>
+                        <button type="button" class="secondary" @onclick="() => DuplicateAsync(plan)"><Icon Name="IconName.Copy"/>@WebText.Duplicate</button>
+                        <button type="button" class="secondary" @onclick="() => _confirmDelete = plan.Id"><Icon Name="IconName.Remove"/>@WebText.Delete</button>
                     </div>
                 }
             </li>

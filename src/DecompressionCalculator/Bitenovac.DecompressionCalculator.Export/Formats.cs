@@ -33,7 +33,7 @@ public static class Formats
     /// </summary>
     /// <param name="duration">The duration.</param>
     /// <returns>For example <c>20 min</c> or <c>1:40 min</c>.</returns>
-    public static string Minutes(TimeSpan duration) => $"{Clock(duration)} min";
+    public static string Minutes(TimeSpan duration) => Localized.Format(ExportText.Minutes, Clock(duration));
 
     /// <summary>
     /// Returns a duration in hours and minutes, rounded to the minute.

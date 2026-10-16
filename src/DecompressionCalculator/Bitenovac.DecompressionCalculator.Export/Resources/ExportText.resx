@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>2.0</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <data name="Disclaimer" xml:space="preserve">
+        <value>Warning: Bitenovac is decompression planning software that has had only limited testing. Do not dive a plan based on these results alone: check it against other planning tools, follow your dive computer, and dive within your training and certification.</value>
+    </data>
+    <data name="DivePlan" xml:space="preserve">
+        <value>Dive plan</value>
+    </data>
+    <data name="Dive" xml:space="preserve">
+        <value>Dive</value>
+    </data>
+    <data name="DiveNumbered" xml:space="preserve">
+        <value>Dive {0}</value>
+    </data>
+    <data name="PlaceOf" xml:space="preserve">
+        <value>{0} of {1}</value>
+    </data>
+    <data name="NamedPlace" xml:space="preserve">
+        <value>{0} ({1})</value>
+    </data>
+    <data name="SheetMeta" xml:space="preserve">
+        <value>{0} · {1} UTC · Bitenovac {2}</value>
+    </data>
+    <data name="ContingencySheetMeta" xml:space="preserve">
+        <value>{0} · Contingency · {1} UTC · Bitenovac {2}</value>
+    </data>
+    <data name="SeriesMeta" xml:space="preserve">
+        <value>{0} dives · {1} UTC · Bitenovac {2}</value>
+    </data>
+    <data name="SheetInterval" xml:space="preserve">
+        <value>After {0} h on the surface · </value>
+    </data>
+    <data name="CannotBeCalculated" xml:space="preserve">
+        <value>This plan cannot be calculated:</value>
+    </data>
+    <data name="IssueLine" xml:space="preserve">
+        <value>- {0}</value>
+    </data>
+    <data name="CannotBePlanned" xml:space="preserve">
+        <value>cannot be planned</value>
+    </data>
+    <data name="SeriesNote" xml:space="preserve">
+        <value>SI is the surface interval before the dive, in hours and minutes. CNS and OTU include the earlier dives.</value>
+    </data>
+    <data name="ColumnDive" xml:space="preserve">
+        <value>Dive</value>
+    </data>
+    <data name="ColumnInterval" xml:space="preserve">
+        <value>SI (h:mm)</value>
+    </data>
+    <data name="ColumnDepth" xml:space="preserve">
+        <value>Depth ({0})</value>
+    </data>
+    <data name="ColumnRuntime" xml:space="preserve">
+        <value>Runtime (min)</value>
+    </data>
+    <data name="ColumnTts" xml:space="preserve">
+        <value>TTS (min)</value>
+    </data>
+    <data name="ColumnCns" xml:space="preserve">
+        <value>CNS (%)</value>
+    </data>
+    <data name="ColumnOtu" xml:space="preserve">
+        <value>OTU</value>
+    </data>
+    <data name="ColumnTime" xml:space="preserve">
+        <value>Time (min)</value>
+    </data>
+    <data name="ColumnGas" xml:space="preserve">
+        <value>Gas</value>
+    </data>
+    <data name="ColumnApparatus" xml:space="preserve">
+        <value>Apparatus</value>
+    </data>
+    <data name="ColumnUsedAs" xml:space="preserve">
+        <value>Used as</value>
+    </data>
+    <data name="ColumnPressure" xml:space="preserve">
+        <value>Pressure ({0})</value>
+    </data>
+    <data name="ColumnUsed" xml:space="preserve">
+        <value>Used ({0})</value>
+    </data>
+    <data name="ColumnReserve" xml:space="preserve">
+        <value>Reserve ({0})</value>
+    </data>
+    <data name="ColumnLeft" xml:space="preserve">
+        <value>Left ({0})</value>
+    </data>
+    <data name="ColumnMissing" xml:space="preserve">
+        <value>Missing ({0})</value>
+    </data>
+    <data name="ColumnPo2" xml:space="preserve">
+        <value>PO2 (bar)</value>
+    </data>
+    <data name="ColumnEnd" xml:space="preserve">
+        <value>END ({0})</value>
+    </data>
+    <data name="ColumnDensity" xml:space="preserve">
+        <value>Density (g/L)</value>
+    </data>
+    <data name="FigureRuntime" xml:space="preserve">
+        <value>Runtime</value>
+    </data>
+    <data name="FigureTts" xml:space="preserve">
+        <value>TTS</value>
+    </data>
+    <data name="FigureCns" xml:space="preserve">
+        <value>CNS</value>
+    </data>
+    <data name="FigureOtu" xml:space="preserve">
+        <value>OTU</value>
+    </data>
+    <data name="Percent" xml:space="preserve">
+        <value>{0} %</value>
+    </data>
+    <data name="Minutes" xml:space="preserve">
+        <value>{0} min</value>
+    </data>
+    <data name="MinutesAxis" xml:space="preserve">
+        <value>min</value>
+    </data>
+    <data name="PressureRange" xml:space="preserve">
+        <value>{0} to {1}</value>
+    </data>
+    <data name="ViolationWarning" xml:space="preserve">
+        <value>Ascent from {0} to {1} {2} passes the decompression ceiling at {3} {2}.</value>
+    </data>
+    <data name="RunsOutWarning" xml:space="preserve">
+        <value>{0} runs out: the dive needs {1} {2} more than the cylinder holds.</value>
+    </data>
+    <data name="ReserveWarning" xml:space="preserve">
+        <value>A cylinder does not hold the reserve gas the plan requires.</value>
+    </data>
+    <data name="ContingencyLost" xml:space="preserve">
+        <value>{0} lost</value>
+    </data>
+    <data name="ContingencyExtended" xml:space="preserve">
+        <value>+{0} min, +{1} {2}</value>
+    </data>
+    <data name="ContingencyLostMeaning" xml:space="preserve">
+        <value>The plan above with the {0} cylinders lost: the dive is planned again without them.</value>
+    </data>
+    <data name="ContingencyExtendedMeaning" xml:space="preserve">
+        <value>The plan above with its deepest level {0} {1} deeper and {2} min longer.</value>
+    </data>
+    <data name="DensityWarning" xml:space="preserve">
+        <value>{0} is {1} g/L at {2} {3}, above {4} g/L: breathing gets hard work. Add helium or plan shallower.</value>
+    </data>
+    <data name="CounterdiffusionWarning" xml:space="preserve">
+        <value>The switch from {0} to {1} at {2} {3} adds more nitrogen than a fifth of the helium it drops, which risks isobaric counterdiffusion.</value>
+    </data>
+    <data name="SummaryInterval" xml:space="preserve">
+        <value> (after {0} h on the surface)</value>
+    </data>
+    <data name="SummaryInputs" xml:space="preserve">
+        <value>: {0}</value>
+    </data>
+    <data name="SummarySettings" xml:space="preserve">
+        <value>Settings: {0}</value>
+    </data>
+    <data name="SummaryCannotBePlanned" xml:space="preserve">
+        <value>Cannot be planned: {0}</value>
+    </data>
+    <data name="SummaryStops" xml:space="preserve">
+        <value>Stops: {0}</value>
+    </data>
+    <data name="SummaryNoStops" xml:space="preserve">
+        <value>No stops</value>
+    </data>
+    <data name="SummaryNoDecoStops" xml:space="preserve">
+        <value>No decompression stops</value>
+    </data>
+    <data name="SummarySafetyStop" xml:space="preserve">
+        <value> · safety stop {0}</value>
+    </data>
+    <data name="SummaryFigures" xml:space="preserve">
+        <value>Runtime {0} · max {1} {2} · CNS {3} % · OTU {4}</value>
+    </data>
+    <data name="SummaryCylinder" xml:space="preserve">
+        <value>{0}: {1} {2} used, {3} to {4} {5}</value>
+    </data>
+    <data name="SummaryRunsOut" xml:space="preserve">
+        <value> - runs out, {0} {1} short</value>
+    </data>
+    <data name="SummaryReserveNotMet" xml:space="preserve">
+        <value> - reserve not met</value>
+    </data>
+    <data name="SummaryCeilingWarning" xml:space="preserve">
+        <value>Warning: an ascent between levels passes the decompression ceiling.</value>
+    </data>
+    <data name="SummaryWarning" xml:space="preserve">
+        <value>Warning: {0}</value>
+    </data>
+    <data name="SummaryContingencies" xml:space="preserve">
+        <value>Contingencies:</value>
+    </data>
+    <data name="SummaryContingencyFailed" xml:space="preserve">
+        <value>{0}: cannot be planned: {1}</value>
+    </data>
+    <data name="SummaryContingency" xml:space="preserve">
+        <value>{0}: runtime {1} · {2} · CNS {3} %</value>
+    </data>
+    <data name="SummaryContingencyStops" xml:space="preserve">
+        <value>stops {0}</value>
+    </data>
+    <data name="SummaryContingencyNoStops" xml:space="preserve">
+        <value>no decompression stops</value>
+    </data>
+    <data name="SummaryStop" xml:space="preserve">
+        <value>{0} {1} {2} min</value>
+    </data>
+    <data name="ListSeparator" xml:space="preserve">
+        <value>, </value>
+    </data>
+    <data name="Metric" xml:space="preserve">
+        <value>Metric</value>
+    </data>
+    <data name="Imperial" xml:space="preserve">
+        <value>Imperial</value>
+    </data>
+    <data name="Header" xml:space="preserve">
+        <value>{0} · {1} · exported {2} UTC</value>
+    </data>
+    <data name="Buhlmann" xml:space="preserve">
+        <value>Bühlmann ZHL-16C GF {0}/{1}</value>
+    </data>
+    <data name="UnknownAlgorithm" xml:space="preserve">
+        <value>Unknown algorithm</value>
+    </data>
+    <data name="SettingsLine" xml:space="preserve">
+        <value>{0} · altitude {1} {2} · SAC {3} / {4} {5} · PO2 {6} / {7} bar · last stop {8} · safety stop {9} · O2 {10} in END</value>
+    </data>
+    <data name="On" xml:space="preserve">
+        <value>on</value>
+    </data>
+    <data name="Off" xml:space="preserve">
+        <value>off</value>
+    </data>
+    <data name="Narcotic" xml:space="preserve">
+        <value>narcotic</value>
+    </data>
+    <data name="NotNarcotic" xml:space="preserve">
+        <value>not narcotic</value>
+    </data>
+    <data name="InputLevel" xml:space="preserve">
+        <value>{0} {1} {2} min</value>
+    </data>
+    <data name="InputCylinder" xml:space="preserve">
+        <value>{0} {1} {2} at {3} {4} ({5})</value>
+    </data>
+    <data name="InputsLine" xml:space="preserve">
+        <value>{0} · {1} · {2}</value>
+    </data>
+    <data name="PurposeBottomGas" xml:space="preserve">
+        <value>Bottom gas</value>
+    </data>
+    <data name="PurposeDecoGas" xml:space="preserve">
+        <value>Deco gas</value>
+    </data>
+    <data name="PurposeDiluent" xml:space="preserve">
+        <value>Diluent</value>
+    </data>
+    <data name="PurposeBailout" xml:space="preserve">
+        <value>Bailout</value>
+    </data>
+    <data name="PurposeOxygen" xml:space="preserve">
+        <value>Oxygen</value>
+    </data>
+    <data name="CircuitClosed" xml:space="preserve">
+        <value>CCR</value>
+    </data>
+    <data name="CircuitSemiClosed" xml:space="preserve">
+        <value>SCR</value>
+    </data>
+    <data name="CircuitOpen" xml:space="preserve">
+        <value>Open circuit</value>
+    </data>
+    <data name="SegmentDescent" xml:space="preserve">
+        <value>Descent</value>
+    </data>
+    <data name="SegmentLevel" xml:space="preserve">
+        <value>Level</value>
+    </data>
+    <data name="SegmentAscent" xml:space="preserve">
+        <value>Ascent</value>
+    </data>
+    <data name="SegmentStop" xml:space="preserve">
+        <value>Stop</value>
+    </data>
+    <data name="SegmentSwitch" xml:space="preserve">
+        <value>Switch</value>
+    </data>
+    <data name="SegmentSafetyStop" xml:space="preserve">
+        <value>Safety stop</value>
+    </data>
+    <data name="SalinityFresh" xml:space="preserve">
+        <value>Fresh water</value>
+    </data>
+    <data name="SalinitySalt" xml:space="preserve">
+        <value>Salt water</value>
+    </data>
+    <data name="SalinityBrackish" xml:space="preserve">
+        <value>Brackish water</value>
+    </data>
+    <data name="SalinityEn13319" xml:space="preserve">
+        <value>EN 13319 (dive computer standard)</value>
+    </data>
+    <data name="IssueSettings" xml:space="preserve">
+        <value>Settings</value>
+    </data>
+    <data name="IssueAlgorithm" xml:space="preserve">
+        <value>Algorithm</value>
+    </data>
+    <data name="IssueLocation" xml:space="preserve">
+        <value>{0}: {1}</value>
+    </data>
+    <data name="IssueInDive" xml:space="preserve">
+        <value>Dive {0} · {1}</value>
+    </data>
+    <data name="IssueLevel" xml:space="preserve">
+        <value>Level {0}</value>
+    </data>
+    <data name="IssueCylinder" xml:space="preserve">
+        <value>Cylinder {0}</value>
+    </data>
+</root>

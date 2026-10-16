@@ -4,12 +4,12 @@
         @if (Contingency.Result.Succeeded)
         {
             <span class="contingency-summary">
-                @Display.Minutes(Contingency.Result.TotalRuntime) · TTS @Display.Minutes(ResultFigures.TimeToSurface(Contingency.Result))
+                @Localized.Format(WebText.ContingencySummary, Display.Minutes(Contingency.Result.TotalRuntime), Display.Minutes(ResultFigures.TimeToSurface(Contingency.Result)))
             </span>
         }
         else
         {
-            <span class="contingency-summary contingency-failed">Cannot be planned</span>
+            <span class="contingency-summary contingency-failed">@WebText.CannotBePlanned</span>
         }
     </summary>
 
@@ -24,7 +24,7 @@
 
         @if (!Contingency.Result.IsValid)
         {
-            <p class="alert alert-danger">An ascent between levels passes the decompression ceiling.</p>
+            <p class="alert alert-danger">@WebText.CeilingPassed</p>
         }
 
         <GasTable Result="Contingency.Result" Units="Units"/>
@@ -39,6 +39,6 @@
     public UnitSystem Units { get; set; }
 
     private string Name => Contingency.Kind == ContingencyKind.LostGas
-        ? $"{Contingency.LostGas} lost"
-        : $"+{Display.Number(Contingency.ExtraMinutes)} min, +{Display.Number(Contingency.ExtraDepth)} {UnitLabels.For(Units).Depth}";
+        ? Localized.Format(WebText.ContingencyLost, Contingency.LostGas)
+        : Localized.Format(WebText.ContingencyExtended, Display.Number(Contingency.ExtraMinutes), Display.Number(Contingency.ExtraDepth), UnitLabels.For(Units).Depth);
 }

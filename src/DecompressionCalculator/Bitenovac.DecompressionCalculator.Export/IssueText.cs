@@ -21,11 +21,11 @@ public static class IssueText
         var parts = issue.Path.Split('.');
         var location = parts[0] switch
         {
-            nameof(DivePlanDocument.Settings) => "Settings",
-            nameof(DivePlanDocument.Algorithm) => "Algorithm",
+            nameof(DivePlanDocument.Settings) => ExportText.IssueSettings,
+            nameof(DivePlanDocument.Algorithm) => ExportText.IssueAlgorithm,
             _ => parts.Length > 1 ? Item(parts[1]) : null
         };
-        return location is null ? issue.Message : $"{location}: {issue.Message}";
+        return location is null ? issue.Message : Localized.Format(ExportText.IssueLocation, location, issue.Message);
     }
 
     /// <summary>
@@ -38,18 +38,18 @@ public static class IssueText
     {
         var description = Describe(issue);
         var dive = Index(issue.Path.Split('.')[0], nameof(DivePlanDocument.Dives));
-        return dive is { } index ? $"Dive {(index + 1).ToString(CultureInfo.InvariantCulture)} · {description}" : description;
+        return dive is { } index ? Localized.Format(ExportText.IssueInDive, (index + 1).ToString(CultureInfo.InvariantCulture), description) : description;
     }
 
     private static string? Item(string part)
     {
         if (Index(part, nameof(DiveInput.Levels)) is { } level)
         {
-            return $"Level {(level + 1).ToString(CultureInfo.InvariantCulture)}";
+            return Localized.Format(ExportText.IssueLevel, (level + 1).ToString(CultureInfo.InvariantCulture));
         }
 
         return Index(part, nameof(DiveInput.Cylinders)) is { } cylinder
-            ? $"Cylinder {(cylinder + 1).ToString(CultureInfo.InvariantCulture)}"
+            ? Localized.Format(ExportText.IssueCylinder, (cylinder + 1).ToString(CultureInfo.InvariantCulture))
             : null;
     }
 

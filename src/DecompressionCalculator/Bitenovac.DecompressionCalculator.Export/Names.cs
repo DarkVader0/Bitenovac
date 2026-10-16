@@ -17,11 +17,11 @@ public static class Names
     /// <returns>The name, or the enum member name when the role is not known.</returns>
     public static string Of(CylinderPurpose purpose) => purpose switch
     {
-        CylinderPurpose.BottomGas => "Bottom gas",
-        CylinderPurpose.DecoGas => "Deco gas",
-        CylinderPurpose.Diluent => "Diluent",
-        CylinderPurpose.Bailout => "Bailout",
-        CylinderPurpose.Oxygen => "Oxygen",
+        CylinderPurpose.BottomGas => ExportText.PurposeBottomGas,
+        CylinderPurpose.DecoGas => ExportText.PurposeDecoGas,
+        CylinderPurpose.Diluent => ExportText.PurposeDiluent,
+        CylinderPurpose.Bailout => ExportText.PurposeBailout,
+        CylinderPurpose.Oxygen => ExportText.PurposeOxygen,
         _ => purpose.ToString()
     };
 
@@ -37,9 +37,9 @@ public static class Names
 
         return circuit switch
         {
-            ClosedCircuitInput => "CCR",
-            SemiClosedCircuitInput => "SCR",
-            _ => "Open circuit"
+            ClosedCircuitInput => ExportText.CircuitClosed,
+            SemiClosedCircuitInput => ExportText.CircuitSemiClosed,
+            _ => ExportText.CircuitOpen
         };
     }
 
@@ -50,12 +50,12 @@ public static class Names
     /// <returns>The name; a bottom segment is a <c>Level</c>.</returns>
     public static string Of(SegmentKind kind) => kind switch
     {
-        SegmentKind.Descent => "Descent",
-        SegmentKind.Bottom => "Level",
-        SegmentKind.Ascent => "Ascent",
-        SegmentKind.Stop => "Stop",
-        SegmentKind.GasSwitch => "Switch",
-        SegmentKind.SafetyStop => "Safety stop",
+        SegmentKind.Descent => ExportText.SegmentDescent,
+        SegmentKind.Bottom => ExportText.SegmentLevel,
+        SegmentKind.Ascent => ExportText.SegmentAscent,
+        SegmentKind.Stop => ExportText.SegmentStop,
+        SegmentKind.GasSwitch => ExportText.SegmentSwitch,
+        SegmentKind.SafetyStop => ExportText.SegmentSafetyStop,
         _ => kind.ToString()
     };
 
@@ -66,10 +66,10 @@ public static class Names
     /// <returns>The name, or the enum member name when the type is not known.</returns>
     public static string Of(Salinity salinity) => salinity switch
     {
-        Salinity.Fresh => "Fresh water",
-        Salinity.Salt => "Salt water",
-        Salinity.Brackish => "Brackish water",
-        Salinity.EN13319 => "EN 13319 (dive computer standard)",
+        Salinity.Fresh => ExportText.SalinityFresh,
+        Salinity.Salt => ExportText.SalinitySalt,
+        Salinity.Brackish => ExportText.SalinityBrackish,
+        Salinity.EN13319 => ExportText.SalinityEn13319,
         _ => salinity.ToString()
     };
 }

@@ -1,10 +1,10 @@
 @inject PlanStore Store
 @inject NavigationManager Navigation
 
-<nav class="plans-panel no-print" aria-label="Saved plans">
+<nav class="plans-panel no-print" aria-label="@WebText.SavedPlans">
     <div class="plans-panel-header">
-        <h2>Plans</h2>
-        <button type="button" class="secondary" @onclick="NewAsync"><Icon Name="IconName.Add"/>New plan</button>
+        <h2>@WebText.Plans</h2>
+        <button type="button" class="secondary" @onclick="NewAsync"><Icon Name="IconName.Add"/>@WebText.NewPlan</button>
     </div>
 
     @if (_plans is not null)
@@ -14,7 +14,7 @@
             {
                 var shown = plan.Id == Current.Id ? Current : plan;
                 var current = plan.Id == Current.Id;
-                var name = string.IsNullOrWhiteSpace(shown.Name) ? "Untitled plan" : shown.Name;
+                var name = string.IsNullOrWhiteSpace(shown.Name) ? WebText.UntitledPlan : shown.Name;
                 <li class="plans-panel-item @(current ? "current" : null)">
                     <a class="plans-panel-link" href="@($"plan/{plan.Id:D}")" aria-current="@(current ? "page" : null)">
                         <span class="plan-item-name">@name</span>
@@ -23,19 +23,19 @@
                     @if (_confirmDelete == plan.Id)
                     {
                         <div class="plans-panel-confirm">
-                            <span>Delete this plan?</span>
-                            <button type="button" class="danger" @onclick="() => DeleteAsync(plan.Id)">Delete</button>
-                            <button type="button" class="secondary" @onclick="() => _confirmDelete = null">Cancel</button>
+                            <span>@WebText.DeletePlanQuestion</span>
+                            <button type="button" class="danger" @onclick="() => DeleteAsync(plan.Id)">@WebText.Delete</button>
+                            <button type="button" class="secondary" @onclick="() => _confirmDelete = null">@WebText.Cancel</button>
                         </div>
                     }
                     else
                     {
                         <div class="plans-panel-actions">
-                            <button type="button" class="icon-button" title="Duplicate" aria-label="@($"Duplicate {name}")"
+                            <button type="button" class="icon-button" title="@WebText.Duplicate" aria-label="@Localized.Format(WebText.DuplicateNamed, name)"
                                     @onclick="() => DuplicateAsync(shown)">
                                 <Icon Name="IconName.Copy"/>
                             </button>
-                            <button type="button" class="icon-button" title="Delete" aria-label="@($"Delete {name}")"
+                            <button type="button" class="icon-button" title="@WebText.Delete" aria-label="@Localized.Format(WebText.DeleteNamed, name)"
                                     @onclick="() => _confirmDelete = plan.Id">
                                 <Icon Name="IconName.Remove"/>
                             </button>

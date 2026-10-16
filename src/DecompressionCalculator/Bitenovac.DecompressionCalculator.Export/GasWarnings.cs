@@ -22,13 +22,10 @@ public static class GasWarnings
         var labels = UnitLabels.For(units);
         var density = result.GasChecks
             .Where(static check => check.IsTooDense)
-            .Select(check =>
-                $"{check.Gas} is {Formats.Number(check.Density, 1)} g/L at {Formats.Number(check.Depth)} {labels.Depth}, " +
-                $"above {Formats.Number(GasMath.DensityLimit, 1)} g/L: breathing gets hard work. Add helium or plan shallower.");
+            .Select(check => Localized.Format(ExportText.DensityWarning, check.Gas, Formats.Number(check.Density, 1),
+                Formats.Number(check.Depth), labels.Depth, Formats.Number(GasMath.DensityLimit, 1)));
         var counterdiffusion = result.Counterdiffusion
-            .Select(row =>
-                $"The switch from {row.From} to {row.To} at {Formats.Number(row.Depth)} {labels.Depth} adds more nitrogen than a fifth " +
-                "of the helium it drops, which risks isobaric counterdiffusion.");
+            .Select(row => Localized.Format(ExportText.CounterdiffusionWarning, row.From, row.To, Formats.Number(row.Depth), labels.Depth));
         return [.. density, .. counterdiffusion];
     }
 }

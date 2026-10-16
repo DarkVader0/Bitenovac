@@ -28,17 +28,17 @@ public static class PlanSummary
         var labels = UnitLabels.For(plan.Units);
         var text = new StringBuilder();
 
-        text.AppendLine(string.IsNullOrWhiteSpace(plan.Name) ? "Dive plan" : plan.Name);
+        text.AppendLine(string.IsNullOrWhiteSpace(plan.Name) ? ExportText.DivePlan : plan.Name);
         text.AppendLine(Summary.Header(plan, exportedAt));
         text.AppendLine(Summary.Settings(plan));
 
         if (!calculation.IsCalculated)
         {
             text.AppendLine();
-            text.AppendLine("This plan cannot be calculated:");
+            text.AppendLine(ExportText.CannotBeCalculated);
             foreach (var issue in calculation.Issues)
             {
-                text.AppendLine(CultureInfo.InvariantCulture, $"- {Summary.Describe(issue)}");
+                text.AppendLine(Localized.Format(ExportText.IssueLine, Summary.Describe(issue)));
             }
         }
         else
@@ -59,21 +59,21 @@ public static class PlanSummary
         var dive = plan.Dives[index];
 
         text.AppendLine();
-        text.Append(plan.Dives.Count == 1 && string.IsNullOrWhiteSpace(dive.Name) ? "Dive" : dive.DisplayName(index + 1));
+        text.Append(plan.Dives.Count == 1 && string.IsNullOrWhiteSpace(dive.Name) ? ExportText.Dive : dive.DisplayName(index + 1));
         if (index > 0)
         {
-            text.Append(CultureInfo.InvariantCulture, $" (after {Formats.HoursAndMinutes(TimeSpan.FromMinutes(dive.SurfaceIntervalMinutes))} h on the surface)");
+            text.Append(Localized.Format(ExportText.SummaryInterval, Formats.HoursAndMinutes(TimeSpan.FromMinutes(dive.SurfaceIntervalMinutes))));
         }
 
-        text.AppendLine(CultureInfo.InvariantCulture, $": {Summary.Inputs(dive, plan.Units)}");
+        text.AppendLine(Localized.Format(ExportText.SummaryInputs, Summary.Inputs(dive, plan.Units)));
         if (dive.Settings is { } settings)
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"Settings: {Summary.Settings(plan, settings)}");
+            text.AppendLine(Localized.Format(ExportText.SummarySettings, Summary.Settings(plan, settings)));
         }
 
         if (!result.Succeeded)
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"Cannot be planned: {result.FailureMessage}");
+            text.AppendLine(Localized.Format(ExportText.SummaryCannotBePlanned, result.FailureMessage));
             return;
         }
 
@@ -84,65 +84,64 @@ public static class PlanSummary
         var safetyStop = result.Profile.FirstOrDefault(static phase => phase.Kind == SegmentKind.SafetyStop);
 
         text.Append(stops.Length > 0
-            ? $"Stops: {string.Join(", ", stops)}"
-            : safetyStop is null ? "No stops" : "No decompression stops");
+            ? Localized.Format(ExportText.SummaryStops, string.Join(ExportText.ListSeparator, stops))
+            : safetyStop is null ? ExportText.SummaryNoStops : ExportText.SummaryNoDecoStops);
         if (safetyStop is not null)
         {
-            text.Append(CultureInfo.InvariantCulture, $" · safety stop {Stop(safetyStop, labels)}");
+            text.Append(Localized.Format(ExportText.SummarySafetyStop, Stop(safetyStop, labels)));
         }
 
         text.AppendLine();
 
-        text.AppendLine(CultureInfo.InvariantCulture,
-            $"Runtime {Formats.Minutes(result.TotalRuntime)} · max {Formats.Number(result.MaximumDepth)} {labels.Depth} · " +
-            $"CNS {Formats.Number(result.CnsPercent)} % · OTU {Formats.Number(result.OxygenToleranceUnits)}");
+        text.AppendLine(Localized.Format(ExportText.SummaryFigures, Formats.Minutes(result.TotalRuntime), Formats.Number(result.MaximumDepth),
+            labels.Depth, Formats.Number(result.CnsPercent), Formats.Number(result.OxygenToleranceUnits)));
 
         foreach (var cylinder in result.Cylinders)
         {
             text.AppendLine(
-                $"{cylinder.Gas}: {Formats.Number(cylinder.GasUsed)} {labels.GasVolume} used, " +
-                $"{Formats.Number(cylinder.StartPressure)} to {Formats.Number(cylinder.EndPressure)} {labels.Pressure}" +
-                (cylinder.Shortfall > 0 ? $" - runs out, {Formats.Number(cylinder.Shortfall)} {labels.GasVolume} short" : string.Empty) +
-                (cylinder.ReserveSatisfied ? string.Empty : " - reserve not met"));
+                Localized.Format(ExportText.SummaryCylinder, cylinder.Gas, Formats.Number(cylinder.GasUsed), labels.GasVolume,
+                    Formats.Number(cylinder.StartPressure), Formats.Number(cylinder.EndPressure), labels.Pressure) +
+                (cylinder.Shortfall > 0 ? Localized.Format(ExportText.SummaryRunsOut, Formats.Number(cylinder.Shortfall), labels.GasVolume) : string.Empty) +
+                (cylinder.ReserveSatisfied ? string.Empty : ExportText.SummaryReserveNotMet));
         }
 
         if (!result.IsValid)
         {
-            text.AppendLine("Warning: an ascent between levels passes the decompression ceiling.");
+            text.AppendLine(ExportText.SummaryCeilingWarning);
         }
 
         foreach (var warning in GasWarnings.For(result, plan.Units))
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"Warning: {warning}");
+            text.AppendLine(Localized.Format(ExportText.SummaryWarning, warning));
         }
 
-        text.AppendLine("Contingencies:");
+        text.AppendLine(ExportText.SummaryContingencies);
         foreach (var contingency in result.Contingencies)
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"- {Contingency(contingency, labels)}");
+            text.AppendLine(Localized.Format(ExportText.IssueLine, Contingency(contingency, labels)));
         }
     }
 
     private static string Contingency(Contingency contingency, UnitLabels labels)
     {
-        var name = contingency.Kind == ContingencyKind.LostGas
-            ? $"{contingency.LostGas} lost"
-            : $"+{Formats.Number(contingency.ExtraMinutes)} min, +{Formats.Number(contingency.ExtraDepth)} {labels.Depth}";
+        var name = Summary.ContingencyName(contingency, labels);
         var result = contingency.Result;
         if (!result.Succeeded)
         {
-            return $"{name}: cannot be planned: {result.FailureMessage}";
+            return Localized.Format(ExportText.SummaryContingencyFailed, name, result.FailureMessage);
         }
 
         var stops = result.Profile
             .Where(static phase => phase.Kind == SegmentKind.Stop)
             .Select(phase => Stop(phase, labels))
             .ToArray();
-        return $"{name}: runtime {Formats.Minutes(result.TotalRuntime)} · " +
-               (stops.Length > 0 ? $"stops {string.Join(", ", stops)}" : "no decompression stops") +
-               $" · CNS {Formats.Number(result.CnsPercent)} %";
+        return Localized.Format(ExportText.SummaryContingency, name, Formats.Minutes(result.TotalRuntime),
+            stops.Length > 0
+                ? Localized.Format(ExportText.SummaryContingencyStops, string.Join(ExportText.ListSeparator, stops))
+                : ExportText.SummaryContingencyNoStops,
+            Formats.Number(result.CnsPercent));
     }
 
     private static string Stop(ProfileRow stop, UnitLabels labels) =>
-        $"{Formats.Number(stop.EndDepth)} {labels.Depth} {Formats.Clock(stop.Duration)} min";
+        Localized.Format(ExportText.SummaryStop, Formats.Number(stop.EndDepth), labels.Depth, Formats.Clock(stop.Duration));
 }

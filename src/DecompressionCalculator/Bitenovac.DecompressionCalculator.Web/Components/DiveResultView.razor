@@ -13,7 +13,7 @@
         @if (!Result.IsValid)
         {
             <div class="alert alert-danger">
-                <p>An ascent between levels passes the decompression ceiling. Add a stop or shorten the level.</p>
+                <p>@WebText.CeilingViolation</p>
                 <ul>
                     @foreach (var violation in Result.Violations)
                     {
@@ -28,7 +28,7 @@
 
         @if (!Result.ReserveSatisfied)
         {
-            <p class="alert alert-warning">A cylinder does not hold the reserve gas the plan requires.</p>
+            <p class="alert alert-warning">@WebText.ReserveNotMet</p>
         }
 
         @foreach (var warning in GasWarnings.For(Result, Units))
@@ -44,23 +44,23 @@
                     <Figures Result="Result"/>
                     break;
                 case ResultBlock.Profile:
-                    <h3>Profile</h3>
+                    <h3>@WebText.Profile</h3>
                     <ProfileTable Result="Result" Units="Units"/>
                     break;
                 case ResultBlock.Gas:
-                    <h3>Gas</h3>
+                    <h3>@WebText.Gas</h3>
                     <GasTable Result="Result" Units="Units"/>
                     break;
                 case ResultBlock.GasChecks:
-                    <h3>Gas checks</h3>
+                    <h3>@WebText.GasChecks</h3>
                     <GasChecksTable Result="Result" Units="Units"/>
                     break;
                 case ResultBlock.Chart:
-                    <h3>Profile chart</h3>
+                    <h3>@WebText.ProfileChart</h3>
                     <ProfileChartView Result="Result" Units="Units"/>
                     break;
                 case ResultBlock.Contingencies:
-                    <h3>Contingencies</h3>
+                    <h3>@WebText.Contingencies</h3>
                     @foreach (var contingency in Result.Contingencies)
                     {
                         <ContingencyView Contingency="contingency" Units="Units"/>
@@ -72,7 +72,7 @@
 
         @if (_blocks.Count == 0)
         {
-            <p class="block-note">Every part of the results is hidden. Show them again in Settings, under App.</p>
+            <p class="block-note">@WebText.AllBlocksHidden</p>
         }
     }
 </section>
@@ -84,7 +84,7 @@
     public DiveResult Result { get; set; } = default!;
 
     [Parameter]
-    public string Title { get; set; } = "Results";
+    public string Title { get; set; } = WebText.Results;
 
     [Parameter]
     public UnitSystem Units { get; set; }

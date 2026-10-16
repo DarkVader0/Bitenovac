@@ -1,16 +1,16 @@
 <section class="card">
-    <h2>Algorithm</h2>
+    <h2>@WebText.Algorithm</h2>
     <div class="field-grid">
-        <SelectField TValue="AlgorithmDescriptor" Label="Decompression algorithm" Options="AlgorithmCatalog.Algorithms"
+        <SelectField TValue="AlgorithmDescriptor" Label="@WebText.DecompressionAlgorithm" Options="AlgorithmCatalog.Algorithms"
                      Text="static algorithm => algorithm.DisplayName" Value="Selected" ValueChanged="SelectAsync"/>
 
         @switch (Value)
         {
             case BuhlmannZhl16cSettings buhlmann:
-                <NumberField Label="Gradient factor low" Unit="%" Step="1" Value="buhlmann.GradientFactorLow"
+                <NumberField Label="@WebText.GradientFactorLow" Unit="%" Step="1" Value="buhlmann.GradientFactorLow"
                              Issue="@Issues[nameof(BuhlmannZhl16cSettings.GradientFactorLow)]"
                              ValueChanged="value => ValueChanged.InvokeAsync(buhlmann with { GradientFactorLow = value })"/>
-                <NumberField Label="Gradient factor high" Unit="%" Step="1" Value="buhlmann.GradientFactorHigh"
+                <NumberField Label="@WebText.GradientFactorHigh" Unit="%" Step="1" Value="buhlmann.GradientFactorHigh"
                              Issue="@Issues[nameof(BuhlmannZhl16cSettings.GradientFactorHigh)]"
                              ValueChanged="value => ValueChanged.InvokeAsync(buhlmann with { GradientFactorHigh = value })"/>
                 break;

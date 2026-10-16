@@ -23,7 +23,7 @@ public static class Display
     public static string Name(CylinderPurpose purpose) => Names.Of(purpose);
 
     public static string Name(CylinderPurpose purpose, CircuitInput circuit) =>
-        purpose == CylinderPurpose.Diluent && circuit is SemiClosedCircuitInput ? "Loop supply" : Names.Of(purpose);
+        purpose == CylinderPurpose.Diluent && circuit is SemiClosedCircuitInput ? WebText.LoopSupply : Names.Of(purpose);
 
     public static string Name(CircuitInput circuit) => Names.Of(circuit);
 
@@ -33,8 +33,8 @@ public static class Display
 
     public static string Name(MaximumOperatingDepthModel model) => model switch
     {
-        MaximumOperatingDepthModel.Realistic => "Realistic (salinity and altitude)",
-        MaximumOperatingDepthModel.Simplified => "Simplified (10 m per bar)",
+        MaximumOperatingDepthModel.Realistic => WebText.DepthModelRealistic,
+        MaximumOperatingDepthModel.Simplified => WebText.DepthModelSimplified,
         _ => model.ToString()
     };
 }
