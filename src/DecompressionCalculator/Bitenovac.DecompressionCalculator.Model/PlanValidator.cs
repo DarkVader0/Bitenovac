@@ -124,6 +124,7 @@ public static class PlanValidator
 
         RequireNotNegative(settings.ContingencyExtraMinutes, $"{prefix}.{nameof(PlannerSettings.ContingencyExtraMinutes)}", "The contingency time", issues);
         RequireNotNegative(settings.ContingencyExtraDepth, $"{prefix}.{nameof(PlannerSettings.ContingencyExtraDepth)}", "The contingency depth", issues);
+        RequirePositive(settings.GasDensityLimit, $"{prefix}.{nameof(PlannerSettings.GasDensityLimit)}", "The gas density limit", issues);
     }
 
     private static void ValidateDives(IReadOnlyList<DiveInput> dives, UnitSystem units, List<ValidationIssue> issues)

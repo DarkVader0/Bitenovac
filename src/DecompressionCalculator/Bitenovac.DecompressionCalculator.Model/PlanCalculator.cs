@@ -138,7 +138,7 @@ public static class PlanCalculator
     private static DiveResult Checked(DiveResult result, int index, DecoPlan decoPlan, DivePlanRequest request, DivePlanDocument plan)
     {
         (result.GasChecks, result.Counterdiffusion) =
-            GasChecks.For(decoPlan.ExpandedSegments, request.Settings, plan.SettingsFor(index).OxygenNarcotic, plan.Units);
+            GasChecks.For(decoPlan.ExpandedSegments, request.Settings, plan.SettingsFor(index).OxygenNarcotic, plan.SettingsFor(index).GasDensityLimit, plan.Units);
         return result;
     }
 

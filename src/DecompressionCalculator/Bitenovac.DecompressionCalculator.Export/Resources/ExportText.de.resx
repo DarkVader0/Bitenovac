@@ -336,4 +336,10 @@
     <data name="IssueCylinder" xml:space="preserve">
         <value>Flasche {0}</value>
     </data>
+    <data name="ColumnStart" xml:space="preserve">
+        <value>Anfang ({0})</value>
+    </data>
+    <data name="ColumnEnd" xml:space="preserve">
+        <value>Ende ({0})</value>
+    </data>
 </root>

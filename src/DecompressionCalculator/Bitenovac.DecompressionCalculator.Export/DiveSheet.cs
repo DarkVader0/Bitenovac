@@ -140,7 +140,7 @@ public static class DiveSheet
             var labels = UnitLabels.For(plan.Units);
             var result = calculation.Dives[dive];
             List<ResultBlock> shown = [.. blocks.Where(static block => block != ResultBlock.Contingencies)];
-            WriteDive(sheet, plan, result, labels, shown);
+            WriteDive(sheet, plan, result, labels, shown, plan.SettingsFor(dive).GasQuantity);
 
             if (blocks.Contains(ResultBlock.Contingencies))
             {
@@ -152,7 +152,7 @@ public static class DiveSheet
                     sheet.Paragraph(ContingencyMeaning(contingency, labels), PdfFont.Helvetica, 8.5, SheetWriter.Muted);
                     sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan, plan.SettingsFor(dive))}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
                     sheet.Paragraph(interval + Summary.Inputs(input, plan.Units), PdfFont.Helvetica, 8.5, SheetWriter.Text);
-                    WriteDive(sheet, plan, contingency.Result, labels, shown);
+                    WriteDive(sheet, plan, contingency.Result, labels, shown, plan.SettingsFor(dive).GasQuantity);
                 }
             }
         }
@@ -236,7 +236,7 @@ public static class DiveSheet
     }
 
     private static void WriteDive(
-        SheetWriter sheet, DivePlanDocument plan, DiveResult result, UnitLabels labels, IReadOnlyList<ResultBlock> blocks)
+        SheetWriter sheet, DivePlanDocument plan, DiveResult result, UnitLabels labels, IReadOnlyList<ResultBlock> blocks, GasQuantity quantity)
     {
         sheet.Advance(Gap / 2);
         if (result.FailureMessage is { } failure)
@@ -245,7 +245,7 @@ public static class DiveSheet
             return;
         }
 
-        WriteWarnings(sheet, result, labels, plan.Units);
+        WriteWarnings(sheet, result, labels, plan.Units, quantity);
 
         var pages = Paginate(blocks, result, sheet.Remaining, sheet.Capacity);
         for (var index = 0; index < pages.Count; index++)
@@ -255,7 +255,7 @@ public static class DiveSheet
                 sheet.NewPage();
             }
 
-            WritePage(sheet, plan, result, labels, pages[index]);
+            WritePage(sheet, plan, result, labels, pages[index], quantity);
         }
     }
 
@@ -286,7 +286,7 @@ public static class DiveSheet
         return pages;
     }
 
-    private static void WritePage(SheetWriter sheet, DivePlanDocument plan, DiveResult result, UnitLabels labels, List<ResultBlock> blocks)
+    private static void WritePage(SheetWriter sheet, DivePlanDocument plan, DiveResult result, UnitLabels labels, List<ResultBlock> blocks, GasQuantity quantity)
     {
         var spare = Math.Max(0, sheet.Remaining - Smallest(blocks, result));
         var rows = result.Profile.Count + 1;
@@ -316,7 +316,7 @@ public static class DiveSheet
                     WriteProfile(sheet, result, labels, rowHeight);
                     break;
                 case ResultBlock.Gas:
-                    WriteGas(sheet, result, labels);
+                    WriteGas(sheet, result, labels, plan.Units, quantity);
                     break;
                 case ResultBlock.GasChecks:
                     WriteGasChecks(sheet, result, labels);
@@ -369,7 +369,7 @@ public static class DiveSheet
         sheet.Advance(FigureHeight);
     }
 
-    private static void WriteWarnings(SheetWriter sheet, DiveResult result, UnitLabels labels, UnitSystem units)
+    private static void WriteWarnings(SheetWriter sheet, DiveResult result, UnitLabels labels, UnitSystem units, GasQuantity quantity)
     {
         foreach (var violation in result.Violations)
         {
@@ -379,10 +379,11 @@ public static class DiveSheet
                 PdfFont.HelveticaBold, 8.5, SheetWriter.Danger);
         }
 
-        foreach (var cylinder in result.Cylinders.Where(static cylinder => cylinder.Shortfall > 0))
+        foreach (var cylinder in result.Cylinders.Where(static cylinder => cylinder.MissingLitres > 0))
         {
             sheet.Paragraph(
-                Localized.Format(ExportText.RunsOutWarning, cylinder.Gas, Formats.Number(cylinder.Shortfall), labels.GasVolume),
+                Localized.Format(ExportText.RunsOutWarning, cylinder.Gas, Formats.Number(GasAmounts.For(cylinder, quantity, units).Missing),
+                    quantity == GasQuantity.Pressure ? labels.Pressure : labels.GasVolume),
                 PdfFont.HelveticaBold, 8.5, SheetWriter.Danger);
         }
 
@@ -418,31 +419,36 @@ public static class DiveSheet
             rowHeight, Math.Clamp(rowHeight * 0.62, 6.5, 10));
     }
 
-    private static void WriteGas(SheetWriter sheet, DiveResult result, UnitLabels labels)
+    private static void WriteGas(SheetWriter sheet, DiveResult result, UnitLabels labels, UnitSystem units, GasQuantity quantity)
     {
-        var missing = result.Cylinders.Any(static cylinder => cylinder.Shortfall > 0);
+        var unit = quantity == GasQuantity.Pressure ? labels.Pressure : labels.GasVolume;
+        var missing = result.Cylinders.Any(static cylinder => cylinder.MissingLitres > 0);
         SheetColumn[] columns = missing
             ?
             [
-                new(ExportText.ColumnGas, 60), new(ExportText.ColumnUsedAs, 85), new(Localized.Format(ExportText.ColumnPressure, labels.Pressure), 90, PdfAlign.Right),
-                new(Localized.Format(ExportText.ColumnUsed, labels.GasVolume), 72, PdfAlign.Right), new(Localized.Format(ExportText.ColumnReserve, labels.GasVolume), 72, PdfAlign.Right),
-                new(Localized.Format(ExportText.ColumnLeft, labels.GasVolume), 72, PdfAlign.Right), new(Localized.Format(ExportText.ColumnMissing, labels.GasVolume), 80, PdfAlign.Right)
+                new(ExportText.ColumnGas, 50), new(ExportText.ColumnUsedAs, 75), new(Localized.Format(ExportText.ColumnStart, unit), 60, PdfAlign.Right),
+                new(Localized.Format(ExportText.ColumnEnd, unit), 58, PdfAlign.Right), new(Localized.Format(ExportText.ColumnUsed, unit), 62, PdfAlign.Right),
+                new(Localized.Format(ExportText.ColumnReserve, unit), 62, PdfAlign.Right), new(Localized.Format(ExportText.ColumnLeft, unit), 58, PdfAlign.Right),
+                new(Localized.Format(ExportText.ColumnMissing, unit), 62, PdfAlign.Right)
             ]
             :
             [
-                new(ExportText.ColumnGas, 70), new(ExportText.ColumnUsedAs, 95), new(Localized.Format(ExportText.ColumnPressure, labels.Pressure), 100, PdfAlign.Right),
-                new(Localized.Format(ExportText.ColumnUsed, labels.GasVolume), 85, PdfAlign.Right), new(Localized.Format(ExportText.ColumnReserve, labels.GasVolume), 85, PdfAlign.Right),
-                new(Localized.Format(ExportText.ColumnLeft, labels.GasVolume), 85, PdfAlign.Right)
+                new(ExportText.ColumnGas, 60), new(ExportText.ColumnUsedAs, 85), new(Localized.Format(ExportText.ColumnStart, unit), 70, PdfAlign.Right),
+                new(Localized.Format(ExportText.ColumnEnd, unit), 68, PdfAlign.Right), new(Localized.Format(ExportText.ColumnUsed, unit), 70, PdfAlign.Right),
+                new(Localized.Format(ExportText.ColumnReserve, unit), 70, PdfAlign.Right), new(Localized.Format(ExportText.ColumnLeft, unit), 70, PdfAlign.Right)
             ];
         var rows = result.Cylinders
-            .Select(cylinder => new[]
-                {
-                    cylinder.Gas, Names.Of(cylinder.Purpose),
-                    Localized.Format(ExportText.PressureRange, Formats.Number(cylinder.StartPressure), Formats.Number(cylinder.EndPressure)),
-                    Formats.Number(cylinder.GasUsed), Formats.Number(cylinder.RequiredReserve), Formats.Number(cylinder.ProjectedRemaining)
-                }
-                .Concat(missing ? [Formats.Number(cylinder.Shortfall)] : [])
-                .ToArray())
+            .Select(cylinder =>
+            {
+                var amount = GasAmounts.For(cylinder, quantity, units);
+                return new[]
+                    {
+                        cylinder.Gas, Names.Of(cylinder.Purpose), Formats.Number(amount.Start), Formats.Number(amount.End),
+                        Formats.Number(amount.Used), Formats.Number(amount.Reserve), Formats.Number(amount.Left)
+                    }
+                    .Concat(missing ? [Formats.Number(amount.Missing)] : [])
+                    .ToArray();
+            })
             .ToArray();
 
         sheet.Table(columns, rows, _ => false, GasRowHeight, 8.5);

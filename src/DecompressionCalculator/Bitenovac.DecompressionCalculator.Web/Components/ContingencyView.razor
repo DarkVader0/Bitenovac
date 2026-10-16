@@ -27,7 +27,7 @@
             <p class="alert alert-danger">@WebText.CeilingPassed</p>
         }
 
-        <GasTable Result="Contingency.Result" Units="Units"/>
+        <GasTable Result="Contingency.Result" Units="Units" Quantity="Quantity"/>
     }
 </details>
 
@@ -37,6 +37,9 @@
 
     [Parameter]
     public UnitSystem Units { get; set; }
+
+    [Parameter]
+    public GasQuantity Quantity { get; set; }
 
     private string Name => Contingency.Kind == ContingencyKind.LostGas
         ? Localized.Format(WebText.ContingencyLost, Contingency.LostGas)

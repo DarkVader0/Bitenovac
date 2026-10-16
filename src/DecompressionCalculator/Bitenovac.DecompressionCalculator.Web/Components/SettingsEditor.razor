@@ -50,6 +50,10 @@
                          ValueChanged="value => ChangeAsync(Value with { GasSwitchMinutes = value })"/>
             <CheckField Label="@WebText.OxygenNarcotic" Value="Value.OxygenNarcotic"
                         ValueChanged="value => ChangeAsync(Value with { OxygenNarcotic = value })"/>
+            <NumberField Label="@WebText.DensityWarningAbove" Unit="g/L" Value="Value.GasDensityLimit"
+                         Issue="@Issues[nameof(PlannerSettings.GasDensityLimit)]" ValueChanged="value => ChangeAsync(Value with { GasDensityLimit = value })"/>
+            <SelectField TValue="GasQuantity" Label="@WebText.GasShownAs" Options="GasQuantities" Text="GasQuantityName" Value="Value.GasQuantity"
+                         Issue="@Issues[nameof(PlannerSettings.GasQuantity)]" ValueChanged="value => ChangeAsync(Value with { GasQuantity = value })"/>
         </div>
     </details>
 
@@ -121,6 +125,7 @@
 @code {
     private static readonly Salinity[] Salinities = Enum.GetValues<Salinity>();
     private static readonly MaximumOperatingDepthModel[] DepthModels = Enum.GetValues<MaximumOperatingDepthModel>();
+    private static readonly GasQuantity[] GasQuantities = Enum.GetValues<GasQuantity>();
 
     [Parameter, EditorRequired]
     public PlannerSettings Value { get; set; } = default!;
@@ -135,6 +140,10 @@
     public IssueMap Issues { get; set; } = IssueMap.Empty;
 
     private UnitLabels Labels => UnitLabels.For(Units);
+
+    private string GasQuantityName(GasQuantity quantity) => quantity == GasQuantity.Pressure
+        ? Localized.Format(WebText.GasAsPressure, Labels.Pressure)
+        : Localized.Format(WebText.GasAsVolume, Labels.GasVolume);
 
     private string LastStopDepth => Units == UnitSystem.Imperial ? "20 ft" : "6 m";
 

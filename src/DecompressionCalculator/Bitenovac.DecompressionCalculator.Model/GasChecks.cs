@@ -11,12 +11,12 @@ namespace Bitenovac.DecompressionCalculator.Model;
 /// <param name="OxygenPressure">The partial pressure of oxygen breathed, in bar.</param>
 /// <param name="EquivalentNarcoticDepth">The equivalent narcotic depth, in meters or feet.</param>
 /// <param name="Density">The density of the gas breathed, in grams per liter.</param>
-public sealed record GasCheckRow(string Gas, double Depth, double OxygenPressure, double EquivalentNarcoticDepth, double Density)
+public sealed record GasCheckRow(string Gas, double Depth, double OxygenPressure, double EquivalentNarcoticDepth, double Density, double DensityLimit)
 {
     /// <summary>
-    /// Gets a value indicating whether the gas is denser than <see cref="GasMath.DensityLimit"/>.
+    /// Gets a value indicating whether the gas is denser than its <see cref="DensityLimit"/>.
     /// </summary>
-    public bool IsTooDense => Density > GasMath.DensityLimit;
+    public bool IsTooDense => Density > DensityLimit;
 }
 
 /// <summary>
@@ -34,7 +34,7 @@ internal static class GasChecks
     /// fraction falls.
     /// </remarks>
     public static (GasCheckRow[] Rows, CounterdiffusionRow[] Switches) For(
-        IReadOnlyList<DiveSegment> segments, DivePlanSettings environment, bool oxygenNarcotic, UnitSystem units)
+        IReadOnlyList<DiveSegment> segments, DivePlanSettings environment, bool oxygenNarcotic, double densityLimit, UnitSystem units)
     {
         var indexed = segments.Select(static (segment, index) => (Segment: segment, Index: index)).ToArray();
         var deepest = indexed
@@ -45,7 +45,7 @@ internal static class GasChecks
             .Concat(deepest)
             .DistinctBy(static entry => (entry.Segment.Gas, entry.Segment.Loop, entry.Segment.Depth.InMeter))
             .OrderBy(static entry => entry.Index)
-            .Select(entry => Row(entry.Segment, environment, oxygenNarcotic, units))
+            .Select(entry => Row(entry.Segment, environment, oxygenNarcotic, densityLimit, units))
             .ToArray();
 
         var switches = new List<CounterdiffusionRow>();
@@ -70,7 +70,7 @@ internal static class GasChecks
         return (rows, [.. switches]);
     }
 
-    private static GasCheckRow Row(DiveSegment segment, DivePlanSettings environment, bool oxygenNarcotic, UnitSystem units)
+    private static GasCheckRow Row(DiveSegment segment, DivePlanSettings environment, bool oxygenNarcotic, double densityLimit, UnitSystem units)
     {
         var ambient = AmbientConditions.PressureAtDepth(environment, segment.Depth);
         var oxygen = segment.Loop.InspiredOxygenFraction(segment.Gas, ambient);
@@ -81,6 +81,7 @@ internal static class GasChecks
             UnitConversion.FromDepth(segment.Depth, units),
             oxygen * ambient.InBar,
             GasMath.EquivalentNarcoticDepth(oxygen, nitrogen, ambient, environment, oxygenNarcotic, units),
-            GasMath.Density(oxygen, nitrogen, helium, ambient));
+            GasMath.Density(oxygen, nitrogen, helium, ambient),
+            densityLimit);
     }
 }

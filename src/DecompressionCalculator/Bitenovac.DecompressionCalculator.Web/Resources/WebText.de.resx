@@ -564,9 +564,6 @@
     <data name="BlockGasChecks" xml:space="preserve">
         <value>Gasprüfungen: END, PO₂ und Dichte</value>
     </data>
-    <data name="GasChecksCaption" xml:space="preserve">
-        <value>Jedes Gas auf jeder Stufe und an seiner tiefsten Stelle. Dichte über {0} g/l ist markiert.</value>
-    </data>
     <data name="ReplaceOwnSettings" xml:space="preserve">
         <value>{0} hat eigene Einstellungen. Sollen sie durch die des Plans ersetzt werden?</value>
     </data>
@@ -674,5 +671,29 @@
     </data>
     <data name="BackToPlan" xml:space="preserve">
         <value>Zurück zum Tauchplaner</value>
+    </data>
+    <data name="StartToEnd" xml:space="preserve">
+        <value>Start → Ende</value>
+    </data>
+    <data name="GasCaptionPressure" xml:space="preserve">
+        <value>Alles in {0}. Ein Gas wird als der Druck angezeigt, den es aus seiner Flasche nimmt.</value>
+    </data>
+    <data name="GasCaptionVolume" xml:space="preserve">
+        <value>Alles in {0} an der Oberfläche.</value>
+    </data>
+    <data name="DensityWarningAbove" xml:space="preserve">
+        <value>Warnung ab Gasdichte</value>
+    </data>
+    <data name="GasShownAs" xml:space="preserve">
+        <value>Gasmengen angezeigt als</value>
+    </data>
+    <data name="GasAsPressure" xml:space="preserve">
+        <value>Druck ({0})</value>
+    </data>
+    <data name="GasAsVolume" xml:space="preserve">
+        <value>Volumen ({0})</value>
+    </data>
+    <data name="GasChecksCaption" xml:space="preserve">
+        <value>Jedes Gas auf jeder Stufe und an seiner tiefsten Stelle. Gase über der Dichtegrenze sind markiert.</value>
     </data>
 </root>

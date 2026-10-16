@@ -1701,6 +1701,10 @@ tr.gas-warning td:first-child {
 .calculator-logo {
     display: inline-flex;
     flex-shrink: 0;
+    min-height: 0;
+    padding: 0;
+    background: none;
+    border: 0;
     border-radius: 10px;
 }
 

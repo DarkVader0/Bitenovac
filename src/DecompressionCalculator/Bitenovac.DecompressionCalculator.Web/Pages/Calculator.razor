@@ -1,13 +1,16 @@
+@using Microsoft.JSInterop
 @page "/calculator"
 @inject PlanStore Store
 @inject NavigationManager Navigation
+@inject CalculatorReturn Returning
+@inject IJSRuntime Js
 
 <PageTitle>@WebText.GasTools</PageTitle>
 
 <header class="plan-header no-print">
-    <a class="calculator-logo" href="@_backTo" title="@WebText.BackToPlan" aria-label="@WebText.BackToPlan">
+    <button type="button" class="calculator-logo" title="@WebText.BackToPlan" aria-label="@WebText.BackToPlan" @onclick="BackAsync">
         <img src="icon.svg" alt="" width="40" height="40"/>
-    </a>
+    </button>
     <h1 class="calculator-title">@WebText.GasTools</h1>
 </header>
 
@@ -59,6 +62,7 @@
 
 @code {
     private bool _loaded;
+    private bool _fromPlan;
     private (Guid? Plan, int? Dive) _loadedFor;
     private PlannerSettings _settings = PlannerSettings.Default(UnitSystem.Metric);
     private UnitSystem _units = UnitSystem.Metric;
@@ -79,6 +83,8 @@
     public int? DiveNumber { get; set; }
 
     private UnitLabels Labels => UnitLabels.For(_units);
+
+    protected override void OnInitialized() => _fromPlan = Returning.FromPlan;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -107,6 +113,18 @@
         _mixDepth = imperial ? 200 : 60;
         _mixEnd = imperial ? 100 : 30;
         _loaded = true;
+    }
+
+    private async Task BackAsync()
+    {
+        Returning.FromPlan = false;
+        if (_fromPlan)
+        {
+            await Js.InvokeVoidAsync("history.back");
+            return;
+        }
+
+        Navigation.NavigateTo(_backTo, replace: true);
     }
 
     private string BestMixText()

@@ -20,7 +20,7 @@ public static class GasMath
     /// <summary>
     /// The density, in grams per liter, above which a gas is warned about; above it breathing work rises steeply.
     /// </summary>
-    public const double DensityLimit = 5.2;
+    public const double DefaultDensityLimit = 5.2;
 
     /// <summary>
     /// The density of oxygen, in grams per liter, at 0 °C and one standard atmosphere.

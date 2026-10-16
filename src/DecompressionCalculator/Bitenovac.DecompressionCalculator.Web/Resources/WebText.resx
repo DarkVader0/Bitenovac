@@ -564,9 +564,6 @@
     <data name="BlockGasChecks" xml:space="preserve">
         <value>Gas checks: END, PO₂ and density</value>
     </data>
-    <data name="GasChecksCaption" xml:space="preserve">
-        <value>Each gas on each level and at its deepest. Density above {0} g/L is marked.</value>
-    </data>
     <data name="ReplaceOwnSettings" xml:space="preserve">
         <value>{0} has its own settings. Replace them with the plan's?</value>
     </data>
@@ -674,5 +671,29 @@
     </data>
     <data name="BackToPlan" xml:space="preserve">
         <value>Back to the dive planner</value>
+    </data>
+    <data name="StartToEnd" xml:space="preserve">
+        <value>Start → end</value>
+    </data>
+    <data name="GasCaptionPressure" xml:space="preserve">
+        <value>Everything in {0}. A gas is shown as the pressure it takes from its cylinder.</value>
+    </data>
+    <data name="GasCaptionVolume" xml:space="preserve">
+        <value>Everything in {0} at the surface.</value>
+    </data>
+    <data name="DensityWarningAbove" xml:space="preserve">
+        <value>Warn above gas density</value>
+    </data>
+    <data name="GasShownAs" xml:space="preserve">
+        <value>Gas amounts shown as</value>
+    </data>
+    <data name="GasAsPressure" xml:space="preserve">
+        <value>Pressure ({0})</value>
+    </data>
+    <data name="GasAsVolume" xml:space="preserve">
+        <value>Volume ({0})</value>
+    </data>
+    <data name="GasChecksCaption" xml:space="preserve">
+        <value>Each gas on each level and at its deepest. Gases above the density limit are marked.</value>
     </data>
 </root>

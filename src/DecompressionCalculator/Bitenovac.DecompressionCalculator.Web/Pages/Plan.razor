@@ -1,6 +1,7 @@
 @page "/plan/{Id:guid}"
 @inject PlanStore Store
 @inject NavigationManager Navigation
+@inject CalculatorReturn Returning
 
 <PageTitle>@(_plan?.Name ?? "Bitenovac")</PageTitle>
 
@@ -71,7 +72,7 @@ else
     var title = _plan.Dives.Count > 1 || !string.IsNullOrWhiteSpace(_plan.Dives[_selected].Name) ? Localized.Format(WebText.ResultsOf, DiveNames[_selected]) : WebText.Results;
     @if (_view.Results[_selected] is { } result)
     {
-        <DiveResultView Result="result" Units="_plan.Units" Title="@title"/>
+        <DiveResultView Result="result" Units="_plan.Units" Quantity="_plan.SettingsFor(_selected).GasQuantity" Title="@title"/>
     }
     else
     {
@@ -255,7 +256,13 @@ else
         await ChangeAsync(plan with { Dives = ListEdit.RemoveAt(plan.Dives, removed) });
     }
 
-    private void OpenCalculator() => Navigation.NavigateTo($"calculator?plan={_plan!.Id:D}&dive={_selected + 1}");
+    private void OpenCalculator()
+    {
+        var dive = _selected + 1;
+        Navigation.NavigateTo($"plan/{_plan!.Id:D}?dive={dive}", replace: true);
+        Returning.FromPlan = true;
+        Navigation.NavigateTo($"calculator?plan={_plan.Id:D}&dive={dive}");
+    }
 
     private void OpenPlanSettings()
     {

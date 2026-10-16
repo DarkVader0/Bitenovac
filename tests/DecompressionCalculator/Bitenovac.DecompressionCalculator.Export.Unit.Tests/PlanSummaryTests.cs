@@ -137,7 +137,7 @@ public sealed class PlanSummaryTests
         var text = PlanSummary.Text(plan, TestFactory.Now);
 
         // Assert
-        Assert.Contains($" - runs out, {Formats.Number(cylinder.Shortfall)} L short", text, StringComparison.Ordinal);
+        Assert.Contains($" - runs out, {Formats.Number(GasAmounts.For(cylinder, GasQuantity.Pressure, UnitSystem.Metric).Missing)} bar short", text, StringComparison.Ordinal);
     }
 
     [Fact]

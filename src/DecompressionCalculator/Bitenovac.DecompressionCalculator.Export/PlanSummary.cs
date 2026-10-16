@@ -57,6 +57,7 @@ public static class PlanSummary
     private static void AppendDive(StringBuilder text, DivePlanDocument plan, int index, DiveResult result, UnitLabels labels)
     {
         var dive = plan.Dives[index];
+        var quantity = plan.SettingsFor(index).GasQuantity;
 
         text.AppendLine();
         text.Append(plan.Dives.Count == 1 && string.IsNullOrWhiteSpace(dive.Name) ? ExportText.Dive : dive.DisplayName(index + 1));
@@ -98,10 +99,12 @@ public static class PlanSummary
 
         foreach (var cylinder in result.Cylinders)
         {
+            var amount = GasAmounts.For(cylinder, quantity, plan.Units);
+            var unit = quantity == GasQuantity.Pressure ? labels.Pressure : labels.GasVolume;
             text.AppendLine(
-                Localized.Format(ExportText.SummaryCylinder, cylinder.Gas, Formats.Number(cylinder.GasUsed), labels.GasVolume,
-                    Formats.Number(cylinder.StartPressure), Formats.Number(cylinder.EndPressure), labels.Pressure) +
-                (cylinder.Shortfall > 0 ? Localized.Format(ExportText.SummaryRunsOut, Formats.Number(cylinder.Shortfall), labels.GasVolume) : string.Empty) +
+                Localized.Format(ExportText.SummaryCylinder, cylinder.Gas, Formats.Number(amount.Used), unit,
+                    Formats.Number(amount.Start), Formats.Number(amount.End), unit) +
+                (cylinder.MissingLitres > 0 ? Localized.Format(ExportText.SummaryRunsOut, Formats.Number(amount.Missing), unit) : string.Empty) +
                 (cylinder.ReserveSatisfied ? string.Empty : ExportText.SummaryReserveNotMet));
         }
 

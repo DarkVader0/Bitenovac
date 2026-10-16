@@ -150,4 +150,21 @@ public sealed class GasChecksTests
         // Assert
         Assert.Equal(63, extended.GasChecks[0].Depth, Precision);
     }
+
+    [Fact]
+    public void GasChecks_ShouldCarryTheDensityLimitOfThePlan_WhenTheLimitIsChanged()
+    {
+        // Arrange
+        var plan = TestFactory.Plan(TestFactory.Dive(30, 20)) with
+        {
+            Settings = PlannerSettings.Default(UnitSystem.Metric) with { GasDensityLimit = 9 }
+        };
+
+        // Act
+        var check = PlanCalculator.Calculate(plan).Dives[0].GasChecks.Single();
+
+        // Assert
+        Assert.Equal(9, check.DensityLimit, Precision);
+        Assert.False(check.IsTooDense);
+    }
 }

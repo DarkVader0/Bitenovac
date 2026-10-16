@@ -4,6 +4,22 @@ using Bitenovac.DecompressionAlgorithms.Core.Planning;
 namespace Bitenovac.DecompressionCalculator.Model;
 
 /// <summary>
+/// Specifies how the gas a dive uses is shown: as the pressure it takes from each cylinder, or as the volume it is at the surface.
+/// </summary>
+public enum GasQuantity
+{
+    /// <summary>
+    /// The pressure: bar, or psi in imperial. A volume is shown as the pressure it takes from its cylinder.
+    /// </summary>
+    Pressure,
+
+    /// <summary>
+    /// The volume: liters, or cubic feet in imperial. A pressure is shown as the gas it holds at the surface.
+    /// </summary>
+    Volume
+}
+
+/// <summary>
 /// Represents the planner settings shared by every dive of a plan, in the plan's
 /// <see cref="UnitSystem"/>.
 /// </summary>
@@ -34,6 +50,8 @@ namespace Bitenovac.DecompressionCalculator.Model;
 /// <param name="OxygenBreaks">Whether oxygen breaks are planned during long oxygen stops.</param>
 /// <param name="ContingencyExtraMinutes">The time added to the deepest level in the contingency plan, in minutes.</param>
 /// <param name="ContingencyExtraDepth">The depth added to the deepest level in the contingency plan, in meters or feet.</param>
+/// <param name="GasDensityLimit">The density, in grams per liter, above which the gas breathed is warned about.</param>
+/// <param name="GasQuantity">How the gas a dive uses is shown in results, the dive sheet and the summary.</param>
 /// <param name="OxygenNarcotic">
 /// Whether oxygen counts as narcotic wherever an equivalent narcotic depth is given; on by default, the cautious choice.
 /// </param>
@@ -65,7 +83,9 @@ public sealed record PlannerSettings(
     bool OxygenBreaks,
     double ContingencyExtraMinutes = 3,
     double ContingencyExtraDepth = 3,
-    bool OxygenNarcotic = true)
+    bool OxygenNarcotic = true,
+    double GasDensityLimit = GasMath.DefaultDensityLimit,
+    GasQuantity GasQuantity = GasQuantity.Pressure)
 {
     /// <summary>
     /// Returns the default settings for a unit system.
@@ -116,5 +136,7 @@ public sealed record PlannerSettings(
         OxygenBreaks: false,
         ContingencyExtraMinutes: 3,
         ContingencyExtraDepth: 3,
-        OxygenNarcotic: true);
+        OxygenNarcotic: true,
+        GasDensityLimit: GasMath.DefaultDensityLimit,
+        GasQuantity: GasQuantity.Pressure);
 }

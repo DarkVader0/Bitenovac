@@ -107,10 +107,10 @@ public sealed class DiveSheetTests
         Assert.Contains(TestFactory.Shown("TTS"), pdf, StringComparison.Ordinal);
         Assert.Contains(TestFactory.Shown("Runtime (min)"), pdf, StringComparison.Ordinal);
         Assert.Contains(TestFactory.Shown("Depth (m)"), pdf, StringComparison.Ordinal);
-        Assert.Contains(TestFactory.Shown("Used (L)"), pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("Used (bar)"), pdf, StringComparison.Ordinal);
         Assert.Contains(ChartTimeLabel, pdf, StringComparison.Ordinal);
         Assert.DoesNotContain(TestFactory.Shown("Apparatus"), pdf, StringComparison.Ordinal);
-        Assert.DoesNotContain(TestFactory.Shown("Missing (L)"), pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(TestFactory.Shown("Missing (bar)"), pdf, StringComparison.Ordinal);
         Assert.All(SheetWriter.Wrap(DiveSheet.Disclaimer, PdfFont.HelveticaBold, 7.5, SheetWriter.ContentWidth),
             line => Assert.Contains(TestFactory.Shown(line), pdf, StringComparison.Ordinal));
     }
@@ -204,7 +204,7 @@ public sealed class DiveSheetTests
         // Assert
         Assert.Contains("/Count 2", pdf, StringComparison.Ordinal);
         Assert.Contains(ChartTimeLabel, pdf, StringComparison.Ordinal);
-        Assert.Contains(TestFactory.Shown("Missing (L)"), pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("Missing (bar)"), pdf, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public sealed class DiveSheetTests
 
         // Assert
         var chart = pdf.IndexOf(ChartTimeLabel, StringComparison.Ordinal);
-        var gas = pdf.IndexOf(TestFactory.Shown("Used (L)"), StringComparison.Ordinal);
+        var gas = pdf.IndexOf(TestFactory.Shown("Used (bar)"), StringComparison.Ordinal);
         var profile = pdf.IndexOf(TestFactory.Shown("Depth (m)"), StringComparison.Ordinal);
         Assert.True(chart > 0 && chart < gas && gas < profile);
     }
@@ -235,7 +235,7 @@ public sealed class DiveSheetTests
         // Assert
         Assert.Contains(TestFactory.Shown("Depth (m)"), pdf, StringComparison.Ordinal);
         Assert.DoesNotContain(TestFactory.Shown("TTS"), pdf, StringComparison.Ordinal);
-        Assert.DoesNotContain(TestFactory.Shown("Used (L)"), pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(TestFactory.Shown("Used (bar)"), pdf, StringComparison.Ordinal);
         Assert.DoesNotContain(ChartTimeLabel, pdf, StringComparison.Ordinal);
         Assert.DoesNotContain(TestFactory.Shown("Contingency"), pdf, StringComparison.Ordinal);
     }
@@ -433,10 +433,10 @@ public sealed class DiveSheetTests
         var pdf = Sheet(plan);
 
         // Assert
-        Assert.Contains(TestFactory.Shown("Missing (L)"), pdf, StringComparison.Ordinal);
-        Assert.Contains(TestFactory.Shown($"{Formats.Number(cylinder.StartPressure)} to 0"), pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("Missing (bar)"), pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown(Formats.Number(GasAmounts.For(cylinder, GasQuantity.Pressure, UnitSystem.Metric).Start)), pdf, StringComparison.Ordinal);
         Assert.Contains(
-            TestFactory.Shown($"Air runs out: the dive needs {Formats.Number(cylinder.Shortfall)} L more than the cylinder holds."),
+            TestFactory.Shown($"Air runs out: the dive needs {Formats.Number(GasAmounts.For(cylinder, GasQuantity.Pressure, UnitSystem.Metric).Missing)} bar more than the cylinder holds."),
             pdf, StringComparison.Ordinal);
     }
 
@@ -466,7 +466,7 @@ public sealed class DiveSheetTests
         // Assert
         Assert.Contains(TestFactory.Shown("Apparatus"), pdf, StringComparison.Ordinal);
         Assert.Contains(TestFactory.Shown("Depth (ft)"), pdf, StringComparison.Ordinal);
-        Assert.Contains(TestFactory.Shown("Pressure (psi)"), pdf, StringComparison.Ordinal);
+        Assert.Contains(TestFactory.Shown("Start (psi)"), pdf, StringComparison.Ordinal);
         Assert.Matches(Regex.Escape("(CCR @ 1.3) Tj"), pdf);
     }
 }

@@ -49,7 +49,7 @@
                     break;
                 case ResultBlock.Gas:
                     <h3>@WebText.Gas</h3>
-                    <GasTable Result="Result" Units="Units"/>
+                    <GasTable Result="Result" Units="Units" Quantity="Quantity"/>
                     break;
                 case ResultBlock.GasChecks:
                     <h3>@WebText.GasChecks</h3>
@@ -63,7 +63,7 @@
                     <h3>@WebText.Contingencies</h3>
                     @foreach (var contingency in Result.Contingencies)
                     {
-                        <ContingencyView Contingency="contingency" Units="Units"/>
+                        <ContingencyView Contingency="contingency" Units="Units" Quantity="Quantity"/>
                     }
 
                     break;
@@ -88,6 +88,9 @@
 
     [Parameter]
     public UnitSystem Units { get; set; }
+
+    [Parameter]
+    public GasQuantity Quantity { get; set; }
 
     private UnitLabels Labels => UnitLabels.For(Units);
 
