@@ -339,7 +339,7 @@
     <data name="ColumnStart" xml:space="preserve">
         <value>Start ({0})</value>
     </data>
-    <data name="ColumnEnd" xml:space="preserve">
+    <data name="ColumnFinish" xml:space="preserve">
         <value>End ({0})</value>
     </data>
 </root>

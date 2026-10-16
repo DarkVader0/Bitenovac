@@ -427,14 +427,14 @@ public static class DiveSheet
             ?
             [
                 new(ExportText.ColumnGas, 50), new(ExportText.ColumnUsedAs, 75), new(Localized.Format(ExportText.ColumnStart, unit), 60, PdfAlign.Right),
-                new(Localized.Format(ExportText.ColumnEnd, unit), 58, PdfAlign.Right), new(Localized.Format(ExportText.ColumnUsed, unit), 62, PdfAlign.Right),
+                new(Localized.Format(ExportText.ColumnFinish, unit), 58, PdfAlign.Right), new(Localized.Format(ExportText.ColumnUsed, unit), 62, PdfAlign.Right),
                 new(Localized.Format(ExportText.ColumnReserve, unit), 62, PdfAlign.Right), new(Localized.Format(ExportText.ColumnLeft, unit), 58, PdfAlign.Right),
                 new(Localized.Format(ExportText.ColumnMissing, unit), 62, PdfAlign.Right)
             ]
             :
             [
                 new(ExportText.ColumnGas, 60), new(ExportText.ColumnUsedAs, 85), new(Localized.Format(ExportText.ColumnStart, unit), 70, PdfAlign.Right),
-                new(Localized.Format(ExportText.ColumnEnd, unit), 68, PdfAlign.Right), new(Localized.Format(ExportText.ColumnUsed, unit), 70, PdfAlign.Right),
+                new(Localized.Format(ExportText.ColumnFinish, unit), 68, PdfAlign.Right), new(Localized.Format(ExportText.ColumnUsed, unit), 70, PdfAlign.Right),
                 new(Localized.Format(ExportText.ColumnReserve, unit), 70, PdfAlign.Right), new(Localized.Format(ExportText.ColumnLeft, unit), 70, PdfAlign.Right)
             ];
         var rows = result.Cylinders
