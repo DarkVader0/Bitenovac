@@ -105,7 +105,8 @@
     }
     @{
         var removableCylinders = Value.Cylinders.Count > 1;
-        var columns = removableCylinders ? 6 : 5;
+        var imperial = Units == UnitSystem.Imperial;
+        var columns = (removableCylinders ? 6 : 5) + (imperial ? 1 : 0);
     }
     <div class="table-scroll">
         <table class="input-table cylinders">
@@ -116,6 +117,10 @@
                 <th class="wide-only">@WebText.He <span class="unit">%</span></th>
                 <th>@WebText.Size <span class="unit">@Labels.CylinderSize</span></th>
                 <th>@WebText.Pressure <span class="unit">@Labels.Pressure</span></th>
+                @if (imperial)
+                {
+                    <th>@WebText.WorkingPressure <span class="unit">@Labels.Pressure</span></th>
+                }
                 <th class="col-role">@WebText.Use</th>
                 @if (removableCylinders)
                 {
@@ -147,15 +152,23 @@
                                     ValueChanged="value => ChangeCylinderAsync(at, cylinder with { HeliumPercent = value })"/>
                     </td>
                     <td>
-                        <NumberCell Label="@Localized.Format(WebText.CylinderSizeLabel, name, Labels.CylinderSize)" Value="CylinderSizes.Shown(cylinder, Units)"
+                        <NumberCell Label="@Localized.Format(WebText.CylinderSizeLabel, name, Labels.CylinderSize)" Value="cylinder.Size"
                                     Invalid="issues[nameof(CylinderInput.Size)] is not null"
-                                    ValueChanged="value => ChangeCylinderAsync(at, CylinderSizes.WithSize(cylinder, value, Units))"/>
+                                    ValueChanged="value => ChangeCylinderAsync(at, CylinderSizes.WithSize(cylinder, value))"/>
                     </td>
                     <td>
                         <NumberCell Label="@Localized.Format(WebText.CylinderPressureLabel, name, Labels.Pressure)" Value="cylinder.StartPressure"
                                     Invalid="issues[nameof(CylinderInput.StartPressure)] is not null"
-                                    ValueChanged="value => ChangeCylinderAsync(at, CylinderSizes.WithPressure(cylinder, value, Units))"/>
+                                    ValueChanged="value => ChangeCylinderAsync(at, CylinderSizes.WithStartPressure(cylinder, value))"/>
                     </td>
+                    @if (imperial)
+                    {
+                        <td>
+                            <NumberCell Label="@Localized.Format(WebText.WorkingPressureLabel, name, Labels.Pressure)" Value="cylinder.RatedPressure"
+                                        Invalid="issues[nameof(CylinderInput.RatedPressure)] is not null"
+                                        ValueChanged="value => ChangeCylinderAsync(at, CylinderSizes.WithWorkingPressure(cylinder, value))"/>
+                        </td>
+                    }
                     <td>
                         @if (CylinderRoles.Resolve(Value.Circuit, cylinder) == CylinderPurpose.Oxygen)
                         {
@@ -180,7 +193,7 @@
                 <RowIssues Columns="columns"
                            Messages="[issues[nameof(CylinderInput.OxygenPercent)], issues[nameof(CylinderInput.HeliumPercent)],
                                       issues[nameof(CylinderInput.Size)],
-                                      issues[nameof(CylinderInput.StartPressure)], issues[nameof(CylinderInput.Purpose)]]"/>
+                                      issues[nameof(CylinderInput.StartPressure)], issues[nameof(CylinderInput.Purpose)], issues[nameof(CylinderInput.RatedPressure)]]"/>
             }
             </tbody>
         </table>

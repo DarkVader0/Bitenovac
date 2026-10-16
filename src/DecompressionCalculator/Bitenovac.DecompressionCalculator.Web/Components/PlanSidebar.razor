@@ -7,6 +7,13 @@
         <button type="button" class="secondary" @onclick="NewAsync"><Icon Name="IconName.Add"/>@WebText.NewPlan</button>
     </div>
 
+    <section class="sidebar-calculator">
+        <div class="plans-panel-header">
+            <h2>@WebText.GasTools</h2>
+        </div>
+        <GasCalculator @key="(Current.Id, Dive)" Settings="Current.SettingsFor(Dive)" Units="Current.Units"/>
+    </section>
+
     @if (_plans is not null)
     {
         <ul class="plans-panel-list">
@@ -54,6 +61,9 @@
 
     [Parameter, EditorRequired]
     public DivePlanDocument Current { get; set; } = default!;
+
+    [Parameter]
+    public int Dive { get; set; }
 
     // The open plan is drawn from the parameter, so its name follows typing without reloading the
     // list or moving it to the top while it is edited.
