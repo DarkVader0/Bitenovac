@@ -1719,3 +1719,9 @@ tr.gas-warning td:first-child {
     margin: 0;
     font-size: 1.25rem;
 }
+
+.sidebar-calculator {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}

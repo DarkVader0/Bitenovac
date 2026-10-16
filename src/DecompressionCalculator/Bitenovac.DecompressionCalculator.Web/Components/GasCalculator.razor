@@ -1,0 +1,85 @@
+<p class="block-note">
+    @Localized.Format(WebText.ToolsEnvironment, Names.Of(Settings.Salinity), Display.Number(Settings.Altitude), Labels.Depth)
+    @(Settings.OxygenNarcotic ? WebText.ToolsNarcoticOn : WebText.ToolsNarcoticOff)
+</p>
+
+<section class="gas-tool">
+    <h3>@WebText.MaximumOperatingDepth</h3>
+    <div class="field-pair">
+        <NumberField Label="@WebText.O2Subscript" Unit="%" Value="_modOxygen" ValueChanged="value => _modOxygen = value"/>
+        <NumberField Label="@WebText.Po2Limit" Unit="bar" Value="_modPo2" ValueChanged="value => _modPo2 = value"/>
+    </div>
+    <p class="gas-tool-result" role="status">
+        @WebText.Mod <strong>@Result(() => $"{Display.Number(Math.Floor(GasMath.MaximumOperatingDepth(_modOxygen, _modPo2, Settings, Units)))} {Labels.Depth}")</strong>
+    </p>
+</section>
+
+<section class="gas-tool">
+    <h3>@WebText.EquivalentNarcoticDepth</h3>
+    <div class="field-pair">
+        <NumberField Label="@WebText.O2Subscript" Unit="%" Value="_endOxygen" ValueChanged="value => _endOxygen = value"/>
+        <NumberField Label="@WebText.He" Unit="%" Value="_endHelium" ValueChanged="value => _endHelium = value"/>
+    </div>
+    <NumberField Label="@WebText.Depth" Unit="@Labels.Depth" Value="_endDepth" ValueChanged="value => _endDepth = value"/>
+    <p class="gas-tool-result" role="status">
+        @WebText.End <strong>@Result(() => $"{Display.Number(Math.Ceiling(GasMath.EquivalentNarcoticDepth(_endOxygen, _endHelium, _endDepth, Settings, Units)))} {Labels.Depth}")</strong>
+        · @WebText.DensityLower <strong>@Result(() => $"{Display.Number(GasMath.Density(_endOxygen, _endHelium, _endDepth, Settings, Units), 1)} g/L")</strong>
+    </p>
+</section>
+
+<section class="gas-tool">
+    <h3>@WebText.BestMix</h3>
+    <NumberField Label="@WebText.DeepestDepth" Unit="@Labels.Depth" Value="_mixDepth" ValueChanged="value => _mixDepth = value"/>
+    <div class="field-pair">
+        <NumberField Label="@WebText.Po2Limit" Unit="bar" Value="_mixPo2" ValueChanged="value => _mixPo2 = value"/>
+        <NumberField Label="@WebText.EndLimit" Unit="@Labels.Depth" Value="_mixEnd" ValueChanged="value => _mixEnd = value"/>
+    </div>
+    <p class="gas-tool-result" role="status">@WebText.BestMix <strong>@Result(BestMixText)</strong></p>
+</section>
+
+@code {
+    private double _modOxygen = 50;
+    private double _modPo2;
+    private double _endOxygen = 21;
+    private double _endHelium = 35;
+    private double _endDepth;
+    private double _mixDepth;
+    private double _mixPo2;
+    private double _mixEnd;
+
+    [Parameter, EditorRequired]
+    public PlannerSettings Settings { get; set; } = default!;
+
+    [Parameter]
+    public UnitSystem Units { get; set; }
+
+    private UnitLabels Labels => UnitLabels.For(Units);
+
+    protected override void OnInitialized()
+    {
+        var imperial = Units == UnitSystem.Imperial;
+        _modPo2 = Settings.DecoPo2;
+        _mixPo2 = Settings.BottomPo2;
+        _endDepth = imperial ? 150 : 45;
+        _mixDepth = imperial ? 200 : 60;
+        _mixEnd = imperial ? 100 : 30;
+    }
+
+    private string BestMixText()
+    {
+        var mix = GasMath.BestMix(_mixDepth, _mixPo2, _mixEnd, Settings, Units);
+        return GasMixture.FromPercent(mix.PercentO2, mix.PercentHe).ToString();
+    }
+
+    private static string Result(Func<string> calculate)
+    {
+        try
+        {
+            return calculate();
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return "–";
+        }
+    }
+}
