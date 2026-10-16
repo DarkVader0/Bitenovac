@@ -197,7 +197,7 @@ jobs:
   plan:
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: dotnet tool restore
       - run: dotnet remotebuildtool plan
 
@@ -205,7 +205,7 @@ jobs:
     needs: plan
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: dotnet tool restore
       - run: dotnet remotebuildtool build Debug
       - run: dotnet remotebuildtool test Debug
@@ -214,7 +214,7 @@ jobs:
     needs: plan
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: dotnet tool restore
       - run: dotnet remotebuildtool build Release
       - run: dotnet remotebuildtool test Release
