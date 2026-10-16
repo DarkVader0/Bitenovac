@@ -82,4 +82,30 @@ public sealed class CylinderSizesTests
         // Assert
         Assert.Throws<ArgumentNullException>(act);
     }
+
+    [Fact]
+    public void WithWorkingPressure_ShouldMoveTheFillPressureWithIt_WhenTheFillFollowedTheWorkingPressure()
+    {
+        // Arrange
+        var cylinder = Al80(3000);
+
+        // Act
+        var rerated = CylinderSizes.WithWorkingPressure(cylinder, 3300);
+
+        // Assert
+        Assert.Equal(3300, rerated.StartPressure, Precision);
+    }
+
+    [Fact]
+    public void WithWorkingPressure_ShouldKeepTheFillPressure_WhenTheFillWasSetToSomethingElse()
+    {
+        // Arrange
+        var cylinder = Al80(2800);
+
+        // Act
+        var rerated = CylinderSizes.WithWorkingPressure(cylinder, 3300);
+
+        // Assert
+        Assert.Equal(2800, rerated.StartPressure, Precision);
+    }
 }

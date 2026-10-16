@@ -48,14 +48,21 @@ public static class CylinderSizes
     /// <returns>The changed cylinder.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="cylinder"/> is <see langword="null"/>.</exception>
     /// <remarks>
-    /// The size is rounded to one decimal, as a size converted from metric is. A working pressure that is not positive is
-    /// kept as given, so the plan reports it as invalid.
+    /// The size is rounded to one decimal, as a size converted from metric is. The fill pressure follows the working
+    /// pressure while they are equal, and stays where it was once it has been set to something else. A working pressure
+    /// that is not positive is kept as given, so the plan reports it as invalid.
     /// </remarks>
     public static CylinderInput WithWorkingPressure(CylinderInput cylinder, double pressure)
     {
         ArgumentNullException.ThrowIfNull(cylinder);
+        var startPressure = cylinder.StartPressure == cylinder.RatedPressure ? pressure : cylinder.StartPressure;
         return cylinder.RatedPressure > 0 && pressure > 0
-            ? cylinder with { Size = Math.Round(cylinder.Size * pressure / cylinder.RatedPressure, SizeDecimals), RatedPressure = pressure }
-            : cylinder with { RatedPressure = pressure };
+            ? cylinder with
+            {
+                Size = Math.Round(cylinder.Size * pressure / cylinder.RatedPressure, SizeDecimals),
+                RatedPressure = pressure,
+                StartPressure = startPressure
+            }
+            : cylinder with { RatedPressure = pressure, StartPressure = startPressure };
     }
 }
