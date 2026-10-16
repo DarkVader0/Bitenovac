@@ -57,4 +57,23 @@ public sealed class GasDisplayTests
         Assert.Contains(TestFactory.Shown("Start (L)"), pdf, StringComparison.Ordinal);
         Assert.DoesNotContain(TestFactory.Shown("Start (bar)"), pdf, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void DiveSheet_ShouldSayHowMuchGasIsMissingInLiters_WhenVolumeIsChosenAndACylinderRunsOut()
+    {
+        // Arrange
+        var plan = TestFactory.OutOfGasPlan() with
+        {
+            Settings = TestFactory.Plan().Settings with { GasQuantity = GasQuantity.Volume }
+        };
+        var cylinder = TestFactory.Calculate(plan).Cylinders[0];
+        var missing = Formats.Number(GasAmounts.For(cylinder, GasQuantity.Volume, UnitSystem.Metric).Missing);
+
+        // Act
+        var pdf = TestFactory.Read(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, [ResultBlock.Gas]));
+
+        // Assert
+        Assert.Contains(TestFactory.Shown($"{cylinder.Gas} runs out: the dive needs {missing} L more than the cylinder holds."), pdf,
+            StringComparison.Ordinal);
+    }
 }
