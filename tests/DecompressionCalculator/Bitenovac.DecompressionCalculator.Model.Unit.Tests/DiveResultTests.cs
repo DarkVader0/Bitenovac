@@ -166,4 +166,32 @@ public sealed class DiveResultTests
         Assert.Equal(10 * FeetPerMeter, violation.ToDepth, Precision);
         Assert.Equal(12 * FeetPerMeter, violation.Ceiling, Precision);
     }
+
+    [Fact]
+    public void TimeToSurface_ShouldBeTheAscentAfterTheLastLevel_WhenTheDiveWasPlanned()
+    {
+        // Arrange
+        var result = DiveResult.From(0, CreatePlan(), [], UnitSystem.Metric);
+        var lastLevelEnd = result.Profile.Last(static phase => phase.Kind is SegmentKind.Bottom or SegmentKind.Descent).Runtime;
+
+        // Act
+        var timeToSurface = result.TimeToSurface;
+
+        // Assert
+        Assert.Equal(result.TotalRuntime - lastLevelEnd, timeToSurface);
+        Assert.True(timeToSurface > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void TimeToSurface_ShouldBeZero_WhenTheDiveCouldNotBePlanned()
+    {
+        // Arrange
+        var result = DiveResult.Failed(0, "No plan.");
+
+        // Act
+        var timeToSurface = result.TimeToSurface;
+
+        // Assert
+        Assert.Equal(TimeSpan.Zero, timeToSurface);
+    }
 }

@@ -200,7 +200,7 @@ public static class DiveSheet
                     ? new[]
                     {
                         dive.DisplayName(index + 1), interval, Formats.Number(result.MaximumDepth), Formats.Clock(result.TotalRuntime),
-                        Formats.Clock(TimeToSurface(result)), Formats.Number(result.CnsPercent), Formats.Number(result.OxygenToleranceUnits)
+                        Formats.Clock(result.TimeToSurface), Formats.Number(result.CnsPercent), Formats.Number(result.OxygenToleranceUnits)
                     }
                     : [dive.DisplayName(index + 1), interval, ExportText.CannotBePlanned, string.Empty, string.Empty, string.Empty, string.Empty];
             })
@@ -351,7 +351,7 @@ public static class DiveSheet
         (string Label, string Value)[] figures =
         [
             (ExportText.FigureRuntime, Formats.Minutes(result.TotalRuntime)),
-            (ExportText.FigureTts, Formats.Minutes(TimeToSurface(result))),
+            (ExportText.FigureTts, Formats.Minutes(result.TimeToSurface)),
             (ExportText.FigureCns, Localized.Format(ExportText.Percent, Formats.Number(result.CnsPercent))),
             (ExportText.FigureOtu, Formats.Number(result.OxygenToleranceUnits))
         ];
@@ -546,11 +546,4 @@ public static class DiveSheet
         { IsSafetyStop: true } => SafetyStopColor,
         _ => SheetWriter.Danger
     };
-
-    /// <remarks>
-    /// The ascent starts after the last level; a level of zero minutes has no phase of its own, so after the
-    /// last level or descent.
-    /// </remarks>
-    private static TimeSpan TimeToSurface(DiveResult result) => result.TotalRuntime
-        - result.Profile.Last(static phase => phase.Kind is SegmentKind.Bottom or SegmentKind.Descent).Runtime;
 }

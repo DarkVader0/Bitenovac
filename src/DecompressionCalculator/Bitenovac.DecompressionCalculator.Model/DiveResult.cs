@@ -197,6 +197,17 @@ public sealed class DiveResult
     public TimeSpan TotalRuntime { get; }
 
     /// <summary>
+    /// Gets the time from leaving the last level to reaching the surface: the ascent, its stops and gas switches.
+    /// </summary>
+    /// <remarks>
+    /// A level of zero minutes leaves no phase of its own, so the ascent starts after the last level or descent.
+    /// Zero for a dive that could not be planned.
+    /// </remarks>
+    public TimeSpan TimeToSurface => Profile.Count == 0
+        ? TimeSpan.Zero
+        : TotalRuntime - Profile.Last(static phase => phase.Kind is SegmentKind.Bottom or SegmentKind.Descent).Runtime;
+
+    /// <summary>
     /// Gets the time spent on stops and gas switches, including a safety stop.
     /// </summary>
     public TimeSpan StopTime { get; }

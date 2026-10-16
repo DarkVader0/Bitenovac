@@ -1,6 +1,6 @@
 <dl class="figures">
     <div><dt>@WebText.Runtime</dt><dd>@Display.Clock(Result.TotalRuntime)<small>@($" {WebText.MinutesUnit}")</small></dd></div>
-    <div><dt>@WebText.Tts</dt><dd>@Display.Clock(ResultFigures.TimeToSurface(Result))<small>@($" {WebText.MinutesUnit}")</small></dd></div>
+    <div><dt>@WebText.Tts</dt><dd>@Display.Clock(Result.TimeToSurface)<small>@($" {WebText.MinutesUnit}")</small></dd></div>
     <div><dt>@WebText.Cns</dt><dd>@Display.Number(Result.CnsPercent) %</dd></div>
     <div><dt>@WebText.Otu</dt><dd>@Display.Number(Result.OxygenToleranceUnits)</dd></div>
 </dl>

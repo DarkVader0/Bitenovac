@@ -4,7 +4,7 @@
         @if (Contingency.Result.Succeeded)
         {
             <span class="contingency-summary">
-                @Localized.Format(WebText.ContingencySummary, Display.Minutes(Contingency.Result.TotalRuntime), Display.Minutes(ResultFigures.TimeToSurface(Contingency.Result)))
+                @Localized.Format(WebText.ContingencySummary, Display.Minutes(Contingency.Result.TotalRuntime), Display.Minutes(Contingency.Result.TimeToSurface))
             </span>
         }
         else
