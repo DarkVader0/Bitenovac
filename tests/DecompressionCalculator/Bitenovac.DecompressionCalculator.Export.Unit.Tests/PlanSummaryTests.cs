@@ -37,7 +37,7 @@ public sealed class PlanSummaryTests
         // Assert
         Assert.Equal("Reef", lines[0]);
         Assert.Equal("Bühlmann ZHL-16C GF 30/70 · Metric · exported 11 Oct 2026 12:00 UTC", lines[1]);
-        Assert.Equal("Salt water · altitude 0 m · SAC 18 / 14 L/min · PO2 1.4 / 1.6 bar · last stop 3 m · safety stop off", lines[2]);
+        Assert.Equal("Salt water · altitude 0 m · SAC 18 / 14 L/min · PO2 1.4 / 1.6 bar · last stop 3 m · safety stop off · O2 narcotic in END", lines[2]);
         Assert.Equal("Dive: Open circuit · 40 m 25 min · Air 24.0 L at 230 bar (Bottom gas), NX50 11.0 L at 200 bar (Deco gas)", lines[4]);
         Assert.Equal($"Stops: {stops}", lines[5]);
         Assert.StartsWith($"Runtime {Formats.Minutes(result.TotalRuntime)} · max 40 m · CNS ", lines[6], StringComparison.Ordinal);

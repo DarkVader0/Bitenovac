@@ -1,0 +1,36 @@
+<div class="table-scroll">
+    <table class="gas-checks">
+        <caption>Each gas on each level and at its deepest. Density above @Display.Number(GasMath.DensityLimit, 1) g/L is marked.</caption>
+        <thead>
+        <tr>
+            <th>Gas</th>
+            <th class="number">Depth</th>
+            <th class="number">PO₂</th>
+            <th class="number">END</th>
+            <th class="number">Density</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var check in Result.GasChecks)
+        {
+            <tr class="@(check.IsTooDense ? "gas-warning" : null)">
+                <td class="gas-name">@check.Gas</td>
+                <td class="number">@Display.Number(check.Depth) @Labels.Depth</td>
+                <td class="number">@Display.Number(check.OxygenPressure, 2)</td>
+                <td class="number">@Display.Number(check.EquivalentNarcoticDepth) @Labels.Depth</td>
+                <td class="number">@Display.Number(check.Density, 1) g/L</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public DiveResult Result { get; set; } = default!;
+
+    [Parameter]
+    public UnitSystem Units { get; set; }
+
+    private UnitLabels Labels => UnitLabels.For(Units);
+}

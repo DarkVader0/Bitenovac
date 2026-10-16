@@ -25,6 +25,9 @@
     </a>
     <input class="plan-name" type="text" aria-label="Plan name" value="@_plan.Name"
            @onchange="args => ChangeAsync(_plan with { Name = args.Value as string ?? string.Empty })"/>
+    <button type="button" class="icon-button" title="Gas tools" aria-label="Gas tools" @onclick="() => _toolsOpen = true">
+        <Icon Name="IconName.Calculator"/>
+    </button>
     <button type="button" class="icon-button" title="Share" aria-label="Share" @onclick="() => _shareOpen = true">
         <Icon Name="IconName.Share"/>
     </button>
@@ -110,6 +113,11 @@ else
     <ShareSheet Plan="_plan" Dive="_selected" OnClose="() => _shareOpen = false"/>
 }
 
+@if (_toolsOpen)
+{
+    <GasTools Settings="_plan.SettingsFor(_selected)" Units="_plan.Units" OnClose="() => _toolsOpen = false"/>
+}
+
 @if (_settingsOpen)
 {
     <div class="drawer-backdrop settings-backdrop" @onclick="() => _settingsOpen = false"></div>
@@ -183,6 +191,7 @@ else
     private bool _settingsOpen;
     private bool _appSettings;
     private bool _shareOpen;
+    private bool _toolsOpen;
     private bool _missing;
     private Guid _loadedId;
     private int _selected;

@@ -3,7 +3,7 @@ namespace Bitenovac.DecompressionCalculator.Model.Unit.Tests;
 public sealed class UserPreferencesTests
 {
     private static readonly ResultBlock[] AllBlocks =
-        [ResultBlock.Figures, ResultBlock.Profile, ResultBlock.Gas, ResultBlock.Chart, ResultBlock.Contingencies];
+        [ResultBlock.Figures, ResultBlock.Profile, ResultBlock.Gas, ResultBlock.GasChecks, ResultBlock.Chart, ResultBlock.Contingencies];
 
     [Fact]
     public void Default_ShouldShowEveryBlockInTheDefaultOrder_WhenNothingWasChosen()
@@ -43,7 +43,7 @@ public sealed class UserPreferencesTests
         var hidden = preferences.WithVisible(ResultBlock.Gas, false);
 
         // Assert
-        Assert.Equal([ResultBlock.Figures, ResultBlock.Profile, ResultBlock.Chart, ResultBlock.Contingencies], hidden.VisibleBlocks());
+        Assert.Equal([ResultBlock.Figures, ResultBlock.Profile, ResultBlock.GasChecks, ResultBlock.Chart, ResultBlock.Contingencies], hidden.VisibleBlocks());
         Assert.Equal(AllBlocks, hidden.Blocks.Select(static setting => setting.Block));
     }
 
@@ -61,10 +61,10 @@ public sealed class UserPreferencesTests
     }
 
     [Theory]
-    [InlineData(ResultBlock.Gas, -1, new[] { ResultBlock.Figures, ResultBlock.Gas, ResultBlock.Profile, ResultBlock.Chart, ResultBlock.Contingencies })]
-    [InlineData(ResultBlock.Profile, 1, new[] { ResultBlock.Figures, ResultBlock.Gas, ResultBlock.Profile, ResultBlock.Chart, ResultBlock.Contingencies })]
-    [InlineData(ResultBlock.Chart, -3, new[] { ResultBlock.Chart, ResultBlock.Figures, ResultBlock.Profile, ResultBlock.Gas, ResultBlock.Contingencies })]
-    [InlineData(ResultBlock.Figures, 10, new[] { ResultBlock.Profile, ResultBlock.Gas, ResultBlock.Chart, ResultBlock.Contingencies, ResultBlock.Figures })]
+    [InlineData(ResultBlock.Gas, -1, new[] { ResultBlock.Figures, ResultBlock.Gas, ResultBlock.Profile, ResultBlock.GasChecks, ResultBlock.Chart, ResultBlock.Contingencies })]
+    [InlineData(ResultBlock.Profile, 1, new[] { ResultBlock.Figures, ResultBlock.Gas, ResultBlock.Profile, ResultBlock.GasChecks, ResultBlock.Chart, ResultBlock.Contingencies })]
+    [InlineData(ResultBlock.Chart, -4, new[] { ResultBlock.Chart, ResultBlock.Figures, ResultBlock.Profile, ResultBlock.Gas, ResultBlock.GasChecks, ResultBlock.Contingencies })]
+    [InlineData(ResultBlock.Figures, 10, new[] { ResultBlock.Profile, ResultBlock.Gas, ResultBlock.GasChecks, ResultBlock.Chart, ResultBlock.Contingencies, ResultBlock.Figures })]
     public void Move_ShouldPutTheBlockWhereTheOffsetTakesIt_WhenItIsMoved(ResultBlock block, int offset, ResultBlock[] expected)
     {
         // Arrange
@@ -113,7 +113,7 @@ public sealed class UserPreferencesTests
         var preferences = UserPreferences.Default.WithVisible(ResultBlock.Chart, false);
 
         // Act
-        var moved = preferences.Move(ResultBlock.Chart, -3);
+        var moved = preferences.Move(ResultBlock.Chart, -4);
 
         // Assert
         Assert.Equal(new ResultBlockSetting(ResultBlock.Chart, false), moved.Blocks[0]);
@@ -137,7 +137,7 @@ public sealed class UserPreferencesTests
 
         // Assert
         Assert.Equal(
-            [ResultBlock.Gas, ResultBlock.Chart, ResultBlock.Figures, ResultBlock.Profile, ResultBlock.Contingencies],
+            [ResultBlock.Gas, ResultBlock.Chart, ResultBlock.Figures, ResultBlock.Profile, ResultBlock.GasChecks, ResultBlock.Contingencies],
             preferences.Blocks.Select(static setting => setting.Block));
         Assert.False(preferences.Blocks[0].Visible);
         Assert.All(preferences.Blocks.Skip(2), setting => Assert.True(setting.Visible));
@@ -248,6 +248,6 @@ public sealed class UserPreferencesTests
         Assert.Equal(ThemePreference.System, preferences.Theme);
         Assert.Equal("en", preferences.Language);
         Assert.Equal(new ResultBlockSetting(ResultBlock.Gas, false), preferences.Blocks[0]);
-        Assert.Equal(5, preferences.Blocks.Count);
+        Assert.Equal(6, preferences.Blocks.Count);
     }
 }

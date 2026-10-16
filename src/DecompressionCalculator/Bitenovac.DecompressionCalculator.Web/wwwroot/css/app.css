@@ -1682,3 +1682,18 @@ tr.gas-warning td:first-child {
 .share-scope {
     margin: 0 0 1rem;
 }
+
+.gas-tool {
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--border);
+}
+
+.gas-tool h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.gas-tool-result {
+    margin: 0.5rem 0 0;
+    font-variant-numeric: tabular-nums;
+}
