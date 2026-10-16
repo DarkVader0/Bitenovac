@@ -99,6 +99,7 @@
     private ChartReadout? _readout;
 
     private ElementReference _svg;
+    private bool _disposed;
     private DotNetObjectReference<ProfileChartView>? _listener;
     private IJSObjectReference? _module;
     private IJSObjectReference? _tracker;
@@ -135,7 +136,18 @@
 
         _listener = DotNetObjectReference.Create(this);
         _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/chart.js");
+        if (_disposed)
+        {
+            await _module.DisposeAsync();
+            return;
+        }
+
         _tracker = await _module.InvokeAsync<IJSObjectReference>("track", _svg, _listener);
+        if (_disposed)
+        {
+            await _tracker.InvokeVoidAsync("dispose");
+            await _tracker.DisposeAsync();
+        }
     }
 
     [JSInvokable]
@@ -154,6 +166,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
         if (_tracker is not null)
         {
             await _tracker.InvokeVoidAsync("dispose");
