@@ -1,13 +1,13 @@
 @if (DiveCount > 1)
 {
     <section class="card settings-scope">
-        <CheckField @key="_resets" Label="Apply to all dives" Value="Shared" ValueChanged="OnChangeAsync"/>
+        <CheckField @key="_resets" Label="@WebText.ApplyToAllDives" Value="Shared" ValueChanged="OnChangeAsync"/>
         @if (_confirm)
         {
-            <p class="scope-note">@DiveName has its own settings. Replace them with the plan's?</p>
+            <p class="scope-note">@Localized.Format(WebText.ReplaceOwnSettings, DiveName)</p>
             <div class="button-row">
-                <button type="button" class="danger" @onclick="ReplaceAsync">Replace</button>
-                <button type="button" class="secondary" @onclick="Keep">Keep</button>
+                <button type="button" class="danger" @onclick="ReplaceAsync">@WebText.Replace</button>
+                <button type="button" class="secondary" @onclick="Keep">@WebText.Keep</button>
             </div>
         }
         else
@@ -15,11 +15,11 @@
             <p class="scope-note">
                 @if (Shared)
                 {
-                    <text>The settings below apply to every dive that follows the plan's.</text>
+                    @WebText.SettingsShared
                 }
                 else
                 {
-                    <text>The settings below are for @DiveName only.</text>
+                    @Localized.Format(WebText.SettingsOwn, DiveName)
                 }
             </p>
         }

@@ -1697,3 +1697,25 @@ tr.gas-warning td:first-child {
     margin: 0.5rem 0 0;
     font-variant-numeric: tabular-nums;
 }
+
+.calculator-logo {
+    display: inline-flex;
+    flex-shrink: 0;
+    min-height: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 10px;
+}
+
+.calculator-logo img {
+    display: block;
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.calculator-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1.25rem;
+}

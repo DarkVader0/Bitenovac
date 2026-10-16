@@ -8,8 +8,8 @@ namespace Bitenovac.DecompressionCalculator.Export;
 public static class GasWarnings
 {
     /// <summary>
-    /// Returns a warning for each gas denser than <see cref="GasMath.DensityLimit"/> where it is breathed, then one for
-    /// each switch that risks isobaric counterdiffusion.
+    /// Returns a warning for the densest gas where it is breathed, when it is denser than the limit in the planner settings,
+    /// then one for each switch that risks isobaric counterdiffusion.
     /// </summary>
     /// <param name="result">The dive.</param>
     /// <param name="units">The units the dive is shown in.</param>
@@ -22,13 +22,12 @@ public static class GasWarnings
         var labels = UnitLabels.For(units);
         var density = result.GasChecks
             .Where(static check => check.IsTooDense)
-            .Select(check =>
-                $"{check.Gas} is {Formats.Number(check.Density, 1)} g/L at {Formats.Number(check.Depth)} {labels.Depth}, " +
-                $"above {Formats.Number(GasMath.DensityLimit, 1)} g/L: breathing gets hard work. Add helium or plan shallower.");
+            .OrderByDescending(static check => check.Density)
+            .Take(1)
+            .Select(check => Localized.Format(ExportText.DensityWarning, check.Gas, Formats.Number(check.Density, 1),
+                Formats.Number(check.Depth), labels.Depth, Formats.Number(check.DensityLimit, 1)));
         var counterdiffusion = result.Counterdiffusion
-            .Select(row =>
-                $"The switch from {row.From} to {row.To} at {Formats.Number(row.Depth)} {labels.Depth} adds more nitrogen than a fifth " +
-                "of the helium it drops, which risks isobaric counterdiffusion.");
+            .Select(row => Localized.Format(ExportText.CounterdiffusionWarning, row.From, row.To, Formats.Number(row.Depth), labels.Depth));
         return [.. density, .. counterdiffusion];
     }
 }

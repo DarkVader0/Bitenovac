@@ -136,9 +136,10 @@ public sealed class DiveResultTests
         // Assert
         Assert.Equal(
         [
-            new CylinderRow("Air", CylinderPurpose.BottomGas, 1800, 200, 50, false, 600, 600, true),
-            new CylinderRow("NX50", CylinderPurpose.DecoGas, 300, 200, 157, false, 200, 100, false)
-        ], result.Cylinders);
+            ("Air", CylinderPurpose.BottomGas, 1800.0, 200.0, 50.0, false, 600.0, 600.0, true),
+            ("NX50", CylinderPurpose.DecoGas, 300.0, 200.0, 157.0, false, 200.0, 100.0, false)
+        ],
+        result.Cylinders.Select(static c => (c.Gas, c.Purpose, c.GasUsed, c.StartPressure, c.EndPressure, c.IsExhausted, c.RequiredReserve, c.ProjectedRemaining, c.ReserveSatisfied)).ToArray());
         Assert.Equal([new ViolationRow(20, 10, 12)], result.Violations);
     }
 
@@ -164,5 +165,33 @@ public sealed class DiveResultTests
         Assert.Equal(20 * FeetPerMeter, violation.FromDepth, Precision);
         Assert.Equal(10 * FeetPerMeter, violation.ToDepth, Precision);
         Assert.Equal(12 * FeetPerMeter, violation.Ceiling, Precision);
+    }
+
+    [Fact]
+    public void TimeToSurface_ShouldBeTheAscentAfterTheLastLevel_WhenTheDiveWasPlanned()
+    {
+        // Arrange
+        var result = DiveResult.From(0, CreatePlan(), [], UnitSystem.Metric);
+        var lastLevelEnd = result.Profile.Last(static phase => phase.Kind is SegmentKind.Bottom or SegmentKind.Descent).Runtime;
+
+        // Act
+        var timeToSurface = result.TimeToSurface;
+
+        // Assert
+        Assert.Equal(result.TotalRuntime - lastLevelEnd, timeToSurface);
+        Assert.True(timeToSurface > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void TimeToSurface_ShouldBeZero_WhenTheDiveCouldNotBePlanned()
+    {
+        // Arrange
+        var result = DiveResult.Failed(0, "No plan.");
+
+        // Act
+        var timeToSurface = result.TimeToSurface;
+
+        // Assert
+        Assert.Equal(TimeSpan.Zero, timeToSurface);
     }
 }

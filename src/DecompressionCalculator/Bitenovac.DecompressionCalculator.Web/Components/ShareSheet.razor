@@ -2,24 +2,24 @@
 @inject PreferencesStore Preferences
 
 <div class="drawer-backdrop" @onclick="OnClose"></div>
-<aside class="share-sheet" role="dialog" aria-modal="true" aria-label="Share plan" @onkeydown="CloseOnEscape">
+<aside class="share-sheet" role="dialog" aria-modal="true" aria-label="@WebText.SharePlan" @onkeydown="CloseOnEscape">
     <div class="drawer-header">
-        <h2>Share plan</h2>
-        <button type="button" class="secondary" @onclick="OnClose"><Icon Name="IconName.Close"/>Close</button>
+        <h2>@WebText.SharePlan</h2>
+        <button type="button" class="secondary" @onclick="OnClose"><Icon Name="IconName.Close"/>@WebText.Close</button>
     </div>
 
     @if (Plan.Dives.Count > 1)
     {
         <div class="field share-scope">
-            <span class="field-label">What to share</span>
+            <span class="field-label">@WebText.WhatToShare</span>
             <div class="button-row">
                 <button type="button" class="@(_series ? "secondary" : null)" aria-pressed="@(_series ? "false" : "true")"
                         @onclick="() => _series = false">
-                    This dive
+                    @WebText.ThisDive
                 </button>
                 <button type="button" class="@(_series ? null : "secondary")" aria-pressed="@(_series ? "true" : "false")"
                         @onclick="() => _series = true">
-                    Whole series
+                    @WebText.WholeSeries
                 </button>
             </div>
         </div>
@@ -28,10 +28,10 @@
     <div class="share-options">
         @if (_canShareFiles)
         {
-            <button type="button" @onclick="SharePdfAsync"><Icon Name="IconName.Share"/>Share PDF</button>
+            <button type="button" @onclick="SharePdfAsync"><Icon Name="IconName.Share"/>@WebText.SharePdf</button>
         }
-        <button type="button" class="secondary" @onclick="DownloadPdfAsync"><Icon Name="IconName.Download"/>Download PDF</button>
-        <button type="button" class="secondary" @onclick="PrintAsync"><Icon Name="IconName.Print"/>Print</button>
+        <button type="button" class="secondary" @onclick="DownloadPdfAsync"><Icon Name="IconName.Download"/>@WebText.DownloadPdf</button>
+        <button type="button" class="secondary" @onclick="PrintAsync"><Icon Name="IconName.Print"/>@WebText.Print</button>
     </div>
 
     @if (_status is not null)
@@ -61,9 +61,9 @@
     private string Title => string.IsNullOrWhiteSpace(Plan.Name) ? FileNames.Fallback : Plan.Name;
 
     private string FileName => FileNames.Pdf(_series
-        ? $"{Title} - all dives"
+        ? Localized.Format(WebText.AllDivesFile, Title)
         : Plan.Dives.Count > 1 || !string.IsNullOrWhiteSpace(Plan.Dives[Dive].Name)
-            ? $"{Title} - {Plan.Dives[Dive].DisplayName(Dive + 1)}"
+            ? Localized.Format(WebText.DiveFile, Title, Plan.Dives[Dive].DisplayName(Dive + 1))
             : Title);
 
     protected override async Task OnInitializedAsync()
@@ -83,7 +83,7 @@
         if (outcome == ShareOutcome.Failed)
         {
             await Share.DownloadAsync(pdf, FileName, ShareService.PdfType);
-            _status = "Sharing is not available here, so the PDF was downloaded instead.";
+            _status = WebText.ShareFallback;
         }
         else
         {
@@ -94,7 +94,7 @@
     private async Task DownloadPdfAsync()
     {
         await Share.DownloadAsync(Sheet(), FileName, ShareService.PdfType);
-        _status = "Downloaded.";
+        _status = WebText.Downloaded;
     }
 
     private async Task PrintAsync()

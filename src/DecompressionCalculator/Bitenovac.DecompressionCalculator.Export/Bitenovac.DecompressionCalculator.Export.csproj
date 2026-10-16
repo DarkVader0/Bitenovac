@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <SatelliteResourceLanguages>en;de</SatelliteResourceLanguages>
         <Description>Profile charts, PDF dive sheets and text summaries of Bitenovac dive plans.</Description>
     </PropertyGroup>
 
@@ -11,5 +12,12 @@
     <ItemGroup>
         <InternalsVisibleTo Include="Bitenovac.DecompressionCalculator.Export.Unit.Tests"/>
     </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Update="Resources\ExportText.resx" Generator="MSBuild:Compile" StronglyTypedLanguage="CSharp"
+                          StronglyTypedNamespace="Bitenovac.DecompressionCalculator.Export" StronglyTypedClassName="ExportText"
+                          StronglyTypedFileName="$(IntermediateOutputPath)ExportText.Designer.cs"
+                          ManifestResourceName="Bitenovac.DecompressionCalculator.Export.ExportText"/>
+        <EmbeddedResource Update="Resources\ExportText.de.resx" ManifestResourceName="Bitenovac.DecompressionCalculator.Export.ExportText.de"/>    </ItemGroup>
 
 </Project>

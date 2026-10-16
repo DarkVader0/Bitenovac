@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>2.0</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <data name="Disclaimer" xml:space="preserve">
+        <value>Warnung: Bitenovac ist eine Software zur Dekompressionsplanung, die nur begrenzt getestet wurde. Tauchen Sie einen Plan nicht allein auf Grundlage dieser Ergebnisse: prüfen Sie ihn mit anderen Planungswerkzeugen, folgen Sie Ihrem Tauchcomputer und tauchen Sie innerhalb Ihrer Ausbildung und Zertifizierung.</value>
+    </data>
+    <data name="DivePlan" xml:space="preserve">
+        <value>Tauchplan</value>
+    </data>
+    <data name="Dive" xml:space="preserve">
+        <value>Tauchgang</value>
+    </data>
+    <data name="DiveNumbered" xml:space="preserve">
+        <value>Tauchgang {0}</value>
+    </data>
+    <data name="PlaceOf" xml:space="preserve">
+        <value>{0} von {1}</value>
+    </data>
+    <data name="NamedPlace" xml:space="preserve">
+        <value>{0} ({1})</value>
+    </data>
+    <data name="SheetMeta" xml:space="preserve">
+        <value>{0} · {1} UTC · Bitenovac {2}</value>
+    </data>
+    <data name="ContingencySheetMeta" xml:space="preserve">
+        <value>{0} · Notfallplan · {1} UTC · Bitenovac {2}</value>
+    </data>
+    <data name="SeriesMeta" xml:space="preserve">
+        <value>{0} Tauchgänge · {1} UTC · Bitenovac {2}</value>
+    </data>
+    <data name="SheetInterval" xml:space="preserve">
+        <value>Nach {0} h an der Oberfläche · </value>
+    </data>
+    <data name="CannotBeCalculated" xml:space="preserve">
+        <value>Dieser Plan kann nicht berechnet werden:</value>
+    </data>
+    <data name="IssueLine" xml:space="preserve">
+        <value>- {0}</value>
+    </data>
+    <data name="CannotBePlanned" xml:space="preserve">
+        <value>kann nicht geplant werden</value>
+    </data>
+    <data name="SeriesNote" xml:space="preserve">
+        <value>OI ist das Oberflächenintervall vor dem Tauchgang, in Stunden und Minuten. CNS und OTU schließen die früheren Tauchgänge ein.</value>
+    </data>
+    <data name="ColumnDive" xml:space="preserve">
+        <value>Tauchgang</value>
+    </data>
+    <data name="ColumnInterval" xml:space="preserve">
+        <value>OI (h:mm)</value>
+    </data>
+    <data name="ColumnDepth" xml:space="preserve">
+        <value>Tiefe ({0})</value>
+    </data>
+    <data name="ColumnRuntime" xml:space="preserve">
+        <value>Laufzeit (min)</value>
+    </data>
+    <data name="ColumnTts" xml:space="preserve">
+        <value>TTS (min)</value>
+    </data>
+    <data name="ColumnCns" xml:space="preserve">
+        <value>CNS (%)</value>
+    </data>
+    <data name="ColumnOtu" xml:space="preserve">
+        <value>OTU</value>
+    </data>
+    <data name="ColumnTime" xml:space="preserve">
+        <value>Zeit (min)</value>
+    </data>
+    <data name="ColumnGas" xml:space="preserve">
+        <value>Gas</value>
+    </data>
+    <data name="ColumnApparatus" xml:space="preserve">
+        <value>Gerät</value>
+    </data>
+    <data name="ColumnUsedAs" xml:space="preserve">
+        <value>Verwendet als</value>
+    </data>
+    <data name="ColumnPressure" xml:space="preserve">
+        <value>Druck ({0})</value>
+    </data>
+    <data name="ColumnUsed" xml:space="preserve">
+        <value>Verbraucht ({0})</value>
+    </data>
+    <data name="ColumnReserve" xml:space="preserve">
+        <value>Reserve ({0})</value>
+    </data>
+    <data name="ColumnLeft" xml:space="preserve">
+        <value>Übrig ({0})</value>
+    </data>
+    <data name="ColumnMissing" xml:space="preserve">
+        <value>Fehlend ({0})</value>
+    </data>
+    <data name="ColumnPo2" xml:space="preserve">
+        <value>PO2 (bar)</value>
+    </data>
+    <data name="ColumnEnd" xml:space="preserve">
+        <value>END ({0})</value>
+    </data>
+    <data name="ColumnDensity" xml:space="preserve">
+        <value>Dichte (g/l)</value>
+    </data>
+    <data name="FigureRuntime" xml:space="preserve">
+        <value>Laufzeit</value>
+    </data>
+    <data name="FigureTts" xml:space="preserve">
+        <value>TTS</value>
+    </data>
+    <data name="FigureCns" xml:space="preserve">
+        <value>CNS</value>
+    </data>
+    <data name="FigureOtu" xml:space="preserve">
+        <value>OTU</value>
+    </data>
+    <data name="Percent" xml:space="preserve">
+        <value>{0} %</value>
+    </data>
+    <data name="Minutes" xml:space="preserve">
+        <value>{0} min</value>
+    </data>
+    <data name="MinutesAxis" xml:space="preserve">
+        <value>min</value>
+    </data>
+    <data name="PressureRange" xml:space="preserve">
+        <value>{0} bis {1}</value>
+    </data>
+    <data name="ViolationWarning" xml:space="preserve">
+        <value>Der Aufstieg von {0} auf {1} {2} überschreitet die Dekompressionsdecke bei {3} {2}.</value>
+    </data>
+    <data name="RunsOutWarning" xml:space="preserve">
+        <value>{0} wird leer: der Tauchgang benötigt {1} {2} mehr, als die Flasche enthält.</value>
+    </data>
+    <data name="ReserveWarning" xml:space="preserve">
+        <value>Eine Flasche enthält nicht das Reservegas, das der Plan verlangt.</value>
+    </data>
+    <data name="ContingencyLost" xml:space="preserve">
+        <value>{0} verloren</value>
+    </data>
+    <data name="ContingencyExtended" xml:space="preserve">
+        <value>+{0} min, +{1} {2}</value>
+    </data>
+    <data name="ContingencyLostMeaning" xml:space="preserve">
+        <value>Der Plan oben mit verlorenen {0}-Flaschen: der Tauchgang wird ohne sie neu geplant.</value>
+    </data>
+    <data name="ContingencyExtendedMeaning" xml:space="preserve">
+        <value>Der Plan oben mit der tiefsten Stufe {0} {1} tiefer und {2} min länger.</value>
+    </data>
+    <data name="DensityWarning" xml:space="preserve">
+        <value>{0} hat {1} g/l bei {2} {3}, über {4} g/l: Atmen wird sehr anstrengend. Helium hinzufügen oder flacher planen.</value>
+    </data>
+    <data name="CounterdiffusionWarning" xml:space="preserve">
+        <value>Der Wechsel von {0} auf {1} bei {2} {3} erhöht den Stickstoff um mehr als ein Fünftel des abnehmenden Heliums, was eine isobare Gegendiffusion riskiert.</value>
+    </data>
+    <data name="SummaryInterval" xml:space="preserve">
+        <value> (nach {0} h an der Oberfläche)</value>
+    </data>
+    <data name="SummaryInputs" xml:space="preserve">
+        <value>: {0}</value>
+    </data>
+    <data name="SummarySettings" xml:space="preserve">
+        <value>Einstellungen: {0}</value>
+    </data>
+    <data name="SummaryCannotBePlanned" xml:space="preserve">
+        <value>Kann nicht geplant werden: {0}</value>
+    </data>
+    <data name="SummaryStops" xml:space="preserve">
+        <value>Stopps: {0}</value>
+    </data>
+    <data name="SummaryNoStops" xml:space="preserve">
+        <value>Keine Stopps</value>
+    </data>
+    <data name="SummaryNoDecoStops" xml:space="preserve">
+        <value>Keine Dekompressionsstopps</value>
+    </data>
+    <data name="SummarySafetyStop" xml:space="preserve">
+        <value> · Sicherheitsstopp {0}</value>
+    </data>
+    <data name="SummaryFigures" xml:space="preserve">
+        <value>Laufzeit {0} · max. {1} {2} · CNS {3} % · OTU {4}</value>
+    </data>
+    <data name="SummaryCylinder" xml:space="preserve">
+        <value>{0}: {1} {2} verbraucht, {3} bis {4} {5}</value>
+    </data>
+    <data name="SummaryRunsOut" xml:space="preserve">
+        <value> - wird leer, {0} {1} zu wenig</value>
+    </data>
+    <data name="SummaryReserveNotMet" xml:space="preserve">
+        <value> - Reserve nicht erreicht</value>
+    </data>
+    <data name="SummaryCeilingWarning" xml:space="preserve">
+        <value>Warnung: Ein Aufstieg zwischen den Stufen überschreitet die Dekompressionsdecke.</value>
+    </data>
+    <data name="SummaryWarning" xml:space="preserve">
+        <value>Warnung: {0}</value>
+    </data>
+    <data name="SummaryContingencies" xml:space="preserve">
+        <value>Notfallpläne:</value>
+    </data>
+    <data name="SummaryContingencyFailed" xml:space="preserve">
+        <value>{0}: kann nicht geplant werden: {1}</value>
+    </data>
+    <data name="SummaryContingency" xml:space="preserve">
+        <value>{0}: Laufzeit {1} · {2} · CNS {3} %</value>
+    </data>
+    <data name="SummaryContingencyStops" xml:space="preserve">
+        <value>Stopps {0}</value>
+    </data>
+    <data name="SummaryContingencyNoStops" xml:space="preserve">
+        <value>keine Dekompressionsstopps</value>
+    </data>
+    <data name="SummaryStop" xml:space="preserve">
+        <value>{0} {1} {2} min</value>
+    </data>
+    <data name="ListSeparator" xml:space="preserve">
+        <value>, </value>
+    </data>
+    <data name="Metric" xml:space="preserve">
+        <value>Metrisch</value>
+    </data>
+    <data name="Imperial" xml:space="preserve">
+        <value>Imperial</value>
+    </data>
+    <data name="Header" xml:space="preserve">
+        <value>{0} · {1} · exportiert {2} UTC</value>
+    </data>
+    <data name="Buhlmann" xml:space="preserve">
+        <value>Bühlmann ZHL-16C GF {0}/{1}</value>
+    </data>
+    <data name="UnknownAlgorithm" xml:space="preserve">
+        <value>Unbekannter Algorithmus</value>
+    </data>
+    <data name="SettingsLine" xml:space="preserve">
+        <value>{0} · Höhe {1} {2} · AV {3} / {4} {5} · PO2 {6} / {7} bar · letzter Stopp {8} · Sicherheitsstopp {9} · O2 {10} in END</value>
+    </data>
+    <data name="On" xml:space="preserve">
+        <value>ein</value>
+    </data>
+    <data name="Off" xml:space="preserve">
+        <value>aus</value>
+    </data>
+    <data name="Narcotic" xml:space="preserve">
+        <value>narkotisch</value>
+    </data>
+    <data name="NotNarcotic" xml:space="preserve">
+        <value>nicht narkotisch</value>
+    </data>
+    <data name="InputLevel" xml:space="preserve">
+        <value>{0} {1} {2} min</value>
+    </data>
+    <data name="InputCylinder" xml:space="preserve">
+        <value>{0} {1} {2} bei {3} {4} ({5})</value>
+    </data>
+    <data name="InputsLine" xml:space="preserve">
+        <value>{0} · {1} · {2}</value>
+    </data>
+    <data name="PurposeBottomGas" xml:space="preserve">
+        <value>Grundgas</value>
+    </data>
+    <data name="PurposeDecoGas" xml:space="preserve">
+        <value>Dekogas</value>
+    </data>
+    <data name="PurposeDiluent" xml:space="preserve">
+        <value>Verdünnungsgas</value>
+    </data>
+    <data name="PurposeBailout" xml:space="preserve">
+        <value>Notgas</value>
+    </data>
+    <data name="PurposeOxygen" xml:space="preserve">
+        <value>Sauerstoff</value>
+    </data>
+    <data name="CircuitClosed" xml:space="preserve">
+        <value>CCR</value>
+    </data>
+    <data name="CircuitSemiClosed" xml:space="preserve">
+        <value>SCR</value>
+    </data>
+    <data name="CircuitOpen" xml:space="preserve">
+        <value>Offener Kreislauf</value>
+    </data>
+    <data name="SegmentDescent" xml:space="preserve">
+        <value>Abstieg</value>
+    </data>
+    <data name="SegmentLevel" xml:space="preserve">
+        <value>Stufe</value>
+    </data>
+    <data name="SegmentAscent" xml:space="preserve">
+        <value>Aufstieg</value>
+    </data>
+    <data name="SegmentStop" xml:space="preserve">
+        <value>Stopp</value>
+    </data>
+    <data name="SegmentSwitch" xml:space="preserve">
+        <value>Wechsel</value>
+    </data>
+    <data name="SegmentSafetyStop" xml:space="preserve">
+        <value>Sicherheitsstopp</value>
+    </data>
+    <data name="SalinityFresh" xml:space="preserve">
+        <value>Süßwasser</value>
+    </data>
+    <data name="SalinitySalt" xml:space="preserve">
+        <value>Salzwasser</value>
+    </data>
+    <data name="SalinityBrackish" xml:space="preserve">
+        <value>Brackwasser</value>
+    </data>
+    <data name="SalinityEn13319" xml:space="preserve">
+        <value>EN 13319 (Standard für Tauchcomputer)</value>
+    </data>
+    <data name="IssueSettings" xml:space="preserve">
+        <value>Einstellungen</value>
+    </data>
+    <data name="IssueAlgorithm" xml:space="preserve">
+        <value>Algorithmus</value>
+    </data>
+    <data name="IssueLocation" xml:space="preserve">
+        <value>{0}: {1}</value>
+    </data>
+    <data name="IssueInDive" xml:space="preserve">
+        <value>Tauchgang {0} · {1}</value>
+    </data>
+    <data name="IssueLevel" xml:space="preserve">
+        <value>Stufe {0}</value>
+    </data>
+    <data name="IssueCylinder" xml:space="preserve">
+        <value>Flasche {0}</value>
+    </data>
+    <data name="ColumnStart" xml:space="preserve">
+        <value>Anfang ({0})</value>
+    </data>
+    <data name="ColumnFinish" xml:space="preserve">
+        <value>Ende ({0})</value>
+    </data>
+</root>

@@ -79,12 +79,12 @@ public sealed record UserPreferences
     /// <summary>
     /// The version of the document this code writes.
     /// </summary>
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     /// <summary>
-    /// The language the app starts in.
+    /// The first version that stored a language a diver chose. Earlier documents only ever held a default, so their language is dropped.
     /// </summary>
-    public const string DefaultLanguage = "en";
+    internal const int FirstVersionWithChosenLanguage = 2;
 
     private static readonly ResultBlock[] DefaultOrder =
         [ResultBlock.Figures, ResultBlock.Profile, ResultBlock.Gas, ResultBlock.GasChecks, ResultBlock.Chart, ResultBlock.Contingencies];
@@ -96,7 +96,7 @@ public sealed record UserPreferences
     /// </summary>
     /// <param name="version">The version of the document.</param>
     /// <param name="theme">How the app is coloured.</param>
-    /// <param name="language">The language tag of the app; the default when empty or <see langword="null"/>.</param>
+    /// <param name="language">The language tag of the app, or <see langword="null"/> and empty to match the device.</param>
     /// <param name="blocks">The result blocks as stored, in order; see <see cref="Blocks"/>.</param>
     [JsonConstructor]
     public UserPreferences(
@@ -107,7 +107,7 @@ public sealed record UserPreferences
     {
         Version = version;
         Theme = theme;
-        Language = string.IsNullOrWhiteSpace(language) ? DefaultLanguage : language;
+        Language = string.IsNullOrWhiteSpace(language) ? null : language;
         _blocks = Normalize(blocks ?? []);
     }
 
@@ -122,9 +122,9 @@ public sealed record UserPreferences
     public ThemePreference Theme { get; init; }
 
     /// <summary>
-    /// Gets the language of the app, as a language tag such as <c>en</c>.
+    /// Gets the language of the app as a language tag such as <c>en</c>, or <see langword="null"/> to match the device.
     /// </summary>
-    public string Language { get; init; }
+    public string? Language { get; init; }
 
     /// <summary>
     /// Gets every result block in the order it is shown, each with whether it is shown.
@@ -236,8 +236,12 @@ public static class UserPreferencesJson
 
         try
         {
-            return (JsonSerializer.Deserialize(json, UserPreferencesJsonContext.Default.UserPreferences) ?? UserPreferences.Default)
-                with { Version = UserPreferences.CurrentVersion };
+            var stored = JsonSerializer.Deserialize(json, UserPreferencesJsonContext.Default.UserPreferences) ?? UserPreferences.Default;
+            return stored with
+            {
+                Version = UserPreferences.CurrentVersion,
+                Language = stored.Version < UserPreferences.FirstVersionWithChosenLanguage ? null : stored.Language
+            };
         }
         catch (JsonException)
         {

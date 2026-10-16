@@ -1,4 +1,4 @@
-<nav class="dive-tabs no-print" aria-label="Dives">
+<nav class="dive-tabs no-print" aria-label="@WebText.Dives">
     @for (var index = 0; index < Names.Count; index++)
     {
         var at = index;
@@ -7,11 +7,11 @@
             @Names[at]
             @if (DivesWithIssues.Contains(at))
             {
-                <span class="badge" aria-label="@($"{Names[at]} needs attention")"></span>
+                <span class="badge" aria-label="@Localized.Format(WebText.NeedsAttention, Names[at])"></span>
             }
         </button>
     }
-    <button type="button" class="dive-tab add" @onclick="OnAdd"><Icon Name="IconName.Add"/>Add dive</button>
+    <button type="button" class="dive-tab add" @onclick="OnAdd"><Icon Name="IconName.Add"/>@WebText.AddDive</button>
 </nav>
 
 @code {

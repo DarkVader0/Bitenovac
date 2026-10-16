@@ -1,7 +1,7 @@
 <section class="card no-print">
     <div class="card-header">
         <h2 class="dive-name-heading">
-            <input class="dive-name" type="text" aria-label="Dive name" placeholder="Dive @Number" maxlength="40"
+            <input class="dive-name" type="text" aria-label="@WebText.DiveName" placeholder="@Localized.Format(WebText.DiveNumbered, Number)" maxlength="40"
                    value="@Value.Name" @onchange="args => ChangeAsync(Value with { Name = NameOf(args.Value) })"/>
         </h2>
         @if (CanRemove)
@@ -9,13 +9,13 @@
             @if (_confirmRemove)
             {
                 <div class="button-row">
-                    <button type="button" class="danger" @onclick="RemoveAsync">Remove</button>
-                    <button type="button" class="secondary" @onclick="() => _confirmRemove = false">Keep</button>
+                    <button type="button" class="danger" @onclick="RemoveAsync">@WebText.Remove</button>
+                    <button type="button" class="secondary" @onclick="() => _confirmRemove = false">@WebText.Keep</button>
                 </div>
             }
             else
             {
-                <button type="button" class="secondary" @onclick="() => _confirmRemove = true"><Icon Name="IconName.Remove"/>Remove dive</button>
+                <button type="button" class="secondary" @onclick="() => _confirmRemove = true"><Icon Name="IconName.Remove"/>@WebText.RemoveDive</button>
             }
         }
     </div>
@@ -23,7 +23,7 @@
     @if (Number > 1)
     {
         <div class="field-grid surface-interval">
-            <NumberField @key="(Value.SurfaceIntervalMinutes, 0)" Label="Surface interval" Unit="h" Step="1" Value="IntervalHours"
+            <NumberField @key="(Value.SurfaceIntervalMinutes, 0)" Label="@WebText.SurfaceInterval" Unit="h" Step="1" Value="IntervalHours"
                          ValueChanged="hours => ChangeAsync(Value with { SurfaceIntervalMinutes = hours * 60 + IntervalMinutes })"/>
             <NumberField @key="(Value.SurfaceIntervalMinutes, 1)" Label="@(" ")" Unit="min" Step="1" Value="IntervalMinutes"
                          Issue="@Issues[nameof(DiveInput.SurfaceIntervalMinutes)]"
@@ -34,7 +34,7 @@
     <CircuitEditor @key="Number" Value="Value.Circuit" Issues="Issues.Scope(nameof(DiveInput.Circuit))"
                    ValueChanged="circuit => ChangeAsync(Value with { Circuit = circuit })"/>
 
-    <h3>Levels</h3>
+    <h3>@WebText.Levels</h3>
     @if (Issues[nameof(DiveInput.Levels)] is { } levelsIssue)
     {
         <p class="validation-message">@levelsIssue</p>
@@ -55,13 +55,13 @@
         </colgroup>
         <thead>
         <tr>
-            <th>Depth <span class="unit">@Labels.Depth</span></th>
-            <th>Time <span class="unit">min</span></th>
+            <th>@WebText.Depth <span class="unit">@Labels.Depth</span></th>
+            <th>@WebText.Time <span class="unit">min</span></th>
             @if (removableLevels)
             {
-                <th><span class="visually-hidden">Remove</span></th>
+                <th><span class="visually-hidden">@WebText.Remove</span></th>
             }
-            <th><span class="visually-hidden">Add</span></th>
+            <th><span class="visually-hidden">@WebText.Add</span></th>
         </tr>
         </thead>
         <tbody>
@@ -72,24 +72,24 @@
             var issues = Issues.Scope(nameof(DiveInput.Levels), at);
             <tr>
                 <td>
-                    <NumberCell Label="@($"Level {at + 1} depth in {Labels.Depth}")" Value="level.Depth"
+                    <NumberCell Label="@Localized.Format(WebText.LevelDepthLabel, at + 1, Labels.Depth)" Value="level.Depth"
                                 Invalid="issues[nameof(LevelInput.Depth)] is not null"
                                 ValueChanged="value => ChangeLevelAsync(at, level with { Depth = value })"/>
                 </td>
                 <td>
-                    <NumberCell Label="@($"Level {at + 1} time in minutes")" Value="level.DurationMinutes"
+                    <NumberCell Label="@Localized.Format(WebText.LevelTimeLabel, at + 1)" Value="level.DurationMinutes"
                                 Invalid="issues[nameof(LevelInput.DurationMinutes)] is not null"
                                 ValueChanged="value => ChangeLevelAsync(at, level with { DurationMinutes = value })"/>
                 </td>
                 @if (removableLevels)
                 {
                     <td>
-                        <button type="button" class="icon-button" title="Remove level" aria-label="Remove level @(at + 1)"
+                        <button type="button" class="icon-button" title="@WebText.RemoveLevel" aria-label="@Localized.Format(WebText.RemoveLevelNumbered, at + 1)"
                                 @onclick="() => ChangeAsync(Value with { Levels = ListEdit.RemoveAt(Value.Levels, at) })"><Icon Name="IconName.Remove"/></button>
                     </td>
                 }
                 <td>
-                    <button type="button" class="icon-button" title="Add a level after this one" aria-label="Add a level after level @(at + 1)"
+                    <button type="button" class="icon-button" title="@WebText.AddLevelAfter" aria-label="@Localized.Format(WebText.AddLevelAfterNumbered, at + 1)"
                             @onclick="() => ChangeAsync(Value with { Levels = ListEdit.Insert(Value.Levels, at + 1, NewInputs.LevelAfter(level)) })"><Icon Name="IconName.Add"/></button>
                 </td>
             </tr>
@@ -98,7 +98,7 @@
         </tbody>
     </table>
 
-    <h3>Cylinders</h3>
+    <h3>@WebText.Cylinders</h3>
     @if (Issues[nameof(DiveInput.Cylinders)] is { } cylindersIssue)
     {
         <p class="validation-message">@cylindersIssue</p>
@@ -111,15 +111,15 @@
         <table class="input-table cylinders">
             <thead>
             <tr>
-                <th class="col-gas phone-only">Gas <span class="unit">O2/He</span></th>
-                <th class="wide-only">O2 <span class="unit">%</span></th>
-                <th class="wide-only">He <span class="unit">%</span></th>
-                <th>Size <span class="unit">@Labels.CylinderSize</span></th>
-                <th>Pressure <span class="unit">@Labels.Pressure</span></th>
-                <th class="col-role">Use</th>
+                <th class="col-gas phone-only">@WebText.Gas <span class="unit">O2/He</span></th>
+                <th class="wide-only">@WebText.O2 <span class="unit">%</span></th>
+                <th class="wide-only">@WebText.He <span class="unit">%</span></th>
+                <th>@WebText.Size <span class="unit">@Labels.CylinderSize</span></th>
+                <th>@WebText.Pressure <span class="unit">@Labels.Pressure</span></th>
+                <th class="col-role">@WebText.Use</th>
                 @if (removableCylinders)
                 {
-                    <th class="col-remove"><span class="visually-hidden">Remove</span></th>
+                    <th class="col-remove"><span class="visually-hidden">@WebText.Remove</span></th>
                 }
             </tr>
             </thead>
@@ -129,41 +129,41 @@
                 var at = index;
                 var cylinder = Value.Cylinders[at];
                 var issues = Issues.Scope(nameof(DiveInput.Cylinders), at);
-                var name = $"Cylinder {at + 1}";
+                var name = Localized.Format(WebText.CylinderNumbered, at + 1);
                 <tr>
                     <td class="phone-only">
-                        <GasCell Label="@($"{name} gas, oxygen and helium in %")" OxygenPercent="cylinder.OxygenPercent" HeliumPercent="cylinder.HeliumPercent"
+                        <GasCell Label="@Localized.Format(WebText.CylinderGasLabel, name)" OxygenPercent="cylinder.OxygenPercent" HeliumPercent="cylinder.HeliumPercent"
                                  Invalid="issues[nameof(CylinderInput.OxygenPercent)] is not null || issues[nameof(CylinderInput.HeliumPercent)] is not null"
                                  ValueChanged="gas => ChangeCylinderAsync(at, cylinder with { OxygenPercent = gas.Oxygen, HeliumPercent = gas.Helium })"/>
                     </td>
                     <td class="wide-only">
-                        <NumberCell Label="@($"{name} oxygen in %")" Value="cylinder.OxygenPercent"
+                        <NumberCell Label="@Localized.Format(WebText.CylinderOxygenLabel, name)" Value="cylinder.OxygenPercent"
                                     Invalid="issues[nameof(CylinderInput.OxygenPercent)] is not null"
                                     ValueChanged="value => ChangeCylinderAsync(at, cylinder with { OxygenPercent = value })"/>
                     </td>
                     <td class="wide-only">
-                        <NumberCell Label="@($"{name} helium in %")" Value="cylinder.HeliumPercent"
+                        <NumberCell Label="@Localized.Format(WebText.CylinderHeliumLabel, name)" Value="cylinder.HeliumPercent"
                                     Invalid="issues[nameof(CylinderInput.HeliumPercent)] is not null"
                                     ValueChanged="value => ChangeCylinderAsync(at, cylinder with { HeliumPercent = value })"/>
                     </td>
                     <td>
-                        <NumberCell Label="@($"{name} size in {Labels.CylinderSize}")" Value="CylinderSizes.Shown(cylinder, Units)"
+                        <NumberCell Label="@Localized.Format(WebText.CylinderSizeLabel, name, Labels.CylinderSize)" Value="CylinderSizes.Shown(cylinder, Units)"
                                     Invalid="issues[nameof(CylinderInput.Size)] is not null"
                                     ValueChanged="value => ChangeCylinderAsync(at, CylinderSizes.WithSize(cylinder, value, Units))"/>
                     </td>
                     <td>
-                        <NumberCell Label="@($"{name} fill pressure in {Labels.Pressure}")" Value="cylinder.StartPressure"
+                        <NumberCell Label="@Localized.Format(WebText.CylinderPressureLabel, name, Labels.Pressure)" Value="cylinder.StartPressure"
                                     Invalid="issues[nameof(CylinderInput.StartPressure)] is not null"
                                     ValueChanged="value => ChangeCylinderAsync(at, CylinderSizes.WithPressure(cylinder, value, Units))"/>
                     </td>
                     <td>
                         @if (CylinderRoles.Resolve(Value.Circuit, cylinder) == CylinderPurpose.Oxygen)
                         {
-                            <span class="cell-static">Oxygen</span>
+                            <span class="cell-static">@WebText.Oxygen</span>
                         }
                         else
                         {
-                            <SelectCell TValue="CylinderPurpose" Label="@($"{name} used as")" Options="CylinderRoles.Selectable(Value.Circuit)"
+                            <SelectCell TValue="CylinderPurpose" Label="@Localized.Format(WebText.CylinderUseLabel, name)" Options="CylinderRoles.Selectable(Value.Circuit)"
                                         Text="purpose => Display.Name(purpose, Value.Circuit)" Value="cylinder.Purpose"
                                         Invalid="issues[nameof(CylinderInput.Purpose)] is not null"
                                         ValueChanged="value => ChangeCylinderAsync(at, cylinder with { Purpose = value })"/>
@@ -172,7 +172,7 @@
                     @if (removableCylinders)
                     {
                         <td>
-                            <button type="button" class="icon-button" title="Remove cylinder" aria-label="Remove @name"
+                            <button type="button" class="icon-button" title="@WebText.RemoveCylinder" aria-label="@Localized.Format(WebText.RemoveNamed, name)"
                                     @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.RemoveAt(Value.Cylinders, at) })"><Icon Name="IconName.Remove"/></button>
                         </td>
                     }
@@ -186,7 +186,7 @@
         </table>
     </div>
     <button type="button" class="secondary" @onclick="() => ChangeAsync(Value with { Cylinders = ListEdit.Add(Value.Cylinders, NewInputs.Cylinder(Units)) })">
-        <Icon Name="IconName.Add"/>Add cylinder
+        <Icon Name="IconName.Add"/>@WebText.AddCylinder
     </button>
 </section>
 

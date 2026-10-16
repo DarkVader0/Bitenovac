@@ -13,5 +13,6 @@ builder.Services.AddScoped<ShareService>();
 builder.Services.AddScoped<PwaService>();
 builder.Services.AddScoped<ThemeService>();
 builder.Services.AddScoped<PreferencesStore>();
+builder.Services.AddScoped<CalculatorReturn>();
 
 await builder.Build().RunAsync();

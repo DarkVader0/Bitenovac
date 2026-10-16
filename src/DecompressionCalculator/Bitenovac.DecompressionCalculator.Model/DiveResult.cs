@@ -55,6 +55,41 @@ public sealed record CylinderRow(
     /// feet; zero when the cylinder holds enough.
     /// </summary>
     public double Shortfall { get; init; }
+
+    /// <summary>
+    /// Gets the pressure at the start of the dive, in bar, whatever the units of the plan.
+    /// </summary>
+    public double StartBar { get; init; }
+
+    /// <summary>
+    /// Gets the pressure at the end of the dive, in bar, whatever the units of the plan.
+    /// </summary>
+    public double EndBar { get; init; }
+
+    /// <summary>
+    /// Gets the water volume of the cylinder, in liters, whatever the units of the plan.
+    /// </summary>
+    public double WaterLitres { get; init; }
+
+    /// <summary>
+    /// Gets the gas used, at the surface, in liters, whatever the units of the plan.
+    /// </summary>
+    public double UsedLitres { get; init; }
+
+    /// <summary>
+    /// Gets the gas required in reserve, at the surface, in liters, whatever the units of the plan.
+    /// </summary>
+    public double ReserveLitres { get; init; }
+
+    /// <summary>
+    /// Gets the gas left at the end of the dive, at the surface, in liters, whatever the units of the plan.
+    /// </summary>
+    public double LeftLitres { get; init; }
+
+    /// <summary>
+    /// Gets the gas the dive needs beyond what the cylinder holds, at the surface, in liters, whatever the units of the plan.
+    /// </summary>
+    public double MissingLitres { get; init; }
 }
 
 /// <summary>
@@ -160,6 +195,17 @@ public sealed class DiveResult
     /// Gets the time from leaving the surface to reaching it again.
     /// </summary>
     public TimeSpan TotalRuntime { get; }
+
+    /// <summary>
+    /// Gets the time from leaving the last level to reaching the surface: the ascent, its stops and gas switches.
+    /// </summary>
+    /// <remarks>
+    /// A level of zero minutes leaves no phase of its own, so the ascent starts after the last level or descent.
+    /// Zero for a dive that could not be planned.
+    /// </remarks>
+    public TimeSpan TimeToSurface => Profile.Count == 0
+        ? TimeSpan.Zero
+        : TotalRuntime - Profile.Last(static phase => phase.Kind is SegmentKind.Bottom or SegmentKind.Descent).Runtime;
 
     /// <summary>
     /// Gets the time spent on stops and gas switches, including a safety stop.
@@ -338,6 +384,13 @@ public sealed class DiveResult
         UnitConversion.FromGasVolume(reserve.ProjectedRemaining, units),
         reserve.IsSatisfied)
     {
-        Shortfall = UnitConversion.FromGasVolume(usage.Shortfall, units)
+        Shortfall = UnitConversion.FromGasVolume(usage.Shortfall, units),
+        StartBar = usage.StartPressure.InBar,
+        EndBar = usage.EndPressure.InBar,
+        WaterLitres = usage.Cylinder.Size.InLiter,
+        UsedLitres = usage.GasUsed.InLiter,
+        ReserveLitres = reserve.RequiredReserve.InLiter,
+        LeftLitres = reserve.ProjectedRemaining.InLiter,
+        MissingLitres = usage.Shortfall.InLiter
     };
 }

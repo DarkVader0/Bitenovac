@@ -112,7 +112,7 @@ public sealed class SeriesSheetTests
         var pdf = Series(plan, [ResultBlock.Gas]);
 
         // Assert
-        Assert.Equal(2, Regex.Count(pdf, Regex.Escape(TestFactory.Shown("Used (L)"))));
+        Assert.Equal(2, Regex.Count(pdf, Regex.Escape(TestFactory.Shown("Used (bar)"))));
         Assert.DoesNotContain(TestFactory.Shown("Time (min)"), pdf, StringComparison.Ordinal);
     }
 

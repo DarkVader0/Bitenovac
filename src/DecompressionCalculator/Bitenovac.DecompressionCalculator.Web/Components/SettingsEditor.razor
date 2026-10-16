@@ -1,102 +1,106 @@
 <section class="card">
-    <h2>Planner</h2>
+    <h2>@WebText.Planner</h2>
 
     <details>
-        <summary>Environment</summary>
+        <summary>@WebText.Environment</summary>
         <div class="field-grid">
-            <NumberField Label="Altitude" Unit="@Labels.Depth" Value="Value.Altitude" Issue="@Issues[nameof(PlannerSettings.Altitude)]"
+            <NumberField Label="@WebText.Altitude" Unit="@Labels.Depth" Value="Value.Altitude" Issue="@Issues[nameof(PlannerSettings.Altitude)]"
                          ValueChanged="value => ChangeAsync(Value with { Altitude = value })"/>
-            <SelectField TValue="Salinity" Label="Water" Options="Salinities" Text="Display.Name" Value="Value.Salinity"
+            <SelectField TValue="Salinity" Label="@WebText.Water" Options="Salinities" Text="Display.Name" Value="Value.Salinity"
                          Issue="@Issues[nameof(PlannerSettings.Salinity)]" ValueChanged="value => ChangeAsync(Value with { Salinity = value })"/>
-            <SelectField TValue="MaximumOperatingDepthModel" Label="Gas switch depth" Options="DepthModels" Text="Display.Name"
+            <SelectField TValue="MaximumOperatingDepthModel" Label="@WebText.GasSwitchDepth" Options="DepthModels" Text="Display.Name"
                          Value="Value.MaximumOperatingDepthModel" Issue="@Issues[nameof(PlannerSettings.MaximumOperatingDepthModel)]"
                          ValueChanged="value => ChangeAsync(Value with { MaximumOperatingDepthModel = value })"/>
         </div>
     </details>
 
     <details>
-        <summary>Descent and ascent</summary>
+        <summary>@WebText.DescentAndAscent</summary>
         <div class="field-grid">
-            <NumberField Label="Descent rate" Unit="@Labels.Rate" Value="Value.DescentRate" Issue="@Issues[nameof(PlannerSettings.DescentRate)]"
+            <NumberField Label="@WebText.DescentRate" Unit="@Labels.Rate" Value="Value.DescentRate" Issue="@Issues[nameof(PlannerSettings.DescentRate)]"
                          ValueChanged="value => ChangeAsync(Value with { DescentRate = value })"/>
-            <NumberField Label="Ascent rate, deeper than 75 % of depth" Unit="@Labels.Rate" Value="Value.AscentRateDeep"
+            <NumberField Label="@WebText.AscentRateDeep" Unit="@Labels.Rate" Value="Value.AscentRateDeep"
                          Issue="@Issues[nameof(PlannerSettings.AscentRateDeep)]"
                          ValueChanged="value => ChangeAsync(Value with { AscentRateDeep = value })"/>
-            <NumberField Label="Ascent rate, 75 % to 50 % of depth" Unit="@Labels.Rate" Value="Value.AscentRateMiddle"
+            <NumberField Label="@WebText.AscentRateMiddle" Unit="@Labels.Rate" Value="Value.AscentRateMiddle"
                          Issue="@Issues[nameof(PlannerSettings.AscentRateMiddle)]"
                          ValueChanged="value => ChangeAsync(Value with { AscentRateMiddle = value })"/>
-            <NumberField Label="Ascent rate, 50 % of depth to the stops" Unit="@Labels.Rate" Value="Value.AscentRateToStops"
+            <NumberField Label="@WebText.AscentRateToStops" Unit="@Labels.Rate" Value="Value.AscentRateToStops"
                          Issue="@Issues[nameof(PlannerSettings.AscentRateToStops)]"
                          ValueChanged="value => ChangeAsync(Value with { AscentRateToStops = value })"/>
-            <NumberField Label="@($"Ascent rate, last {LastStopDepth}")" Unit="@Labels.Rate" Value="Value.AscentRateShallow"
+            <NumberField Label="@Localized.Format(WebText.AscentRateShallow, LastStopDepth)" Unit="@Labels.Rate" Value="Value.AscentRateShallow"
                          Issue="@Issues[nameof(PlannerSettings.AscentRateShallow)]"
                          ValueChanged="value => ChangeAsync(Value with { AscentRateShallow = value })"/>
         </div>
     </details>
 
     <details>
-        <summary>Gas</summary>
+        <summary>@WebText.Gas</summary>
         <div class="field-grid">
-            <NumberField Label="Bottom breathing rate (SAC)" Unit="@Labels.GasRate" Value="Value.BottomSac"
+            <NumberField Label="@WebText.BottomSac" Unit="@Labels.GasRate" Value="Value.BottomSac"
                          Issue="@Issues[nameof(PlannerSettings.BottomSac)]" ValueChanged="value => ChangeAsync(Value with { BottomSac = value })"/>
-            <NumberField Label="Deco breathing rate (SAC)" Unit="@Labels.GasRate" Value="Value.DecoSac"
+            <NumberField Label="@WebText.DecoSac" Unit="@Labels.GasRate" Value="Value.DecoSac"
                          Issue="@Issues[nameof(PlannerSettings.DecoSac)]" ValueChanged="value => ChangeAsync(Value with { DecoSac = value })"/>
-            <NumberField Label="Bottom PO₂ limit" Unit="bar" Value="Value.BottomPo2"
+            <NumberField Label="@WebText.BottomPo2" Unit="bar" Value="Value.BottomPo2"
                          Issue="@Issues[nameof(PlannerSettings.BottomPo2)]" ValueChanged="value => ChangeAsync(Value with { BottomPo2 = value })"/>
-            <NumberField Label="Deco PO₂ limit" Unit="bar" Value="Value.DecoPo2"
+            <NumberField Label="@WebText.DecoPo2" Unit="bar" Value="Value.DecoPo2"
                          Issue="@Issues[nameof(PlannerSettings.DecoPo2)]" ValueChanged="value => ChangeAsync(Value with { DecoPo2 = value })"/>
-            <NumberField Label="Gas switch time" Unit="min" Value="Value.GasSwitchMinutes"
+            <NumberField Label="@WebText.GasSwitchTime" Unit="min" Value="Value.GasSwitchMinutes"
                          Issue="@Issues[nameof(PlannerSettings.GasSwitchMinutes)]"
                          ValueChanged="value => ChangeAsync(Value with { GasSwitchMinutes = value })"/>
-            <CheckField Label="Count oxygen as narcotic in END" Value="Value.OxygenNarcotic"
+            <CheckField Label="@WebText.OxygenNarcotic" Value="Value.OxygenNarcotic"
                         ValueChanged="value => ChangeAsync(Value with { OxygenNarcotic = value })"/>
+            <NumberField Label="@WebText.DensityWarningAbove" Unit="g/L" Value="Value.GasDensityLimit"
+                         Issue="@Issues[nameof(PlannerSettings.GasDensityLimit)]" ValueChanged="value => ChangeAsync(Value with { GasDensityLimit = value })"/>
+            <SelectField TValue="GasQuantity" Label="@WebText.GasShownAs" Options="GasQuantities" Text="GasQuantityName" Value="Value.GasQuantity"
+                         Issue="@Issues[nameof(PlannerSettings.GasQuantity)]" ValueChanged="value => ChangeAsync(Value with { GasQuantity = value })"/>
         </div>
     </details>
 
     <details>
-        <summary>Rebreather</summary>
+        <summary>@WebText.Rebreather</summary>
         <div class="field-grid">
-            <NumberField Label="Bottom oxygen consumption" Unit="L/min" Value="Value.BottomMetabolicOxygen"
+            <NumberField Label="@WebText.BottomOxygenConsumption" Unit="L/min" Value="Value.BottomMetabolicOxygen"
                          Issue="@Issues[nameof(PlannerSettings.BottomMetabolicOxygen)]"
                          ValueChanged="value => ChangeAsync(Value with { BottomMetabolicOxygen = value })"/>
-            <NumberField Label="Deco oxygen consumption" Unit="L/min" Value="Value.DecoMetabolicOxygen"
+            <NumberField Label="@WebText.DecoOxygenConsumption" Unit="L/min" Value="Value.DecoMetabolicOxygen"
                          Issue="@Issues[nameof(PlannerSettings.DecoMetabolicOxygen)]"
                          ValueChanged="value => ChangeAsync(Value with { DecoMetabolicOxygen = value })"/>
-            <NumberField Label="Loop volume" Unit="L" Value="Value.LoopVolume"
+            <NumberField Label="@WebText.LoopVolume" Unit="L" Value="Value.LoopVolume"
                          Issue="@Issues[nameof(PlannerSettings.LoopVolume)]" ValueChanged="value => ChangeAsync(Value with { LoopVolume = value })"/>
         </div>
     </details>
 
     <details>
-        <summary>Reserve gas</summary>
+        <summary>@WebText.ReserveGas</summary>
         <div class="field-grid">
-            <NumberField Label="Stress factor" Unit="×" Value="Value.ReserveStressFactor"
+            <NumberField Label="@WebText.StressFactor" Unit="×" Value="Value.ReserveStressFactor"
                          Issue="@Issues[nameof(PlannerSettings.ReserveStressFactor)]"
                          ValueChanged="value => ChangeAsync(Value with { ReserveStressFactor = value })"/>
-            <NumberField Label="Divers sharing gas" Step="1" Value="Value.ReserveTeamSize"
+            <NumberField Label="@WebText.DiversSharingGas" Step="1" Value="Value.ReserveTeamSize"
                          Issue="@Issues[nameof(PlannerSettings.ReserveTeamSize)]"
                          ValueChanged="value => ChangeAsync(Value with { ReserveTeamSize = ToCount(value) })"/>
         </div>
     </details>
 
     <details>
-        <summary>Stops</summary>
+        <summary>@WebText.Stops</summary>
         <div class="field-grid">
-            <NumberField Label="Stop time step" Unit="min" Value="Value.StopTimeIncrementMinutes"
+            <NumberField Label="@WebText.StopTimeStep" Unit="min" Value="Value.StopTimeIncrementMinutes"
                          Issue="@Issues[nameof(PlannerSettings.StopTimeIncrementMinutes)]"
                          ValueChanged="value => ChangeAsync(Value with { StopTimeIncrementMinutes = value })"/>
-            <CheckField Label="Safety stop" Value="Value.SafetyStop" ValueChanged="value => ChangeAsync(Value with { SafetyStop = value })"/>
-            <CheckField Label="@($"Last stop at {LastStopDepth}")" Value="Value.LastStopAtSixMeters"
+            <CheckField Label="@WebText.SafetyStop" Value="Value.SafetyStop" ValueChanged="value => ChangeAsync(Value with { SafetyStop = value })"/>
+            <CheckField Label="@Localized.Format(WebText.LastStopAt, LastStopDepth)" Value="Value.LastStopAtSixMeters"
                         ValueChanged="value => ChangeAsync(Value with { LastStopAtSixMeters = value })"/>
-            <CheckField Label="Switch gas only at a required stop" Value="Value.SwitchAtRequiredStop"
+            <CheckField Label="@WebText.SwitchAtRequiredStop" Value="Value.SwitchAtRequiredStop"
                         ValueChanged="value => ChangeAsync(Value with { SwitchAtRequiredStop = value })"/>
-            <CheckField Label="Oxygen breaks" Value="Value.OxygenBreaks" ValueChanged="value => ChangeAsync(Value with { OxygenBreaks = value })"/>
+            <CheckField Label="@WebText.OxygenBreaks" Value="Value.OxygenBreaks" ValueChanged="value => ChangeAsync(Value with { OxygenBreaks = value })"/>
             @if (Value.OxygenBreaks)
             {
-                <NumberField Label="Break every" Unit="min" Value="Value.OxygenBreakIntervalMinutes"
+                <NumberField Label="@WebText.BreakEvery" Unit="min" Value="Value.OxygenBreakIntervalMinutes"
                              Issue="@Issues[nameof(PlannerSettings.OxygenBreakIntervalMinutes)]"
                              ValueChanged="value => ChangeAsync(Value with { OxygenBreakIntervalMinutes = value })"/>
-                <NumberField Label="Break length" Unit="min" Value="Value.OxygenBreakDurationMinutes"
+                <NumberField Label="@WebText.BreakLength" Unit="min" Value="Value.OxygenBreakDurationMinutes"
                              Issue="@Issues[nameof(PlannerSettings.OxygenBreakDurationMinutes)]"
                              ValueChanged="value => ChangeAsync(Value with { OxygenBreakDurationMinutes = value })"/>
             }
@@ -104,13 +108,13 @@
     </details>
 
     <details>
-        <summary>Contingency</summary>
+        <summary>@WebText.Contingency</summary>
         <div class="field-grid">
             <div class="field-pair">
-                <NumberField Label="Extra time" Unit="min" Value="Value.ContingencyExtraMinutes"
+                <NumberField Label="@WebText.ExtraTime" Unit="min" Value="Value.ContingencyExtraMinutes"
                              Issue="@Issues[nameof(PlannerSettings.ContingencyExtraMinutes)]"
                              ValueChanged="value => ChangeAsync(Value with { ContingencyExtraMinutes = value })"/>
-                <NumberField Label="Extra depth" Unit="@Labels.Depth" Value="Value.ContingencyExtraDepth"
+                <NumberField Label="@WebText.ExtraDepth" Unit="@Labels.Depth" Value="Value.ContingencyExtraDepth"
                              Issue="@Issues[nameof(PlannerSettings.ContingencyExtraDepth)]"
                              ValueChanged="value => ChangeAsync(Value with { ContingencyExtraDepth = value })"/>
             </div>
@@ -121,6 +125,7 @@
 @code {
     private static readonly Salinity[] Salinities = Enum.GetValues<Salinity>();
     private static readonly MaximumOperatingDepthModel[] DepthModels = Enum.GetValues<MaximumOperatingDepthModel>();
+    private static readonly GasQuantity[] GasQuantities = Enum.GetValues<GasQuantity>();
 
     [Parameter, EditorRequired]
     public PlannerSettings Value { get; set; } = default!;
@@ -135,6 +140,10 @@
     public IssueMap Issues { get; set; } = IssueMap.Empty;
 
     private UnitLabels Labels => UnitLabels.For(Units);
+
+    private string GasQuantityName(GasQuantity quantity) => quantity == GasQuantity.Pressure
+        ? Localized.Format(WebText.GasAsPressure, Labels.Pressure)
+        : Localized.Format(WebText.GasAsVolume, Labels.GasVolume);
 
     private string LastStopDepth => Units == UnitSystem.Imperial ? "20 ft" : "6 m";
 

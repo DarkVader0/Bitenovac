@@ -1,16 +1,16 @@
 <section class="card">
-    <h2>Series</h2>
+    <h2>@WebText.Series</h2>
     <div class="table-scroll">
         <table class="profile">
             <thead>
             <tr>
                 <th></th>
-                <th class="number"><abbr title="Surface interval">SI</abbr></th>
-                <th class="number">Depth</th>
-                <th class="number">Run</th>
-                <th class="number">TTS</th>
-                <th class="number">CNS</th>
-                <th class="number">OTU</th>
+                <th class="number"><abbr title="@WebText.SurfaceInterval">@WebText.Si</abbr></th>
+                <th class="number">@WebText.Depth</th>
+                <th class="number">@WebText.Run</th>
+                <th class="number">@WebText.Tts</th>
+                <th class="number">@WebText.Cns</th>
+                <th class="number">@WebText.Otu</th>
             </tr>
             </thead>
             <tbody>
@@ -24,26 +24,26 @@
                     {
                         <td class="number">@Display.Number(result.MaximumDepth) @Labels.Depth</td>
                         <td class="number">@Display.Clock(result.TotalRuntime)</td>
-                        <td class="number">@Display.Clock(ResultFigures.TimeToSurface(result))</td>
+                        <td class="number">@Display.Clock(result.TimeToSurface)</td>
                         <td class="number">@Display.Number(result.CnsPercent) %</td>
                         <td class="number">@Display.Number(result.OxygenToleranceUnits)</td>
                     }
                     else if (View.Results[at] is not null)
                     {
-                        <td colspan="5" class="series-failed">Cannot be planned</td>
+                        <td colspan="5" class="series-failed">@WebText.CannotBePlanned</td>
                     }
                     else if (View.IssuesOf(at).Count > 0)
                     {
-                        <td colspan="5" class="series-failed">Invalid</td>
+                        <td colspan="5" class="series-failed">@WebText.Invalid</td>
                     }
                     else
                     {
-                        <td colspan="5" class="series-waiting">Waiting for dive @(View.FirstInvalidDive + 1)</td>
+                        <td colspan="5" class="series-waiting">@Localized.Format(WebText.WaitingForDive, View.FirstInvalidDive + 1)</td>
                     }
                 </tr>
             }
             </tbody>
-            <caption>SI is the surface interval before the dive, in hours and minutes. Runtime and TTS in minutes. CNS and OTU include the earlier dives.</caption>
+            <caption>@WebText.SeriesCaption</caption>
         </table>
     </div>
 </section>

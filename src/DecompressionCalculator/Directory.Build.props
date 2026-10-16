@@ -4,6 +4,8 @@
 
     <PropertyGroup>
         <VersionPrefix>10.4.0</VersionPrefix>
+        <NeutralLanguage>en</NeutralLanguage>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     </PropertyGroup>
 
 </Project>

@@ -1,0 +1,699 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>2.0</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <data name="DiveName" xml:space="preserve">
+        <value>Dive name</value>
+    </data>
+    <data name="DiveNumbered" xml:space="preserve">
+        <value>Dive {0}</value>
+    </data>
+    <data name="Remove" xml:space="preserve">
+        <value>Remove</value>
+    </data>
+    <data name="Keep" xml:space="preserve">
+        <value>Keep</value>
+    </data>
+    <data name="RemoveDive" xml:space="preserve">
+        <value>Remove dive</value>
+    </data>
+    <data name="SurfaceInterval" xml:space="preserve">
+        <value>Surface interval</value>
+    </data>
+    <data name="Levels" xml:space="preserve">
+        <value>Levels</value>
+    </data>
+    <data name="Depth" xml:space="preserve">
+        <value>Depth</value>
+    </data>
+    <data name="Time" xml:space="preserve">
+        <value>Time</value>
+    </data>
+    <data name="Add" xml:space="preserve">
+        <value>Add</value>
+    </data>
+    <data name="LevelDepthLabel" xml:space="preserve">
+        <value>Level {0} depth in {1}</value>
+    </data>
+    <data name="LevelTimeLabel" xml:space="preserve">
+        <value>Level {0} time in minutes</value>
+    </data>
+    <data name="RemoveLevel" xml:space="preserve">
+        <value>Remove level</value>
+    </data>
+    <data name="RemoveLevelNumbered" xml:space="preserve">
+        <value>Remove level {0}</value>
+    </data>
+    <data name="AddLevelAfter" xml:space="preserve">
+        <value>Add a level after this one</value>
+    </data>
+    <data name="AddLevelAfterNumbered" xml:space="preserve">
+        <value>Add a level after level {0}</value>
+    </data>
+    <data name="Cylinders" xml:space="preserve">
+        <value>Cylinders</value>
+    </data>
+    <data name="Gas" xml:space="preserve">
+        <value>Gas</value>
+    </data>
+    <data name="O2" xml:space="preserve">
+        <value>O2</value>
+    </data>
+    <data name="He" xml:space="preserve">
+        <value>He</value>
+    </data>
+    <data name="Size" xml:space="preserve">
+        <value>Size</value>
+    </data>
+    <data name="Pressure" xml:space="preserve">
+        <value>Pressure</value>
+    </data>
+    <data name="Use" xml:space="preserve">
+        <value>Use</value>
+    </data>
+    <data name="CylinderNumbered" xml:space="preserve">
+        <value>Cylinder {0}</value>
+    </data>
+    <data name="CylinderGasLabel" xml:space="preserve">
+        <value>{0} gas, oxygen and helium in %</value>
+    </data>
+    <data name="CylinderOxygenLabel" xml:space="preserve">
+        <value>{0} oxygen in %</value>
+    </data>
+    <data name="CylinderHeliumLabel" xml:space="preserve">
+        <value>{0} helium in %</value>
+    </data>
+    <data name="CylinderSizeLabel" xml:space="preserve">
+        <value>{0} size in {1}</value>
+    </data>
+    <data name="CylinderPressureLabel" xml:space="preserve">
+        <value>{0} fill pressure in {1}</value>
+    </data>
+    <data name="CylinderUseLabel" xml:space="preserve">
+        <value>{0} used as</value>
+    </data>
+    <data name="Oxygen" xml:space="preserve">
+        <value>Oxygen</value>
+    </data>
+    <data name="RemoveCylinder" xml:space="preserve">
+        <value>Remove cylinder</value>
+    </data>
+    <data name="RemoveNamed" xml:space="preserve">
+        <value>Remove {0}</value>
+    </data>
+    <data name="AddCylinder" xml:space="preserve">
+        <value>Add cylinder</value>
+    </data>
+    <data name="Planner" xml:space="preserve">
+        <value>Planner</value>
+    </data>
+    <data name="Environment" xml:space="preserve">
+        <value>Environment</value>
+    </data>
+    <data name="Altitude" xml:space="preserve">
+        <value>Altitude</value>
+    </data>
+    <data name="Water" xml:space="preserve">
+        <value>Water</value>
+    </data>
+    <data name="GasSwitchDepth" xml:space="preserve">
+        <value>Gas switch depth</value>
+    </data>
+    <data name="DescentAndAscent" xml:space="preserve">
+        <value>Descent and ascent</value>
+    </data>
+    <data name="DescentRate" xml:space="preserve">
+        <value>Descent rate</value>
+    </data>
+    <data name="AscentRateDeep" xml:space="preserve">
+        <value>Ascent rate, deeper than 75 % of depth</value>
+    </data>
+    <data name="AscentRateMiddle" xml:space="preserve">
+        <value>Ascent rate, 75 % to 50 % of depth</value>
+    </data>
+    <data name="AscentRateToStops" xml:space="preserve">
+        <value>Ascent rate, 50 % of depth to the stops</value>
+    </data>
+    <data name="BottomSac" xml:space="preserve">
+        <value>Bottom breathing rate (SAC)</value>
+    </data>
+    <data name="DecoSac" xml:space="preserve">
+        <value>Deco breathing rate (SAC)</value>
+    </data>
+    <data name="BottomPo2" xml:space="preserve">
+        <value>Bottom PO₂ limit</value>
+    </data>
+    <data name="DecoPo2" xml:space="preserve">
+        <value>Deco PO₂ limit</value>
+    </data>
+    <data name="GasSwitchTime" xml:space="preserve">
+        <value>Gas switch time</value>
+    </data>
+    <data name="OxygenNarcotic" xml:space="preserve">
+        <value>Count oxygen as narcotic in END</value>
+    </data>
+    <data name="Rebreather" xml:space="preserve">
+        <value>Rebreather</value>
+    </data>
+    <data name="BottomOxygenConsumption" xml:space="preserve">
+        <value>Bottom oxygen consumption</value>
+    </data>
+    <data name="DecoOxygenConsumption" xml:space="preserve">
+        <value>Deco oxygen consumption</value>
+    </data>
+    <data name="LoopVolume" xml:space="preserve">
+        <value>Loop volume</value>
+    </data>
+    <data name="ReserveGas" xml:space="preserve">
+        <value>Reserve gas</value>
+    </data>
+    <data name="StressFactor" xml:space="preserve">
+        <value>Stress factor</value>
+    </data>
+    <data name="DiversSharingGas" xml:space="preserve">
+        <value>Divers sharing gas</value>
+    </data>
+    <data name="Stops" xml:space="preserve">
+        <value>Stops</value>
+    </data>
+    <data name="StopTimeStep" xml:space="preserve">
+        <value>Stop time step</value>
+    </data>
+    <data name="SafetyStop" xml:space="preserve">
+        <value>Safety stop</value>
+    </data>
+    <data name="SwitchAtRequiredStop" xml:space="preserve">
+        <value>Switch gas only at a required stop</value>
+    </data>
+    <data name="OxygenBreaks" xml:space="preserve">
+        <value>Oxygen breaks</value>
+    </data>
+    <data name="BreakEvery" xml:space="preserve">
+        <value>Break every</value>
+    </data>
+    <data name="BreakLength" xml:space="preserve">
+        <value>Break length</value>
+    </data>
+    <data name="Contingency" xml:space="preserve">
+        <value>Contingency</value>
+    </data>
+    <data name="ExtraTime" xml:space="preserve">
+        <value>Extra time</value>
+    </data>
+    <data name="ExtraDepth" xml:space="preserve">
+        <value>Extra depth</value>
+    </data>
+    <data name="AscentRateShallow" xml:space="preserve">
+        <value>Ascent rate, last {0}</value>
+    </data>
+    <data name="LastStopAt" xml:space="preserve">
+        <value>Last stop at {0}</value>
+    </data>
+    <data name="PlanNotFound" xml:space="preserve">
+        <value>Plan not found</value>
+    </data>
+    <data name="PlanNotSaved" xml:space="preserve">
+        <value>This plan is not saved in this browser.</value>
+    </data>
+    <data name="ShowSavedPlans" xml:space="preserve">
+        <value>Show saved plans</value>
+    </data>
+    <data name="Plans" xml:space="preserve">
+        <value>Plans</value>
+    </data>
+    <data name="PlanName" xml:space="preserve">
+        <value>Plan name</value>
+    </data>
+    <data name="GasTools" xml:space="preserve">
+        <value>Gas tools</value>
+    </data>
+    <data name="Share" xml:space="preserve">
+        <value>Share</value>
+    </data>
+    <data name="Settings" xml:space="preserve">
+        <value>Settings</value>
+    </data>
+    <data name="SettingsNeedAttention" xml:space="preserve">
+        <value>Settings need attention</value>
+    </data>
+    <data name="SettingsInvalid" xml:space="preserve">
+        <value>Settings are invalid</value>
+    </data>
+    <data name="NoDiveUntilFixed" xml:space="preserve">
+        <value>No dive can be planned until these are fixed:</value>
+    </data>
+    <data name="OpenSettings" xml:space="preserve">
+        <value>Open settings</value>
+    </data>
+    <data name="Done" xml:space="preserve">
+        <value>Done</value>
+    </data>
+    <data name="Plan" xml:space="preserve">
+        <value>Plan</value>
+    </data>
+    <data name="App" xml:space="preserve">
+        <value>App</value>
+    </data>
+    <data name="Units" xml:space="preserve">
+        <value>Units</value>
+    </data>
+    <data name="Metric" xml:space="preserve">
+        <value>Metric</value>
+    </data>
+    <data name="Imperial" xml:space="preserve">
+        <value>Imperial</value>
+    </data>
+    <data name="AnotherPlan" xml:space="preserve">
+        <value>Another plan</value>
+    </data>
+    <data name="ResultsOf" xml:space="preserve">
+        <value>Results · {0}</value>
+    </data>
+    <data name="Results" xml:space="preserve">
+        <value>Results</value>
+    </data>
+    <data name="DiveIsInvalid" xml:space="preserve">
+        <value>{0} is invalid:</value>
+    </data>
+    <data name="TheDiveIsInvalid" xml:space="preserve">
+        <value>The dive is invalid:</value>
+    </data>
+    <data name="GoTo" xml:space="preserve">
+        <value>Go to {0}</value>
+    </data>
+    <data name="NewPlan" xml:space="preserve">
+        <value>New plan</value>
+    </data>
+    <data name="BlockedByEarlierDive" xml:space="preserve">
+        <value>This dive can't be planned until {0} is fixed: every dive is planned on the nitrogen and helium left from the dives before it.</value>
+    </data>
+    <data name="ChartLabel" xml:space="preserve">
+        <value>Dive profile: depth over time</value>
+    </data>
+    <data name="Runtime" xml:space="preserve">
+        <value>Runtime</value>
+    </data>
+    <data name="Ceiling" xml:space="preserve">
+        <value>Ceiling</value>
+    </data>
+    <data name="Tts" xml:space="preserve">
+        <value>TTS</value>
+    </data>
+    <data name="Ppo2" xml:space="preserve">
+        <value>ppO₂</value>
+    </data>
+    <data name="Cns" xml:space="preserve">
+        <value>CNS</value>
+    </data>
+    <data name="Otu" xml:space="preserve">
+        <value>OTU</value>
+    </data>
+    <data name="Phase" xml:space="preserve">
+        <value>Phase</value>
+    </data>
+    <data name="ChartHint" xml:space="preserve">
+        <value>Touch or point at the profile</value>
+    </data>
+    <data name="MinutesUnit" xml:space="preserve">
+        <value>min</value>
+    </data>
+    <data name="Series" xml:space="preserve">
+        <value>Series</value>
+    </data>
+    <data name="Si" xml:space="preserve">
+        <value>SI</value>
+    </data>
+    <data name="Run" xml:space="preserve">
+        <value>Run</value>
+    </data>
+    <data name="SeriesCaption" xml:space="preserve">
+        <value>SI is the surface interval before the dive, in hours and minutes. Runtime and TTS in minutes. CNS and OTU include the earlier dives.</value>
+    </data>
+    <data name="CeilingNone" xml:space="preserve">
+        <value>none</value>
+    </data>
+    <data name="NoSavedPlans" xml:space="preserve">
+        <value>No saved plans yet.</value>
+    </data>
+    <data name="Delete" xml:space="preserve">
+        <value>Delete</value>
+    </data>
+    <data name="Cancel" xml:space="preserve">
+        <value>Cancel</value>
+    </data>
+    <data name="SavedPlans" xml:space="preserve">
+        <value>Saved plans</value>
+    </data>
+    <data name="DeletePlanQuestion" xml:space="preserve">
+        <value>Delete this plan?</value>
+    </data>
+    <data name="Duplicate" xml:space="preserve">
+        <value>Duplicate</value>
+    </data>
+    <data name="Used" xml:space="preserve">
+        <value>Used</value>
+    </data>
+    <data name="Reserve" xml:space="preserve">
+        <value>Reserve</value>
+    </data>
+    <data name="Left" xml:space="preserve">
+        <value>Left</value>
+    </data>
+    <data name="Missing" xml:space="preserve">
+        <value>Missing</value>
+    </data>
+    <data name="SharePlan" xml:space="preserve">
+        <value>Share plan</value>
+    </data>
+    <data name="WhatToShare" xml:space="preserve">
+        <value>What to share</value>
+    </data>
+    <data name="ThisDive" xml:space="preserve">
+        <value>This dive</value>
+    </data>
+    <data name="WholeSeries" xml:space="preserve">
+        <value>Whole series</value>
+    </data>
+    <data name="Apparatus" xml:space="preserve">
+        <value>Apparatus</value>
+    </data>
+    <data name="PlansTitle" xml:space="preserve">
+        <value>Plans · {0}</value>
+    </data>
+    <data name="UntitledPlan" xml:space="preserve">
+        <value>Untitled plan</value>
+    </data>
+    <data name="ChangedAt" xml:space="preserve">
+        <value>Changed {0}</value>
+    </data>
+    <data name="DuplicateNamed" xml:space="preserve">
+        <value>Duplicate {0}</value>
+    </data>
+    <data name="DeleteNamed" xml:space="preserve">
+        <value>Delete {0}</value>
+    </data>
+    <data name="GasCaption" xml:space="preserve">
+        <value>Pressure in {0}, gas in {1} at the surface.</value>
+    </data>
+    <data name="GasCaptionRunsOut" xml:space="preserve">
+        <value> Red: the cylinder runs out.</value>
+    </data>
+    <data name="GasCaptionReserve" xml:space="preserve">
+        <value> Orange: the reserve is not met.</value>
+    </data>
+    <data name="ProfileCaption" xml:space="preserve">
+        <value>Depth at the end of each phase in {0}, time and runtime in minutes</value>
+    </data>
+    <data name="Close" xml:space="preserve">
+        <value>Close</value>
+    </data>
+    <data name="SharePdf" xml:space="preserve">
+        <value>Share PDF</value>
+    </data>
+    <data name="DownloadPdf" xml:space="preserve">
+        <value>Download PDF</value>
+    </data>
+    <data name="Print" xml:space="preserve">
+        <value>Print</value>
+    </data>
+    <data name="AllDivesFile" xml:space="preserve">
+        <value>{0} - all dives</value>
+    </data>
+    <data name="DiveFile" xml:space="preserve">
+        <value>{0} - {1}</value>
+    </data>
+    <data name="ShareFallback" xml:space="preserve">
+        <value>Sharing is not available here, so the PDF was downloaded instead.</value>
+    </data>
+    <data name="Downloaded" xml:space="preserve">
+        <value>Downloaded.</value>
+    </data>
+    <data name="MaximumOperatingDepth" xml:space="preserve">
+        <value>Maximum operating depth</value>
+    </data>
+    <data name="EquivalentNarcoticDepth" xml:space="preserve">
+        <value>Equivalent narcotic depth</value>
+    </data>
+    <data name="BestMix" xml:space="preserve">
+        <value>Best mix</value>
+    </data>
+    <data name="DeepestDepth" xml:space="preserve">
+        <value>Deepest depth</value>
+    </data>
+    <data name="Po2Limit" xml:space="preserve">
+        <value>PO₂ limit</value>
+    </data>
+    <data name="EndLimit" xml:space="preserve">
+        <value>END limit</value>
+    </data>
+    <data name="O2Subscript" xml:space="preserve">
+        <value>O₂</value>
+    </data>
+    <data name="Profile" xml:space="preserve">
+        <value>Profile</value>
+    </data>
+    <data name="GasChecks" xml:space="preserve">
+        <value>Gas checks</value>
+    </data>
+    <data name="ProfileChart" xml:space="preserve">
+        <value>Profile chart</value>
+    </data>
+    <data name="Contingencies" xml:space="preserve">
+        <value>Contingencies</value>
+    </data>
+    <data name="CeilingViolation" xml:space="preserve">
+        <value>An ascent between levels passes the decompression ceiling. Add a stop or shorten the level.</value>
+    </data>
+    <data name="ReserveNotMet" xml:space="preserve">
+        <value>A cylinder does not hold the reserve gas the plan requires.</value>
+    </data>
+    <data name="AllBlocksHidden" xml:space="preserve">
+        <value>Every part of the results is hidden. Show them again in Settings, under App.</value>
+    </data>
+    <data name="UpdateReady" xml:space="preserve">
+        <value>A new version of Bitenovac is ready.</value>
+    </data>
+    <data name="InstallOffline" xml:space="preserve">
+        <value>Install Bitenovac to plan dives offline.</value>
+    </data>
+    <data name="NotNow" xml:space="preserve">
+        <value>Not now</value>
+    </data>
+    <data name="GotIt" xml:space="preserve">
+        <value>Got it</value>
+    </data>
+    <data name="Theme" xml:space="preserve">
+        <value>Theme</value>
+    </data>
+    <data name="BlocksNote" xml:space="preserve">
+        <value>Switch the parts of a dive's results on or off, and drag them into the order you want. The PDF follows.</value>
+    </data>
+    <data name="Po2" xml:space="preserve">
+        <value>PO₂</value>
+    </data>
+    <data name="End" xml:space="preserve">
+        <value>END</value>
+    </data>
+    <data name="Density" xml:space="preserve">
+        <value>Density</value>
+    </data>
+    <data name="ApplyToAllDives" xml:space="preserve">
+        <value>Apply to all dives</value>
+    </data>
+    <data name="Replace" xml:space="preserve">
+        <value>Replace</value>
+    </data>
+    <data name="SettingsShared" xml:space="preserve">
+        <value>The settings below apply to every dive that follows the plan's.</value>
+    </data>
+    <data name="ToolsEnvironment" xml:space="preserve">
+        <value>Worked out in this dive's environment ({0}, altitude {1} {2}).</value>
+    </data>
+    <data name="ToolsNarcoticOn" xml:space="preserve">
+        <value>Oxygen counts as narcotic in END; change it in the plan settings, under Gas.</value>
+    </data>
+    <data name="ToolsNarcoticOff" xml:space="preserve">
+        <value>Oxygen does not count as narcotic in END; change it in the plan settings, under Gas.</value>
+    </data>
+    <data name="Mod" xml:space="preserve">
+        <value>MOD</value>
+    </data>
+    <data name="DensityLower" xml:space="preserve">
+        <value>density</value>
+    </data>
+    <data name="Reload" xml:space="preserve">
+        <value>Reload</value>
+    </data>
+    <data name="Install" xml:space="preserve">
+        <value>Install</value>
+    </data>
+    <data name="InstallMac" xml:space="preserve">
+        <value>Install Bitenovac to plan dives offline: in Safari, choose File, then Add to Dock.</value>
+    </data>
+    <data name="InstallFirefox" xml:space="preserve">
+        <value>Install Bitenovac to plan dives offline: open the ⋮ menu, then Add to Home screen.</value>
+    </data>
+    <data name="InstallIos" xml:space="preserve">
+        <value>Install Bitenovac to plan dives offline: tap Share, then Add to Home Screen.</value>
+    </data>
+    <data name="MoveBlock" xml:space="preserve">
+        <value>Move {0}; drag, or use the up and down arrow keys</value>
+    </data>
+    <data name="ThemeLight" xml:space="preserve">
+        <value>Light</value>
+    </data>
+    <data name="ThemeDark" xml:space="preserve">
+        <value>Dark</value>
+    </data>
+    <data name="ThemeSystem" xml:space="preserve">
+        <value>Match system</value>
+    </data>
+    <data name="BlockFigures" xml:space="preserve">
+        <value>Runtime, TTS, CNS and OTU</value>
+    </data>
+    <data name="BlockGasChecks" xml:space="preserve">
+        <value>Gas checks: END, PO₂ and density</value>
+    </data>
+    <data name="ReplaceOwnSettings" xml:space="preserve">
+        <value>{0} has its own settings. Replace them with the plan's?</value>
+    </data>
+    <data name="SettingsOwn" xml:space="preserve">
+        <value>The settings below are for {0} only.</value>
+    </data>
+    <data name="Dives" xml:space="preserve">
+        <value>Dives</value>
+    </data>
+    <data name="BreathingApparatus" xml:space="preserve">
+        <value>Breathing apparatus</value>
+    </data>
+    <data name="BottomSetpoint" xml:space="preserve">
+        <value>Bottom setpoint</value>
+    </data>
+    <data name="DecoSetpoint" xml:space="preserve">
+        <value>Deco setpoint</value>
+    </data>
+    <data name="Algorithm" xml:space="preserve">
+        <value>Algorithm</value>
+    </data>
+    <data name="DecompressionAlgorithm" xml:space="preserve">
+        <value>Decompression algorithm</value>
+    </data>
+    <data name="GradientFactorLow" xml:space="preserve">
+        <value>Gradient factor low</value>
+    </data>
+    <data name="GradientFactorHigh" xml:space="preserve">
+        <value>Gradient factor high</value>
+    </data>
+    <data name="NotFound" xml:space="preserve">
+        <value>Not Found</value>
+    </data>
+    <data name="NotFoundText" xml:space="preserve">
+        <value>Sorry, the content you are looking for does not exist.</value>
+    </data>
+    <data name="CannotBePlanned" xml:space="preserve">
+        <value>Cannot be planned</value>
+    </data>
+    <data name="CeilingPassed" xml:space="preserve">
+        <value>An ascent between levels passes the decompression ceiling.</value>
+    </data>
+    <data name="NeedsAttention" xml:space="preserve">
+        <value>{0} needs attention</value>
+    </data>
+    <data name="CircuitClosed" xml:space="preserve">
+        <value>Closed-circuit rebreather (CCR)</value>
+    </data>
+    <data name="CircuitSemiClosed" xml:space="preserve">
+        <value>Semi-closed rebreather (SCR)</value>
+    </data>
+    <data name="CircuitOpen" xml:space="preserve">
+        <value>Open circuit</value>
+    </data>
+    <data name="ContingencySummary" xml:space="preserve">
+        <value>{0} · TTS {1}</value>
+    </data>
+    <data name="ContingencyLost" xml:space="preserve">
+        <value>{0} lost</value>
+    </data>
+    <data name="ContingencyExtended" xml:space="preserve">
+        <value>+{0} min, +{1} {2}</value>
+    </data>
+    <data name="AddDive" xml:space="preserve">
+        <value>Add dive</value>
+    </data>
+    <data name="DumpRatio" xml:space="preserve">
+        <value>Dump ratio</value>
+    </data>
+    <data name="LoopSupply" xml:space="preserve">
+        <value>Loop supply</value>
+    </data>
+    <data name="DepthModelRealistic" xml:space="preserve">
+        <value>Realistic (salinity and altitude)</value>
+    </data>
+    <data name="DepthModelSimplified" xml:space="preserve">
+        <value>Simplified (10 m per bar)</value>
+    </data>
+    <data name="NewPlanName" xml:space="preserve">
+        <value>New plan</value>
+    </data>
+    <data name="CopyName" xml:space="preserve">
+        <value>{0} (copy)</value>
+    </data>
+    <data name="SeriesMeta" xml:space="preserve">
+        <value>{0} dives · deepest {1} {2}</value>
+    </data>
+    <data name="DiveMeta" xml:space="preserve">
+        <value>{0} {1} · {2} min · {3}</value>
+    </data>
+    <data name="FileFallback" xml:space="preserve">
+        <value>Dive plan</value>
+    </data>
+    <data name="Invalid" xml:space="preserve">
+        <value>Invalid</value>
+    </data>
+    <data name="WaitingForDive" xml:space="preserve">
+        <value>Waiting for dive {0}</value>
+    </data>
+    <data name="Language" xml:space="preserve">
+        <value>Language</value>
+    </data>
+    <data name="MatchDevice" xml:space="preserve">
+        <value>Match device</value>
+    </data>
+    <data name="BackToPlan" xml:space="preserve">
+        <value>Back to the dive planner</value>
+    </data>
+    <data name="StartToEnd" xml:space="preserve">
+        <value>Start → end</value>
+    </data>
+    <data name="GasCaptionPressure" xml:space="preserve">
+        <value>Everything in {0}. A gas is shown as the pressure it takes from its cylinder.</value>
+    </data>
+    <data name="GasCaptionVolume" xml:space="preserve">
+        <value>Everything in {0} at the surface.</value>
+    </data>
+    <data name="DensityWarningAbove" xml:space="preserve">
+        <value>Warn above gas density</value>
+    </data>
+    <data name="GasShownAs" xml:space="preserve">
+        <value>Gas amounts shown as</value>
+    </data>
+    <data name="GasAsPressure" xml:space="preserve">
+        <value>Pressure ({0})</value>
+    </data>
+    <data name="GasAsVolume" xml:space="preserve">
+        <value>Volume ({0})</value>
+    </data>
+    <data name="GasChecksCaption" xml:space="preserve">
+        <value>Each gas on each level and at its deepest. Gases above the density limit are marked.</value>
+    </data>
+</root>

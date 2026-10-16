@@ -8,7 +8,7 @@ namespace Bitenovac.DecompressionCalculator.Web.Planning;
 /// </summary>
 public static class PlanCopies
 {
-    public const string NewPlanName = "New plan";
+    public static string NewPlanName => WebText.NewPlanName;
 
     public static DivePlanDocument New(UnitSystem units, DateTime now) =>
         DivePlanDocument.CreateNew(Guid.NewGuid(), NewPlanName, units, now);
@@ -16,7 +16,7 @@ public static class PlanCopies
     public static DivePlanDocument Duplicate(DivePlanDocument plan, DateTime now)
     {
         ArgumentNullException.ThrowIfNull(plan);
-        return plan with { Id = Guid.NewGuid(), Name = $"{plan.Name} (copy)", CreatedAt = now, ModifiedAt = now };
+        return plan with { Id = Guid.NewGuid(), Name = Localized.Format(WebText.CopyName, plan.Name), CreatedAt = now, ModifiedAt = now };
     }
 
     /// <summary>
@@ -32,11 +32,11 @@ public static class PlanCopies
 
         if (plan.Dives.Count != 1)
         {
-            return $"{plan.Dives.Count} dives · deepest {Display.Number(deepest)} {depth}";
+            return Localized.Format(WebText.SeriesMeta, plan.Dives.Count, Display.Number(deepest), depth);
         }
 
         var dive = plan.Dives[0];
         var minutes = dive.Levels.Sum(static level => level.DurationMinutes);
-        return $"{Display.Number(deepest)} {depth} · {Display.Number(minutes)} min · {Display.Name(dive.Circuit)}";
+        return Localized.Format(WebText.DiveMeta, Display.Number(deepest), depth, Display.Number(minutes), Display.Name(dive.Circuit));
     }
 }

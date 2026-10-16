@@ -2,6 +2,7 @@
     
     <PropertyGroup>
         <ExcludeFromCoverage>true</ExcludeFromCoverage>
+        <SatelliteResourceLanguages>en;de</SatelliteResourceLanguages>
         <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
         <WasmFingerprintAssets>false</WasmFingerprintAssets>
     </PropertyGroup>
@@ -12,6 +13,13 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly"/>
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all"/>
     </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Update="Resources\WebText.resx" Generator="MSBuild:Compile" StronglyTypedLanguage="CSharp"
+                          StronglyTypedNamespace="Bitenovac.DecompressionCalculator.Web" StronglyTypedClassName="WebText"
+                          StronglyTypedFileName="$(IntermediateOutputPath)WebText.Designer.cs"
+                          ManifestResourceName="Bitenovac.DecompressionCalculator.Web.WebText"/>
+        <EmbeddedResource Update="Resources\WebText.de.resx" ManifestResourceName="Bitenovac.DecompressionCalculator.Web.WebText.de"/>    </ItemGroup>
 
     <ItemGroup>
         <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js"/>

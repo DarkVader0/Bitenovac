@@ -4,17 +4,17 @@
 @if (Pwa.State.UpdateReady)
 {
     <div class="app-banner no-print" role="status">
-        <span>A new version of Bitenovac is ready.</span>
-        <button type="button" @onclick="ReloadAsync" disabled="@_reloading"><Icon Name="IconName.Reload"/>Reload</button>
+        <span>@WebText.UpdateReady</span>
+        <button type="button" @onclick="ReloadAsync" disabled="@_reloading"><Icon Name="IconName.Reload"/>@WebText.Reload</button>
     </div>
 }
 else if (Pwa.State.CanInstall)
 {
     <div class="app-banner no-print" role="status">
-        <span>Install Bitenovac to plan dives offline.</span>
+        <span>@WebText.InstallOffline</span>
         <div class="app-banner-actions">
-            <button type="button" @onclick="InstallAsync"><Icon Name="IconName.Install"/>Install</button>
-            <button type="button" class="app-banner-dismiss" @onclick="DismissAsync">Not now</button>
+            <button type="button" @onclick="InstallAsync"><Icon Name="IconName.Install"/>@WebText.Install</button>
+            <button type="button" class="app-banner-dismiss" @onclick="DismissAsync">@WebText.NotNow</button>
         </div>
     </div>
 }
@@ -24,13 +24,13 @@ else if (Pwa.State.ManualInstall is { } platform)
         <span>
             @(platform switch
             {
-                "mac" => "Install Bitenovac to plan dives offline: in Safari, choose File, then Add to Dock.",
-                "android-firefox" => "Install Bitenovac to plan dives offline: open the ⋮ menu, then Add to Home screen.",
-                _ => "Install Bitenovac to plan dives offline: tap Share, then Add to Home Screen."
+                "mac" => WebText.InstallMac,
+                "android-firefox" => WebText.InstallFirefox,
+                _ => WebText.InstallIos
             })
         </span>
         <div class="app-banner-actions">
-            <button type="button" class="app-banner-dismiss" @onclick="DismissAsync">Got it</button>
+            <button type="button" class="app-banner-dismiss" @onclick="DismissAsync">@WebText.GotIt</button>
         </div>
     </div>
 }

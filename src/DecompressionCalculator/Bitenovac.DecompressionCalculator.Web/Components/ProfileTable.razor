@@ -1,6 +1,6 @@
 <div class="table-scroll">
     <table class="profile">
-        <caption>Depth at the end of each phase in @Labels.Depth, time and runtime in minutes</caption>
+        <caption>@Localized.Format(WebText.ProfileCaption, Labels.Depth)</caption>
         <colgroup>
             <col class="col-phase"/>
             <col/>
@@ -14,14 +14,14 @@
         </colgroup>
         <thead>
         <tr>
-            <th><span class="visually-hidden">Phase</span></th>
-            <th class="number">Depth</th>
-            <th class="number">Time</th>
-            <th class="number">Runtime</th>
-            <th>Gas</th>
+            <th><span class="visually-hidden">@WebText.Phase</span></th>
+            <th class="number">@WebText.Depth</th>
+            <th class="number">@WebText.Time</th>
+            <th class="number">@WebText.Runtime</th>
+            <th>@WebText.Gas</th>
             @if (ShowsApparatus)
             {
-                <th>Apparatus</th>
+                <th>@WebText.Apparatus</th>
             }
         </tr>
         </thead>

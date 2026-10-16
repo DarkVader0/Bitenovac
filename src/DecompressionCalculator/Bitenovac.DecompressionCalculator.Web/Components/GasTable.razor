@@ -3,31 +3,32 @@
         <caption>@Caption</caption>
         <thead>
         <tr>
-            <th>Gas</th>
-            <th>Use</th>
-            <th class="number">Pressure</th>
-            <th class="number">Used</th>
-            <th class="number">Reserve</th>
-            <th class="number">Left</th>
+            <th>@WebText.Gas</th>
+            <th>@WebText.Use</th>
+            <th class="number">@WebText.StartToEnd</th>
+            <th class="number">@WebText.Used</th>
+            <th class="number">@WebText.Reserve</th>
+            <th class="number">@WebText.Left</th>
             @if (RunsShort)
             {
-                <th class="number">Missing</th>
+                <th class="number">@WebText.Missing</th>
             }
         </tr>
         </thead>
         <tbody>
         @foreach (var cylinder in Result.Cylinders)
         {
+            var amount = GasAmounts.For(cylinder, Quantity, Units);
             <tr class="@State(cylinder)">
                 <td class="gas-name">@cylinder.Gas</td>
                 <td>@Display.Name(cylinder.Purpose)</td>
-                <td class="number">@Display.Number(cylinder.StartPressure) → <span class="gas-end">@Display.Number(cylinder.EndPressure)</span></td>
-                <td class="number">@Display.Number(cylinder.GasUsed)</td>
-                <td class="number">@Display.Number(cylinder.RequiredReserve)</td>
-                <td class="number gas-left">@Display.Number(cylinder.ProjectedRemaining)</td>
+                <td class="number">@Display.Number(amount.Start) → <span class="gas-end">@Display.Number(amount.End)</span></td>
+                <td class="number">@Display.Number(amount.Used)</td>
+                <td class="number">@Display.Number(amount.Reserve)</td>
+                <td class="number gas-left">@Display.Number(amount.Left)</td>
                 @if (RunsShort)
                 {
-                    <td class="number gas-short">@(cylinder.Shortfall > 0 ? Display.Number(cylinder.Shortfall) : "–")</td>
+                    <td class="number gas-short">@(cylinder.MissingLitres > 0 ? Display.Number(amount.Missing) : "–")</td>
                 }
             </tr>
         }
@@ -42,23 +43,28 @@
     [Parameter]
     public UnitSystem Units { get; set; }
 
+    [Parameter]
+    public GasQuantity Quantity { get; set; }
+
     private UnitLabels Labels => UnitLabels.For(Units);
 
-    private bool RunsShort => Result.Cylinders.Any(static cylinder => cylinder.Shortfall > 0);
+    private bool RunsShort => Result.Cylinders.Any(static cylinder => cylinder.MissingLitres > 0);
 
     private string Caption
     {
         get
         {
-            var caption = $"Pressure in {Labels.Pressure}, gas in {Labels.GasVolume} at the surface.";
+            var caption = Quantity == GasQuantity.Pressure
+                ? Localized.Format(WebText.GasCaptionPressure, Labels.Pressure)
+                : Localized.Format(WebText.GasCaptionVolume, Labels.GasVolume);
             if (Result.Cylinders.Any(static cylinder => State(cylinder) == "gas-error"))
             {
-                caption += " Red: the cylinder runs out.";
+                caption += WebText.GasCaptionRunsOut;
             }
 
             if (Result.Cylinders.Any(static cylinder => State(cylinder) == "gas-warning"))
             {
-                caption += " Orange: the reserve is not met.";
+                caption += WebText.GasCaptionReserve;
             }
 
             return caption;
@@ -67,7 +73,7 @@
 
     private static string? State(CylinderRow cylinder) => cylinder switch
     {
-        { IsExhausted: true } or { Shortfall: > 0 } => "gas-error",
+        { IsExhausted: true } or { MissingLitres: > 0 } => "gas-error",
         { ReserveSatisfied: false } => "gas-warning",
         _ => null
     };

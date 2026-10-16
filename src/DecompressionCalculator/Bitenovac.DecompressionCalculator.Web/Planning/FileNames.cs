@@ -5,7 +5,7 @@ namespace Bitenovac.DecompressionCalculator.Web.Planning;
 /// </summary>
 public static class FileNames
 {
-    public const string Fallback = "Dive plan";
+    public static string Fallback => WebText.FileFallback;
 
     private static readonly char[] Forbidden = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
 

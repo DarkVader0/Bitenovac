@@ -4,7 +4,7 @@
 @inject IJSRuntime JS
 
 <figure class="profile-chart">
-    <svg @ref="_svg" viewBox="0 0 @Width @Height" role="img" aria-label="Dive profile: depth over time">
+    <svg @ref="_svg" viewBox="0 0 @Width @Height" role="img" aria-label="@WebText.ChartLabel">
         @foreach (var depth in _chart.DepthTicks)
         {
             var y = _chart.Y(depth, Area);
@@ -60,30 +60,30 @@
         }
 
         <text class="chart-caption" x="@F(Area.Left + 4)" y="@F(Area.Top - 5)">@Labels.Depth</text>
-        <text class="chart-caption" x="@F(Area.Left + Area.Width)" y="@F(Height - 2)" text-anchor="end">min</text>
+        <text class="chart-caption" x="@F(Area.Left + Area.Width)" y="@F(Height - 2)" text-anchor="end">@WebText.MinutesUnit</text>
     </svg>
     @if (_readout is { } shown)
     {
         var percent = _chart.X(shown.Runtime.TotalMinutes, Area) / Width * 100;
         var side = percent > 55 ? $"right: calc({F(100 - percent)}% + 0.5rem)" : $"left: calc({F(percent)}% + 0.5rem)";
         <dl class="chart-readout" style="@side" aria-live="polite">
-            <div><dt>Runtime</dt><dd>@Display.Clock(shown.Runtime)</dd></div>
-            <div><dt>Depth</dt><dd>@Display.Number(shown.Depth, 1) @Labels.Depth</dd></div>
+            <div><dt>@WebText.Runtime</dt><dd>@Display.Clock(shown.Runtime)</dd></div>
+            <div><dt>@WebText.Depth</dt><dd>@Display.Number(shown.Depth, 1) @Labels.Depth</dd></div>
             <div class="chart-readout-ceiling">
-                <dt>Ceiling</dt>
-                <dd>@(shown.Ceiling is { } ceiling ? $"{Display.Number(ceiling, 1)} {Labels.Depth}" : "none")</dd>
+                <dt>@WebText.Ceiling</dt>
+                <dd>@(shown.Ceiling is { } ceiling ? $"{Display.Number(ceiling, 1)} {Labels.Depth}" : WebText.CeilingNone)</dd>
             </div>
-            <div><dt>TTS</dt><dd>@(shown.TimeToSurface is { } tts ? Display.Minutes(tts) : "–")</dd></div>
-            <div><dt>Gas</dt><dd>@shown.Gas</dd></div>
-            <div><dt>ppO₂</dt><dd>@Display.Number(shown.OxygenPressure, 2)</dd></div>
-            <div><dt>CNS</dt><dd>@Display.Number(shown.CnsPercent) %</dd></div>
-            <div><dt>OTU</dt><dd>@Display.Number(shown.OxygenToleranceUnits)</dd></div>
-            <div class="chart-readout-phase"><dt class="visually-hidden">Phase</dt><dd>@Display.Name(shown.Kind)</dd></div>
+            <div><dt>@WebText.Tts</dt><dd>@(shown.TimeToSurface is { } tts ? Display.Minutes(tts) : "–")</dd></div>
+            <div><dt>@WebText.Gas</dt><dd>@shown.Gas</dd></div>
+            <div><dt>@WebText.Ppo2</dt><dd>@Display.Number(shown.OxygenPressure, 2)</dd></div>
+            <div><dt>@WebText.Cns</dt><dd>@Display.Number(shown.CnsPercent) %</dd></div>
+            <div><dt>@WebText.Otu</dt><dd>@Display.Number(shown.OxygenToleranceUnits)</dd></div>
+            <div class="chart-readout-phase"><dt class="visually-hidden">@WebText.Phase</dt><dd>@Display.Name(shown.Kind)</dd></div>
         </dl>
     }
     else
     {
-        <p class="chart-readout-hint">Touch or point at the profile</p>
+        <p class="chart-readout-hint">@WebText.ChartHint</p>
     }
 </figure>
 
@@ -99,6 +99,7 @@
     private ChartReadout? _readout;
 
     private ElementReference _svg;
+    private bool _disposed;
     private DotNetObjectReference<ProfileChartView>? _listener;
     private IJSObjectReference? _module;
     private IJSObjectReference? _tracker;
@@ -135,7 +136,18 @@
 
         _listener = DotNetObjectReference.Create(this);
         _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/chart.js");
+        if (_disposed)
+        {
+            await _module.DisposeAsync();
+            return;
+        }
+
         _tracker = await _module.InvokeAsync<IJSObjectReference>("track", _svg, _listener);
+        if (_disposed)
+        {
+            await _tracker.InvokeVoidAsync("dispose");
+            await _tracker.DisposeAsync();
+        }
     }
 
     [JSInvokable]
@@ -154,6 +166,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
         if (_tracker is not null)
         {
             await _tracker.InvokeVoidAsync("dispose");
