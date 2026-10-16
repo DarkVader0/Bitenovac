@@ -696,4 +696,10 @@
     <data name="GasChecksCaption" xml:space="preserve">
         <value>Each gas on each level and at its deepest. Gases above the density limit are marked.</value>
     </data>
+    <data name="WorkingPressure" xml:space="preserve">
+        <value>Working</value>
+    </data>
+    <data name="WorkingPressureLabel" xml:space="preserve">
+        <value>{0} working pressure in {1}</value>
+    </data>
 </root>

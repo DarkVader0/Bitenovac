@@ -696,4 +696,10 @@
     <data name="GasChecksCaption" xml:space="preserve">
         <value>Jedes Gas auf jeder Stufe und an seiner tiefsten Stelle. Gase über der Dichtegrenze sind markiert.</value>
     </data>
+    <data name="WorkingPressure" xml:space="preserve">
+        <value>Betriebsdruck</value>
+    </data>
+    <data name="WorkingPressureLabel" xml:space="preserve">
+        <value>{0} Betriebsdruck in {1}</value>
+    </data>
 </root>
