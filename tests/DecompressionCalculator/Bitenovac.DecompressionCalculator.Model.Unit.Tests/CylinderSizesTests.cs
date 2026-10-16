@@ -108,4 +108,19 @@ public sealed class CylinderSizesTests
         // Assert
         Assert.Equal(2800, rerated.StartPressure, Precision);
     }
+
+    [Fact]
+    public void WithWorkingPressure_ShouldSetTheWorkingPressureWithoutChangingTheSize_WhenThereWasNoWorkingPressure()
+    {
+        // Arrange
+        var cylinder = new CylinderInput(21, 0, 80, 0, 2800, CylinderPurpose.BottomGas);
+
+        // Act
+        var rated = CylinderSizes.WithWorkingPressure(cylinder, 3000);
+
+        // Assert
+        Assert.Equal(80, rated.Size, Precision);
+        Assert.Equal(3000, rated.RatedPressure, Precision);
+        Assert.Equal(2800, rated.StartPressure, Precision);
+    }
 }
