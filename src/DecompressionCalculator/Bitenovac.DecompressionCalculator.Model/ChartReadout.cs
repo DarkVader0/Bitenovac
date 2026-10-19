@@ -1,7 +1,6 @@
 using Bitenovac.DecompressionAlgorithms.Core.Planning;
-using Bitenovac.DecompressionCalculator.Model;
 
-namespace Bitenovac.DecompressionCalculator.Web.Planning;
+namespace Bitenovac.DecompressionCalculator.Model;
 
 /// <summary>
 /// Represents the dive at one moment of its profile chart, in the plan's units.

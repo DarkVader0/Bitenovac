@@ -57,12 +57,12 @@
 
     protected override void OnInitialized()
     {
-        var imperial = Units == UnitSystem.Imperial;
-        _modPo2 = Settings.DecoPo2;
-        _mixPo2 = Settings.BottomPo2;
-        _endDepth = imperial ? 150 : 45;
-        _mixDepth = imperial ? 200 : 60;
-        _mixEnd = imperial ? 100 : 30;
+        var defaults = GasToolDefaults.For(Settings, Units);
+        _modPo2 = defaults.ModPo2;
+        _mixPo2 = defaults.MixPo2;
+        _endDepth = defaults.EndDepth;
+        _mixDepth = defaults.MixDepth;
+        _mixEnd = defaults.MixEnd;
     }
 
     private string BestMixText()

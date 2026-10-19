@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Bitenovac.DecompressionCalculator.Web.Planning;
+namespace Bitenovac.DecompressionCalculator.Model;
 
 /// <summary>
 /// Converts between a cylinder's oxygen and helium percentages and the text of its gas field.
