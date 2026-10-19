@@ -1,8 +1,8 @@
 <label class="field">
     <span class="field-label">@Label</span>
     <span class="field-input">
-        <input type="number" inputmode="decimal" step="@Step" value="@Text" class="@(Issue is null ? null : "invalid")"
-               aria-invalid="@(Issue is null ? null : "true")" @onchange="OnChangeAsync"/>
+        <input type="number" inputmode="decimal" step="@Step" value="@_text" class="@(Issue is null ? null : "invalid")"
+               aria-invalid="@(Issue is null ? null : "true")" @oninput="OnInputAsync"/>
         @if (Unit is not null)
         {
             <span class="unit">@Unit</span>
@@ -15,6 +15,8 @@
 </label>
 
 @code {
+    private string _text = "";
+
     [Parameter, EditorRequired]
     public string Label { get; set; } = "";
 
@@ -33,7 +35,17 @@
     [Parameter]
     public string Step { get; set; } = "any";
 
-    private string Text => NumberInput.Text(Value);
+    protected override void OnParametersSet()
+    {
+        if (!NumberInput.Matches(_text, Value))
+        {
+            _text = NumberInput.Text(Value);
+        }
+    }
 
-    private Task OnChangeAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(NumberInput.Parse(args.Value));
+    private Task OnInputAsync(ChangeEventArgs args)
+    {
+        _text = args.Value?.ToString() ?? "";
+        return ValueChanged.InvokeAsync(NumberInput.Parse(args.Value));
+    }
 }

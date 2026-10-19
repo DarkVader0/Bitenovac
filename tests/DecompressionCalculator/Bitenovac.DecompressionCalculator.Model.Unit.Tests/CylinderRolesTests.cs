@@ -16,7 +16,7 @@ public sealed class CylinderRolesTests
         CircuitInput circuit = null!;
 
         // Act
-        Action act = () => CylinderRoles.Selectable(circuit);
+        Action act = () => CylinderRoles.Selectable(circuit, 21);
 
         // Assert
         Assert.Throws<ArgumentNullException>(act);
@@ -29,7 +29,7 @@ public sealed class CylinderRolesTests
         var circuit = new OpenCircuitInput();
 
         // Act
-        var roles = CylinderRoles.Selectable(circuit);
+        var roles = CylinderRoles.Selectable(circuit, 100);
 
         // Assert
         Assert.Equal([CylinderPurpose.BottomGas, CylinderPurpose.DecoGas], roles);
@@ -44,10 +44,39 @@ public sealed class CylinderRolesTests
         // Arrange
 
         // Act
-        var roles = CylinderRoles.Selectable(circuit);
+        var roles = CylinderRoles.Selectable(circuit, 21);
 
         // Assert
         Assert.Equal([CylinderPurpose.Diluent, CylinderPurpose.Bailout], roles);
+    }
+
+    [Theory]
+    [InlineData(94.9)]
+    [InlineData(21)]
+    public void Selectable_ShouldNotOfferOxygen_WhenTheClosedCircuitCylinderIsBelowTheMinimum(double oxygenPercent)
+    {
+        // Arrange
+
+        // Act
+        var roles = CylinderRoles.Selectable(ClosedCircuit, oxygenPercent);
+
+        // Assert
+        Assert.DoesNotContain(CylinderPurpose.Oxygen, roles);
+    }
+
+    [Theory]
+    [InlineData(95)]
+    [InlineData(99.5)]
+    [InlineData(100)]
+    public void Selectable_ShouldOfferOxygen_WhenTheClosedCircuitCylinderIsAtLeastTheMinimum(double oxygenPercent)
+    {
+        // Arrange
+
+        // Act
+        var roles = CylinderRoles.Selectable(ClosedCircuit, oxygenPercent);
+
+        // Assert
+        Assert.Equal([CylinderPurpose.Diluent, CylinderPurpose.Bailout, CylinderPurpose.Oxygen], roles);
     }
 
     [Fact]
@@ -57,7 +86,7 @@ public sealed class CylinderRolesTests
         var circuit = new UnknownCircuitInput();
 
         // Act
-        var roles = CylinderRoles.Selectable(circuit);
+        var roles = CylinderRoles.Selectable(circuit, 21);
 
         // Assert
         Assert.Empty(roles);
@@ -136,7 +165,7 @@ public sealed class CylinderRolesTests
         { new OpenCircuitInput(), 100, CylinderPurpose.Oxygen, CylinderPurpose.DecoGas },
         { ClosedCircuit, 21, CylinderPurpose.BottomGas, CylinderPurpose.Diluent },
         { ClosedCircuit, 50, CylinderPurpose.DecoGas, CylinderPurpose.Bailout },
-        { ClosedCircuit, 99, CylinderPurpose.Oxygen, CylinderPurpose.Bailout },
+        { ClosedCircuit, 94, CylinderPurpose.Oxygen, CylinderPurpose.Bailout },
         { SemiClosed, 32, CylinderPurpose.BottomGas, CylinderPurpose.Diluent },
         { SemiClosed, 100, CylinderPurpose.Oxygen, CylinderPurpose.Bailout }
     };
@@ -154,6 +183,57 @@ public sealed class CylinderRolesTests
 
         // Assert
         Assert.Equal(expected, role);
+    }
+
+    public static TheoryData<CircuitInput, double, bool> FixedCylinders() => new()
+    {
+        { ClosedCircuit, 100, true },
+        { ClosedCircuit, 99.5, false },
+        { ClosedCircuit, 95, false },
+        { SemiClosed, 100, false },
+        { new OpenCircuitInput(), 100, false }
+    };
+
+    [Theory]
+    [MemberData(nameof(FixedCylinders))]
+    public void IsFixed_ShouldBeTrue_OnlyForPureOxygenOnAClosedCircuit(CircuitInput circuit, double oxygenPercent, bool expected)
+    {
+        // Arrange
+        var cylinder = TestFactory.Cylinder(oxygenPercent: oxygenPercent, purpose: CylinderPurpose.Diluent);
+
+        // Act
+        var fixedRole = CylinderRoles.IsFixed(circuit, cylinder);
+
+        // Assert
+        Assert.Equal(expected, fixedRole);
+    }
+
+    [Fact]
+    public void IsFixed_ShouldThrowArgumentNullException_WhenTheCylinderIsNull()
+    {
+        // Arrange
+        CylinderInput cylinder = null!;
+
+        // Act
+        Action act = () => CylinderRoles.IsFixed(ClosedCircuit, cylinder);
+
+        // Assert
+        Assert.Throws<ArgumentNullException>(act);
+    }
+
+    [Theory]
+    [InlineData(95)]
+    [InlineData(99.5)]
+    public void Resolve_ShouldKeepOxygen_WhenAClosedCircuitCylinderIsChosenAsOxygenAtLeastTheMinimum(double oxygenPercent)
+    {
+        // Arrange
+        var cylinder = TestFactory.Cylinder(oxygenPercent: oxygenPercent, purpose: CylinderPurpose.Oxygen);
+
+        // Act
+        var role = CylinderRoles.Resolve(ClosedCircuit, cylinder);
+
+        // Assert
+        Assert.Equal(CylinderPurpose.Oxygen, role);
     }
 
     [Fact]

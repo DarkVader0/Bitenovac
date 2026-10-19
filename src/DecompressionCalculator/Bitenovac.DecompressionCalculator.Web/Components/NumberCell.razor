@@ -1,7 +1,9 @@
-<input type="number" inputmode="decimal" step="any" class="cell-input @(Invalid ? "invalid" : null)" value="@NumberInput.Text(Value)"
-       aria-label="@Label" aria-invalid="@(Invalid ? "true" : null)" @onchange="OnChangeAsync"/>
+<input type="number" inputmode="decimal" step="any" class="cell-input @(Invalid ? "invalid" : null)" value="@_text"
+       aria-label="@Label" aria-invalid="@(Invalid ? "true" : null)" @oninput="OnInputAsync"/>
 
 @code {
+    private string _text = "";
+
     [Parameter, EditorRequired]
     public string Label { get; set; } = "";
 
@@ -14,5 +16,17 @@
     [Parameter]
     public bool Invalid { get; set; }
 
-    private Task OnChangeAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(NumberInput.Parse(args.Value));
+    protected override void OnParametersSet()
+    {
+        if (!NumberInput.Matches(_text, Value))
+        {
+            _text = NumberInput.Text(Value);
+        }
+    }
+
+    private Task OnInputAsync(ChangeEventArgs args)
+    {
+        _text = args.Value?.ToString() ?? "";
+        return ValueChanged.InvokeAsync(NumberInput.Parse(args.Value));
+    }
 }
