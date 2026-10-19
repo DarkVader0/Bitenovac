@@ -213,6 +213,23 @@ button.secondary:hover {
     font-size: 0.875rem;
 }
 
+/* A dropdown takes its column's width, so a long option is cut short instead of pushing past the column. */
+.field select {
+    width: 100%;
+    text-overflow: ellipsis;
+}
+
+/* The breathing apparatus has the longest option names, so its column is twice as wide as each setpoint. */
+.circuit-grid {
+    grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 640px) {
+    .circuit-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 /* The unit sits inside the box, so every input in a row is the same width whatever its unit. */
 .field-input {
     display: flex;

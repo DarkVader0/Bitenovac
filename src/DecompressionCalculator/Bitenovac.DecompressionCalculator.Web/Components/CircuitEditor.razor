@@ -1,18 +1,16 @@
-<div class="field-grid">
+<div class="field-grid circuit-grid">
     <SelectField TValue="string" Label="@WebText.BreathingApparatus" Options="Modes" Text="Name" Value="Mode" Issue="@Issues.Self"
                  ValueChanged="SelectAsync"/>
 
     @switch (Value)
     {
         case ClosedCircuitInput closed:
-            <div class="field-pair">
-                <NumberField Label="@WebText.BottomSetpoint" Unit="bar" Value="closed.BottomSetpoint"
-                             Issue="@Issues[nameof(ClosedCircuitInput.BottomSetpoint)]"
-                             ValueChanged="value => ChangeAsync(closed with { BottomSetpoint = value })"/>
-                <NumberField Label="@WebText.DecoSetpoint" Unit="bar" Value="closed.DecoSetpoint"
-                             Issue="@Issues[nameof(ClosedCircuitInput.DecoSetpoint)]"
-                             ValueChanged="value => ChangeAsync(closed with { DecoSetpoint = value })"/>
-            </div>
+            <NumberField Label="@WebText.BottomSetpoint" Unit="bar" Value="closed.BottomSetpoint"
+                         Issue="@Issues[nameof(ClosedCircuitInput.BottomSetpoint)]"
+                         ValueChanged="value => ChangeAsync(closed with { BottomSetpoint = value })"/>
+            <NumberField Label="@WebText.DecoSetpoint" Unit="bar" Value="closed.DecoSetpoint"
+                         Issue="@Issues[nameof(ClosedCircuitInput.DecoSetpoint)]"
+                         ValueChanged="value => ChangeAsync(closed with { DecoSetpoint = value })"/>
             break;
         case SemiClosedCircuitInput semiClosed:
             <NumberField Label="@WebText.DumpRatio" Value="semiClosed.DumpRatio" Issue="@Issues[nameof(SemiClosedCircuitInput.DumpRatio)]"
