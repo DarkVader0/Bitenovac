@@ -35,4 +35,4 @@ jobs:
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
           DROP: ${{ inputs.drop }}
-        run: bash deploy/libraries.sh DecompressionAlgorithms "${DROP}"
+        run: bash src/DecompressionAlgorithms/deploy_libraries.sh "${DROP}"

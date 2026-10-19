@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 #
-# Pushes the packages of one product, DecompressionAlgorithms or DecompressionCalculator, from an
-# Official drop to nuget.org.
+# Pushes the DecompressionAlgorithms packages from an Official drop to nuget.org.
 #
 # Usage, on the runner host:
-#   NUGET_API_KEY=... bash deploy/libraries.sh <product> [drop]
+#   NUGET_API_KEY=... bash src/DecompressionAlgorithms/deploy_libraries.sh [drop]
 #
-#   product   The folder under src/ whose packages to push.
-#   drop      The drop to deploy from, for example 2026.10.11.001. Defaults to the newest one.
+#   drop   The drop to deploy from, for example 2026.10.11.001. Defaults to the newest one.
 #
 # Environment:
 #   NUGET_API_KEY   Required. In CI this is the short-lived key NuGet/login exchanges for the
-#                   workflow's OIDC token (see .github/workflows/deploy_DecompressionAlgorithmLibraries.yml).
+#                   workflow's OIDC token.
 #
 # The product shares one version, set in its Directory.Build.props. A package nuget.org already has at
 # that version is skipped, so a deploy that stopped part way can be run again for the rest; one in
@@ -19,18 +17,15 @@
 
 set -euo pipefail
 
-readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-bitenovac-official}"
+readonly PRODUCT=DecompressionAlgorithms
 
 fail() { printf '\nerror: %s\n' "$*" >&2; exit 1; }
 
 [[ -n "${NUGET_API_KEY:-}" ]] || fail "NUGET_API_KEY is not set."
 
-product="${1:-}"
-[[ "${product}" == DecompressionAlgorithms || "${product}" == DecompressionCalculator ]] \
-    || fail "Name the product to deploy: DecompressionAlgorithms or DecompressionCalculator."
-
-drop="${2:-}"
+drop="${1:-}"
 [[ -z "${drop}" || "${drop}" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{3}$ ]] \
     || fail "'${drop}' is not a drop name. Drops are named yyyy.MM.dd.NNN."
 
@@ -42,7 +37,6 @@ readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"
 docker image inspect "${IMAGE}" > /dev/null 2>&1 \
     || fail "The image ${IMAGE} is missing. Run runner/build-image.sh on this machine."
 
-# Mounting a volume that does not exist would create it empty and hide the real problem.
 docker volume inspect "${OFFICIAL_VOLUME}" > /dev/null 2>&1 \
     || fail "The volume ${OFFICIAL_VOLUME} does not exist. Has Official run on this machine?"
 
@@ -53,7 +47,7 @@ exec docker run \
     --volume "${OFFICIAL_VOLUME}:/mnt/official:ro" \
     --env NUGET_API_KEY \
     --env "DROP=${drop}" \
-    --env "PRODUCT=${product}" \
+    --env "PRODUCT=${PRODUCT}" \
     --env HOME=/tmp \
     --env DOTNET_CLI_HOME=/tmp \
     --env DOTNET_NOLOGO=true \

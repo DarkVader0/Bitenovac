@@ -272,7 +272,7 @@ like the one above but with the workflow file `deploy_DecompressionAlgorithmLibr
 To publish by hand on the runner host instead, with a key from nuget.org:
 
 ```bash
-NUGET_API_KEY=<KEY> bash deploy/libraries.sh DecompressionAlgorithms [2026.10.11.001]
+NUGET_API_KEY=<KEY> bash src/DecompressionAlgorithms/deploy_libraries.sh [2026.10.11.001]
 ```
 
 ---
@@ -286,7 +286,7 @@ Official drop holds it, published, under `apps/Bitenovac.DecompressionCalculator
 2. Publish it from that drop: Actions → Deploy web → Run workflow. Leave the drop empty for the
    newest one. Installed copies offer the new version with a Reload banner on their next visit.
 
-`deploy/web.sh` copies the site out of the drop and adds what Pages needs: `.nojekyll`, so the
+`src/DecompressionCalculator/deploy_web.sh` copies the site out of the drop and adds what Pages needs: `.nojekyll`, so the
 `_framework` folder is served, and a `404.html` copy of `index.html`, so a reloaded `/plan/...`
 still opens the app.
 
@@ -305,7 +305,7 @@ only over HTTPS.
 To prepare the site by hand on the runner host:
 
 ```bash
-bash deploy/web.sh /tmp/site [2026.10.11.001]
+bash src/DecompressionCalculator/deploy_web.sh /tmp/site [2026.10.11.001]
 ```
 
 ---

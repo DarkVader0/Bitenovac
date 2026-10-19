@@ -31,7 +31,7 @@ jobs:
       - name: Prepare
         env:
           DROP: ${{ inputs.drop }}
-        run: bash deploy/web.sh "${RUNNER_TEMP}/site" "${DROP}"
+        run: bash src/DecompressionCalculator/deploy_web.sh "${RUNNER_TEMP}/site" "${DROP}"
 
       - name: Upload
         uses: actions/upload-pages-artifact@v5

@@ -3,7 +3,7 @@
 # Prepares the Web app from an Official drop for GitHub Pages.
 #
 # Usage, on the runner host:
-#   bash deploy/web.sh <site> [drop]
+#   bash src/DecompressionCalculator/deploy_web.sh <site> [drop]
 #
 #   site   An empty or missing directory to write the site to. The Deploy web workflow uploads it.
 #   drop   The drop to deploy from, for example 2026.10.11.001. Defaults to the newest one.
@@ -16,7 +16,7 @@
 
 set -euo pipefail
 
-readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-bitenovac-official}"
 readonly APP="Bitenovac.DecompressionCalculator.Web"
 
@@ -40,7 +40,6 @@ readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"
 docker image inspect "${IMAGE}" > /dev/null 2>&1 \
     || fail "The image ${IMAGE} is missing. Run runner/build-image.sh on this machine."
 
-# Mounting a volume that does not exist would create it empty and hide the real problem.
 docker volume inspect "${OFFICIAL_VOLUME}" > /dev/null 2>&1 \
     || fail "The volume ${OFFICIAL_VOLUME} does not exist. Has Official run on this machine?"
 
