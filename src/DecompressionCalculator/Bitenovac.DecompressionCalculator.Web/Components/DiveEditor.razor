@@ -170,13 +170,13 @@
                         </td>
                     }
                     <td>
-                        @if (CylinderRoles.Resolve(Value.Circuit, cylinder) == CylinderPurpose.Oxygen)
+                        @if (CylinderRoles.IsFixed(Value.Circuit, cylinder))
                         {
                             <span class="cell-static">@WebText.Oxygen</span>
                         }
                         else
                         {
-                            <SelectCell TValue="CylinderPurpose" Label="@Localized.Format(WebText.CylinderUseLabel, name)" Options="CylinderRoles.Selectable(Value.Circuit)"
+                            <SelectCell TValue="CylinderPurpose" Label="@Localized.Format(WebText.CylinderUseLabel, name)" Options="CylinderRoles.Selectable(Value.Circuit, cylinder.OxygenPercent)"
                                         Text="purpose => Display.Name(purpose, Value.Circuit)" Value="cylinder.Purpose"
                                         Invalid="issues[nameof(CylinderInput.Purpose)] is not null"
                                         ValueChanged="value => ChangeCylinderAsync(at, cylinder with { Purpose = value })"/>
