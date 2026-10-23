@@ -26,7 +26,7 @@
         </tr>
         </thead>
         <tbody>
-        @foreach (var phase in Result.Profile)
+        @foreach (var phase in Phases)
         {
             <tr class="@(phase.Kind is SegmentKind.Stop or SegmentKind.SafetyStop or SegmentKind.GasSwitch ? "row-stop" : null)">
                 <td class="phase"><PhaseIcon Kind="phase.Kind"/></td>
@@ -51,7 +51,15 @@
     [Parameter]
     public UnitSystem Units { get; set; }
 
+    [Parameter]
+    public bool MergeAscents { get; set; }
+
+    [Parameter]
+    public bool MergeDescents { get; set; }
+
     private UnitLabels Labels => UnitLabels.For(Units);
+
+    private IReadOnlyList<ProfileRow> Phases => ProfileMerge.IntoStops(Result.Profile, MergeAscents, MergeDescents);
 
     private bool ShowsApparatus => Result.Profile.Any(static phase => phase.Circuit != BreathingLoop.OpenCircuit.ToString());
 }

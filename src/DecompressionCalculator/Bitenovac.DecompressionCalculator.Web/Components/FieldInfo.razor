@@ -1,0 +1,20 @@
+@if (Text is not null)
+{
+    <button type="button" class="info-button" aria-expanded="@(_open ? "true" : "false")" aria-label="@WebText.ShowInfo" title="@WebText.ShowInfo"
+            @onclick="Toggle" @onclick:preventDefault="true" @onclick:stopPropagation="true">
+        <Icon Name="IconName.Info"/>
+    </button>
+    @if (_open)
+    {
+        <span class="field-hint" @onclick="Toggle" @onclick:preventDefault="true">@Text</span>
+    }
+}
+
+@code {
+    private bool _open;
+
+    [Parameter]
+    public string? Text { get; set; }
+
+    private void Toggle() => _open = !_open;
+}

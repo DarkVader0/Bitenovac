@@ -469,4 +469,46 @@ public sealed class DiveSheetTests
         Assert.Contains(TestFactory.Shown("Start (psi)"), pdf, StringComparison.Ordinal);
         Assert.Matches(Regex.Escape("(CCR @ 1.3) Tj"), pdf);
     }
+
+    [Fact]
+    public void Create_ShouldShowADifferentSheet_WhenAscentsAreMerged()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+        var merged = plan with { Settings = plan.Settings with { MergeAscentsIntoStops = true } };
+
+        // Act
+        var pdf = DiveSheet.Create(merged, 0, TestFactory.Now, AppVersion, OnePageBlocks);
+
+        // Assert
+        Assert.NotEqual(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, OnePageBlocks), pdf);
+    }
+
+    [Fact]
+    public void Create_ShouldShowTheSameSheet_WhenNoStopIsMerged()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+        var unmerged = plan with { Settings = plan.Settings with { MergeAscentsIntoStops = false, MergeDescentsIntoStops = false } };
+
+        // Act
+        var pdf = DiveSheet.Create(unmerged, 0, TestFactory.Now, AppVersion, OnePageBlocks);
+
+        // Assert
+        Assert.Equal(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, OnePageBlocks), pdf);
+    }
+
+    [Fact]
+    public void CreateSeries_ShouldShowADifferentSheet_WhenAscentsAreMerged()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+        var merged = plan with { Settings = plan.Settings with { MergeAscentsIntoStops = true } };
+
+        // Act
+        var pdf = DiveSheet.CreateSeries(merged, TestFactory.Now, AppVersion);
+
+        // Assert
+        Assert.NotEqual(DiveSheet.CreateSeries(plan, TestFactory.Now, AppVersion), pdf);
+    }
 }

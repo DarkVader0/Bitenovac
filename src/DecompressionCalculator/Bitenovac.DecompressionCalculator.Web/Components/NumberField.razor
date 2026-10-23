@@ -1,5 +1,5 @@
 <label class="field">
-    <span class="field-label">@Label</span>
+    <span class="field-label-row"><span class="field-label">@Label</span><FieldInfo Text="@Hint"/></span>
     <span class="field-input">
         <input type="number" inputmode="decimal" step="@Step" value="@_text" class="@(Issue is null ? null : "invalid")"
                aria-invalid="@(Issue is null ? null : "true")" @oninput="OnInputAsync"/>
@@ -31,6 +31,9 @@
 
     [Parameter]
     public string? Issue { get; set; }
+
+    [Parameter]
+    public string? Hint { get; set; }
 
     [Parameter]
     public string Step { get; set; } = "any";

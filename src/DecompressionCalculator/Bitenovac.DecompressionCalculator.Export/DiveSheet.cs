@@ -85,7 +85,8 @@ public static class DiveSheet
     /// <remarks>
     /// A plan with issues is exported as its first page alone, with the issues listed, since no dive can be shown.
     /// </remarks>
-    public static byte[] CreateSeries(DivePlanDocument plan, DateTime exportedAt, string appVersion, IReadOnlyList<ResultBlock>? blocks = null)
+    public static byte[] CreateSeries(
+        DivePlanDocument plan, DateTime exportedAt, string appVersion, IReadOnlyList<ResultBlock>? blocks = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(appVersion);
@@ -138,7 +139,7 @@ public static class DiveSheet
         else
         {
             var labels = UnitLabels.For(plan.Units);
-            var result = calculation.Dives[dive];
+            var result = Shown(calculation.Dives[dive], plan.SettingsFor(dive));
             List<ResultBlock> shown = [.. blocks.Where(static block => block != ResultBlock.Contingencies)];
             WriteDive(sheet, plan, result, labels, shown, plan.SettingsFor(dive).GasQuantity);
 
@@ -152,11 +153,15 @@ public static class DiveSheet
                     sheet.Paragraph(ContingencyMeaning(contingency, labels), PdfFont.Helvetica, 8.5, SheetWriter.Muted);
                     sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan, plan.SettingsFor(dive))}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
                     sheet.Paragraph(interval + Summary.Inputs(input, plan.Units), PdfFont.Helvetica, 8.5, SheetWriter.Text);
-                    WriteDive(sheet, plan, contingency.Result, labels, shown, plan.SettingsFor(dive).GasQuantity);
+                    WriteDive(sheet, plan, Shown(contingency.Result, plan.SettingsFor(dive)), labels, shown, plan.SettingsFor(dive).GasQuantity);
                 }
             }
         }
     }
+
+    /// <remarks>Merging only changes the profile's rows; the figures are the same.</remarks>
+    private static DiveResult Shown(DiveResult result, PlannerSettings settings) =>
+        result.WithStopsMerged(settings.MergeAscentsIntoStops, settings.MergeDescentsIntoStops);
 
     private static void WriteIssues(SheetWriter sheet, PlanCalculation calculation)
     {

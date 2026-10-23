@@ -45,7 +45,7 @@
                     break;
                 case ResultBlock.Profile:
                     <h3>@WebText.Profile</h3>
-                    <ProfileTable Result="Result" Units="Units"/>
+                    <ProfileTable Result="Result" Units="Units" MergeAscents="MergeAscents" MergeDescents="MergeDescents"/>
                     break;
                 case ResultBlock.Gas:
                     <h3>@WebText.Gas</h3>
@@ -91,6 +91,12 @@
 
     [Parameter]
     public GasQuantity Quantity { get; set; }
+
+    [Parameter]
+    public bool MergeAscents { get; set; }
+
+    [Parameter]
+    public bool MergeDescents { get; set; }
 
     private UnitLabels Labels => UnitLabels.For(Units);
 

@@ -194,4 +194,22 @@ public sealed class DiveResultTests
         // Assert
         Assert.Equal(TimeSpan.Zero, timeToSurface);
     }
+
+    [Fact]
+    public void WithStopsMerged_ShouldShowFewerPhasesAndTheSameFigures_WhenTheDiveHasAscentsIntoStops()
+    {
+        // Arrange
+        var result = DiveResult.From(0, CreatePlan(), [], UnitSystem.Metric);
+
+        // Act
+        var merged = result.WithStopsMerged(true, true);
+
+        // Assert
+        Assert.True(merged.Profile.Count < result.Profile.Count);
+        Assert.Equal(result.Profile[^1].Runtime, merged.Profile[^1].Runtime);
+        Assert.Equal(result.TotalRuntime, merged.TotalRuntime);
+        Assert.Equal(result.StopTime, merged.StopTime);
+        Assert.Equal(result.Timeline.Count, merged.Timeline.Count);
+        Assert.Equal(result.Cylinders.Count, merged.Cylinders.Count);
+    }
 }
