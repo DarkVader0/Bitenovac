@@ -121,7 +121,7 @@ public sealed class ProfileChartTests
         var stop = Assert.Single(chart.Stops);
         Assert.True(stop.IsSafetyStop);
         Assert.False(stop.IsGasSwitch);
-        Assert.Equal(5, stop.Depth, Precision);
+        Assert.Equal(6, stop.Depth, Precision);
         Assert.Equal(3, stop.EndMinutes - stop.StartMinutes, Precision);
     }
 

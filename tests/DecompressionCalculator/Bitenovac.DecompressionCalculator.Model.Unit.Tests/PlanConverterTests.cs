@@ -150,11 +150,9 @@ public sealed class PlanConverterTests
             AscentRateShallow = converted.Settings.AscentRateShallow,
             BottomSac = converted.Settings.BottomSac,
             DecoSac = converted.Settings.DecoSac,
-            ContingencyExtraDepth = converted.Settings.ContingencyExtraDepth,
-            SafetyStopDepth = converted.Settings.SafetyStopDepth
+            ContingencyExtraDepth = converted.Settings.ContingencyExtraDepth
         };
         Assert.Equal(expectedSettings, converted.Settings);
-        Assert.Equal(Round(5 / MetersPerFoot, 1), converted.Settings.SafetyStopDepth, Precision);
         Assert.Equal(plan.Algorithm, converted.Algorithm);
         var convertedDive = Assert.Single(converted.Dives);
         Assert.Equal(45, convertedDive.SurfaceIntervalMinutes, Precision);

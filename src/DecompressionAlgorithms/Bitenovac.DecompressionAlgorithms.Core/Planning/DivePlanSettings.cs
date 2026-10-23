@@ -73,9 +73,8 @@ public sealed class DivePlanSettings
     /// </param>
     /// <param name="oxygenBreakDuration">The length of each oxygen break, when oxygen breaks are enabled.</param>
     /// <param name="safetyStop">
-    /// <see langword="true"/> to add a safety stop: on a dive without decompression stops, at the depth in
-    /// <paramref name="safetyStopDepthMeter"/> or at the last stop; on a dive with them, at the end of the last
-    /// decompression stop. Otherwise, <see langword="false"/>.
+    /// <see langword="true"/> to add a three-minute safety stop: at six meters on a dive without
+    /// decompression stops, or at the end of the last decompression stop; otherwise, <see langword="false"/>.
     /// </param>
     /// <param name="lastStopAtSixMeters">
     /// <see langword="true"/> to place the last decompression stop at six meters rather than three;
@@ -92,14 +91,6 @@ public sealed class DivePlanSettings
     /// <param name="oxygenIsNarcotic">
     /// <see langword="true"/> to treat oxygen as narcotic when computing the best mix; otherwise,
     /// <see langword="false"/>.
-    /// </param>
-    /// <param name="safetyStopDurationMinutes">The length of the safety stop, in minutes, when one is added.</param>
-    /// <param name="safetyStopDepthMeter">
-    /// The depth of the safety stop, in meters, on a dive without decompression stops when it is not at the last stop.
-    /// </param>
-    /// <param name="safetyStopAtLastStop">
-    /// <see langword="true"/> to place the safety stop of a dive without decompression stops at the last stop, rather
-    /// than at <paramref name="safetyStopDepthMeter"/>; otherwise, <see langword="false"/>.
     /// </param>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="descentRateMetersPerMinute"/>, any of the ascent rates,
@@ -157,10 +148,7 @@ public sealed class DivePlanSettings
         bool lastStopAtSixMeters,
         bool switchAtRequiredStop,
         bool oxygenBreaks,
-        bool oxygenIsNarcotic,
-        double safetyStopDurationMinutes = 3,
-        double safetyStopDepthMeter = 5,
-        bool safetyStopAtLastStop = false)
+        bool oxygenIsNarcotic)
     {
         RequirePositive(descentRateMetersPerMinute, nameof(descentRateMetersPerMinute), "rate");
         RequirePositive(ascentRateBelow75PercentMetersPerMinute, nameof(ascentRateBelow75PercentMetersPerMinute),
@@ -171,15 +159,6 @@ public sealed class DivePlanSettings
         RequirePositive(ascentRateLastSixMetersMetersPerMinute, nameof(ascentRateLastSixMetersMetersPerMinute), "rate");
         RequirePositive(bottomSacLitersPerMinute, nameof(bottomSacLitersPerMinute), "consumption rate");
         RequirePositive(decoSacLitersPerMinute, nameof(decoSacLitersPerMinute), "consumption rate");
-
-        if (safetyStop)
-        {
-            RequirePositive(safetyStopDurationMinutes, nameof(safetyStopDurationMinutes), "duration");
-            if (!safetyStopAtLastStop)
-            {
-                RequirePositive(safetyStopDepthMeter, nameof(safetyStopDepthMeter), "depth");
-            }
-        }
 
         if (bottomMetabolicOxygenConsumptionLitersPerMinute < 0.0)
         {
@@ -308,9 +287,6 @@ public sealed class DivePlanSettings
         SwitchAtRequiredStop = switchAtRequiredStop;
         OxygenBreaks = oxygenBreaks;
         OxygenIsNarcotic = oxygenIsNarcotic;
-        SafetyStopDuration = TimeSpan.FromMinutes(safetyStopDurationMinutes);
-        SafetyStopDepthMeter = safetyStopDepthMeter;
-        SafetyStopAtLastStop = safetyStopAtLastStop;
     }
 
     /// <summary>
@@ -496,21 +472,6 @@ public sealed class DivePlanSettings
     /// mix.
     /// </summary>
     public bool OxygenIsNarcotic { get; }
-
-    /// <summary>
-    /// Gets the length of the safety stop, when one is added.
-    /// </summary>
-    public TimeSpan SafetyStopDuration { get; }
-
-    /// <summary>
-    /// Gets the depth of the safety stop, in meters, on a dive without decompression stops, when it is not at the last stop.
-    /// </summary>
-    public double SafetyStopDepthMeter { get; }
-
-    /// <summary>
-    /// Gets a value that indicates whether the safety stop of a dive without decompression stops is at the last stop.
-    /// </summary>
-    public bool SafetyStopAtLastStop { get; }
 
     private static void RequirePositive(double value,
         string parameterName,

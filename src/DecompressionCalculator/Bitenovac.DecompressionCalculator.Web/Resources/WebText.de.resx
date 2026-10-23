@@ -769,7 +769,7 @@
         <value>Stoppzeiten werden auf ein Vielfaches dieses Werts aufgerundet.</value>
     </data>
     <data name="HintSafetyStop" xml:space="preserve">
-        <value>Fügt einen Sicherheitsstopp hinzu: bei einem Tauchgang ohne Dekompressionsstopps in der unten angegebenen Tiefe oder am letzten Stopp; sonst nach dem letzten Dekompressionsstopp.</value>
+        <value>Fügt einen Dreiminutenstopp hinzu: bei 6 m bei einem Tauchgang ohne Dekompressionsstopps, sonst nach dem letzten Dekompressionsstopp.</value>
     </data>
     <data name="HintLastStopAt" xml:space="preserve">
         <value>Ob der letzte Stopp bei 6 m statt bei 3 m liegt (20 ft statt 10 ft).</value>
@@ -806,23 +806,5 @@
     </data>
     <data name="ShowInfo" xml:space="preserve">
         <value>Info anzeigen</value>
-    </data>
-    <data name="SafetyStopDuration" xml:space="preserve">
-        <value>Dauer des Sicherheitsstopps</value>
-    </data>
-    <data name="SafetyStopDepth" xml:space="preserve">
-        <value>Tiefe des Sicherheitsstopps</value>
-    </data>
-    <data name="SafetyStopAtLastStop" xml:space="preserve">
-        <value>Sicherheitsstopp am letzten Stopp</value>
-    </data>
-    <data name="HintSafetyStopDuration" xml:space="preserve">
-        <value>Wie lange der Sicherheitsstopp dauert.</value>
-    </data>
-    <data name="HintSafetyStopDepth" xml:space="preserve">
-        <value>Die Tiefe des Sicherheitsstopps bei einem Tauchgang ohne Dekompressionsstopps. Standardmäßig 5 m oder 15 ft.</value>
-    </data>
-    <data name="HintSafetyStopAtLastStop" xml:space="preserve">
-        <value>Ein: Der Sicherheitsstopp eines Tauchgangs ohne Dekompressionsstopps liegt am letzten Stopp. Aus: in der darunter angegebenen Tiefe.</value>
     </data>
 </root>
