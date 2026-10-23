@@ -47,12 +47,10 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
     private const int ShallowStopDepthMeter = 3;
     private const int SixMeterStopDepthMeter = 6;
     private const double LastBandBoundaryMeter = 6.0;
-    private const double SafetyStopDepthMeter = 6.0;
     private const double DepthToleranceMeter = 1e-9;
     private const double GasFractionTolerance = 1e-9;
     private const double PureOxygenFraction = 0.999;
     private const double MaximumStopMinutes = 1440.0;
-    private static readonly TimeSpan SafetyStopDuration = TimeSpan.FromMinutes(3);
     private readonly SegmentBuffer _finalAscent = [];
     private readonly double _gradientFactorHigh;
 
@@ -591,7 +589,7 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
             SwitchGasIfRicher(state, stopMeter, cylinders, settings, output);
 
             var nextStopMeter = NextStopBelow(stopMeter, lastStopMeter);
-            var safetyHold = settings.SafetyStop && nextStopMeter <= DepthToleranceMeter ? SafetyStopDuration : TimeSpan.Zero;
+            var safetyHold = settings.SafetyStop && nextStopMeter <= DepthToleranceMeter ? settings.SafetyStopDuration : TimeSpan.Zero;
             HoldUntilClear(state, stopMeter, nextStopMeter,
                 GradientFactorAt(nextStopMeter, anchorMeter), cylinders, settings, output, safetyHold);
             stopMeter = nextStopMeter;
@@ -606,10 +604,13 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
         double averageDepthMeter,
         SegmentBuffer? output)
     {
-        if (settings.SafetyStop && state.CurrentDepthMeter > SafetyStopDepthMeter)
+        var safetyStopMeter = settings.SafetyStopAtLastStop
+            ? (settings.LastStopAtSixMeters ? SixMeterStopDepthMeter : ShallowStopDepthMeter)
+            : settings.SafetyStopDepthMeter;
+        if (settings.SafetyStop && state.CurrentDepthMeter > safetyStopMeter)
         {
-            AscendTo(state, SafetyStopDepthMeter, averageDepthMeter, settings, output);
-            var safetyStop = new DiveSegment(Depth.FromMeter(SafetyStopDepthMeter), SafetyStopDuration,
+            AscendTo(state, safetyStopMeter, averageDepthMeter, settings, output);
+            var safetyStop = new DiveSegment(Depth.FromMeter(safetyStopMeter), settings.SafetyStopDuration,
                 state.CurrentGas, SegmentKind.SafetyStop, state.CurrentLoop);
             ApplySegment(state, safetyStop);
             output?.Add(safetyStop);

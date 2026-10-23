@@ -28,7 +28,10 @@ internal static class TestFactory
         TimeSpan? stopTimeIncrement = null,
         TimeSpan? minimumGasSwitchDuration = null,
         TimeSpan? oxygenBreakInterval = null,
-        TimeSpan? oxygenBreakDuration = null) =>
+        TimeSpan? oxygenBreakDuration = null,
+        double safetyStopDurationMinutes = 3,
+        double safetyStopDepthMeter = 5,
+        bool safetyStopAtLastStop = false) =>
         new(
             Pressure.FromBar(1),
             salinity,
@@ -57,7 +60,10 @@ internal static class TestFactory
             lastStopAtSixMeters,
             switchAtRequiredStop,
             oxygenBreaks,
-            false);
+            false,
+            safetyStopDurationMinutes,
+            safetyStopDepthMeter,
+            safetyStopAtLastStop);
 
     public static Cylinder CreateCylinder(GasMixture? gas = null) =>
         new(gas ?? GasMixture.Air, Volume.FromLiter(12), Pressure.FromBar(200), CylinderPurpose.BottomGas);
