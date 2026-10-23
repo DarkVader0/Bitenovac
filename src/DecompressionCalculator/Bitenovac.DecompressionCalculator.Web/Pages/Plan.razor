@@ -1,7 +1,10 @@
+@using Microsoft.JSInterop
 @page "/plan/{Id:guid}"
+@implements IDisposable
 @inject PlanStore Store
 @inject NavigationManager Navigation
 @inject CalculatorReturn Returning
+@inject IJSRuntime Js
 
 <PageTitle>@(_plan?.Name ?? "Bitenovac")</PageTitle>
 
@@ -29,11 +32,11 @@
     <button type="button" class="icon-button gas-tools-button" title="@WebText.GasTools" aria-label="@WebText.GasTools" @onclick="OpenCalculator">
         <Icon Name="IconName.Calculator"/>
     </button>
-    <button type="button" class="icon-button" title="@WebText.Share" aria-label="@WebText.Share" @onclick="() => _shareOpen = true">
+    <button type="button" class="icon-button" title="@WebText.Share" aria-label="@WebText.Share" @onclick="() => OpenOverlayAsync(() => _shareOpen = true)">
         <Icon Name="IconName.Share"/>
     </button>
     <button type="button" class="icon-button settings-button" title="@WebText.Settings" aria-label="@WebText.Settings" aria-expanded="@_settingsOpen"
-            @onclick="() => _settingsOpen = true">
+            @onclick="() => OpenOverlayAsync(() => _settingsOpen = true)">
         <Icon Name="IconName.Settings"/>
         @if (SettingsHaveIssues)
         {
@@ -63,7 +66,7 @@
                     <li>@IssueText.Describe(issue)</li>
                 }
             </ul>
-            <button type="button" class="secondary" @onclick="OpenPlanSettings">@WebText.OpenSettings</button>
+            <button type="button" class="secondary" @onclick="OpenPlanSettingsAsync">@WebText.OpenSettings</button>
         </div>
     </section>
 }
@@ -110,19 +113,19 @@ else
 
 @if (_shareOpen)
 {
-    <ShareSheet Plan="_plan" Dive="_selected" OnClose="() => _shareOpen = false"/>
+    <ShareSheet Plan="_plan" Dive="_selected" OnClose="CloseOverlaysAsync"/>
 }
 
 @if (_settingsOpen)
 {
-    <div class="drawer-backdrop settings-backdrop" @onclick="() => _settingsOpen = false"></div>
+    <div class="drawer-backdrop settings-backdrop" @onclick="CloseOverlaysAsync"></div>
 }
 
 <aside class="drawer settings-panel @(_settingsOpen ? "open" : null)" role="@(_settingsOpen ? "dialog" : "complementary")"
-       aria-modal="@(_settingsOpen ? "true" : null)" aria-label="@WebText.Settings" @onkeydown="CloseOnEscape">
+       aria-modal="@(_settingsOpen ? "true" : null)" aria-label="@WebText.Settings" @onkeydown="CloseOnEscapeAsync">
     <div class="drawer-header">
         <h2>@WebText.Settings</h2>
-        <button type="button" class="settings-done" @onclick="() => _settingsOpen = false">@WebText.Done</button>
+        <button type="button" class="settings-done" @onclick="CloseOverlaysAsync">@WebText.Done</button>
     </div>
 
     <nav class="dive-tabs settings-tabs" aria-label="@WebText.Settings">
@@ -186,6 +189,7 @@ else
     private bool _settingsOpen;
     private bool _appSettings;
     private bool _shareOpen;
+    private bool _overlayEntry;
     private bool _missing;
     private Guid _loadedId;
     private int _selected;
@@ -201,6 +205,8 @@ else
     private IReadOnlySet<int> DivesWithIssues => _issues.IndexesWithIssues(nameof(DivePlanDocument.Dives));
 
     private bool SettingsHaveIssues => _view?.PlanIssues.Count > 0;
+
+    protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -264,19 +270,60 @@ else
         Navigation.NavigateTo($"calculator?plan={_plan.Id:D}&dive={dive}");
     }
 
-    private void OpenPlanSettings()
+    private Task OpenPlanSettingsAsync()
     {
         _appSettings = false;
-        _settingsOpen = true;
+        return OpenOverlayAsync(() => _settingsOpen = true);
     }
 
-    private void CloseOnEscape(KeyboardEventArgs args)
+    private Task CloseOnEscapeAsync(KeyboardEventArgs args) => args.Key == "Escape" ? CloseOverlaysAsync() : Task.CompletedTask;
+
+    /// <remarks>
+    /// An overlay gets its own history entry, so the phone's Back closes it instead of leaving the plan.
+    /// </remarks>
+    private async Task OpenOverlayAsync(Action open)
     {
-        if (args.Key == "Escape")
+        open();
+        if (_overlayEntry)
         {
-            _settingsOpen = false;
+            return;
         }
+
+        _overlayEntry = true;
+        await Js.InvokeVoidAsync("history.pushState", null, "", Navigation.Uri);
     }
+
+    /// <remarks>
+    /// Closing removes the entry that opened the overlay. The flag is cleared first, so the Back that follows is not
+    /// taken for the phone's Back.
+    /// </remarks>
+    private async Task CloseOverlaysAsync()
+    {
+        _settingsOpen = false;
+        _shareOpen = false;
+        if (!_overlayEntry)
+        {
+            return;
+        }
+
+        _overlayEntry = false;
+        await Js.InvokeVoidAsync("history.back");
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        if (!_overlayEntry)
+        {
+            return;
+        }
+
+        _overlayEntry = false;
+        _settingsOpen = false;
+        _shareOpen = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
 
     private async Task ChangeAsync(DivePlanDocument plan)
     {
