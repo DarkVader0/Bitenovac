@@ -47,6 +47,19 @@ public sealed class PlanValidatorTests
         Assert.Empty(issues);
     }
 
+    [Fact]
+    public void Validate_ShouldFindNoIssues_WhenTheSafetyStopIsAtTheLastStopWithoutADepth()
+    {
+        // Arrange
+        var plan = WithSettings(s => s with { SafetyStop = true, SafetyStopAtLastStop = true, SafetyStopDepth = 0 });
+
+        // Act
+        var issues = PlanValidator.Validate(plan);
+
+        // Assert
+        Assert.Empty(issues);
+    }
+
     public static TheoryData<DivePlanDocument, string> InvalidPlans()
     {
         var plan = TestFactory.Plan();
@@ -114,7 +127,9 @@ public sealed class PlanValidatorTests
             { WithCylinders(closed, diluent), "Dives[0].Cylinders" },
             { WithCylinders(semiClosed, TestFactory.Cylinder(purpose: CylinderPurpose.Bailout)), "Dives[0].Cylinders" },
             { TestFactory.Plan(TestFactory.Dive(cylinders: [TestFactory.Cylinder(purpose: CylinderPurpose.Diluent)])), "Dives[0].Cylinders[0].Purpose" },
-            { WithCylinders(closed, diluent, oxygen, TestFactory.Cylinder(oxygenPercent: 32, purpose: CylinderPurpose.Oxygen)), "Dives[0].Cylinders[2].Purpose" }
+            { WithCylinders(closed, diluent, oxygen, TestFactory.Cylinder(oxygenPercent: 32, purpose: CylinderPurpose.Oxygen)), "Dives[0].Cylinders[2].Purpose" },
+            { WithSettings(s => s with { SafetyStop = true, SafetyStopDurationMinutes = 0 }), "Settings.SafetyStopDurationMinutes" },
+            { WithSettings(s => s with { SafetyStop = true, SafetyStopDepth = 0 }), "Settings.SafetyStopDepth" }
         };
     }
 

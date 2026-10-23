@@ -44,7 +44,7 @@ public enum GasQuantity
 /// <param name="GasSwitchMinutes">The least time a gas switch takes, in minutes.</param>
 /// <param name="OxygenBreakIntervalMinutes">How long oxygen is breathed before a break, in minutes.</param>
 /// <param name="OxygenBreakDurationMinutes">How long each oxygen break lasts, in minutes.</param>
-/// <param name="SafetyStop">Whether a three-minute safety stop is added: at 6 m on a dive without decompression stops, or at the end of the last decompression stop.</param>
+/// <param name="SafetyStop">Whether a safety stop is added: on a dive without decompression stops, at the depth below or at the last stop; on a dive with them, at the end of the last decompression stop.</param>
 /// <param name="LastStopAtSixMeters">Whether the last stop is at six meters (20 feet) instead of three (10 feet).</param>
 /// <param name="SwitchAtRequiredStop">Whether gas switches wait for a required stop instead of happening at a gas's maximum operating depth.</param>
 /// <param name="OxygenBreaks">Whether oxygen breaks are planned during long oxygen stops.</param>
@@ -54,6 +54,9 @@ public enum GasQuantity
 /// <param name="GasQuantity">How the gas a dive uses is shown in results, the dive sheet and the summary.</param>
 /// <param name="MergeAscentsIntoStops">Whether an ascent that ends at a stop is shown in the same row as that stop. Visual only.</param>
 /// <param name="MergeDescentsIntoStops">Whether a descent that ends at a stop is shown in the same row as that stop. Visual only.</param>
+/// <param name="SafetyStopDurationMinutes">How long the safety stop lasts, in minutes.</param>
+/// <param name="SafetyStopDepth">The depth of the safety stop on a dive without decompression stops, in meters or feet, unless it is at the last stop.</param>
+/// <param name="SafetyStopAtLastStop">Whether the safety stop of a dive without decompression stops is at the last stop rather than at its own depth.</param>
 /// <param name="OxygenNarcotic">
 /// Whether oxygen counts as narcotic wherever an equivalent narcotic depth is given; on by default, the cautious choice.
 /// </param>
@@ -89,7 +92,10 @@ public sealed record PlannerSettings(
     double GasDensityLimit = GasMath.DefaultDensityLimit,
     GasQuantity GasQuantity = GasQuantity.Pressure,
     bool MergeAscentsIntoStops = false,
-    bool MergeDescentsIntoStops = false)
+    bool MergeDescentsIntoStops = false,
+    double SafetyStopDurationMinutes = 3,
+    double SafetyStopDepth = 5,
+    bool SafetyStopAtLastStop = false)
 {
     /// <summary>
     /// Returns the default settings for a unit system.
@@ -107,7 +113,8 @@ public sealed record PlannerSettings(
             AscentRateShallow = 3,
             BottomSac = 0.65,
             DecoSac = 0.5,
-            ContingencyExtraDepth = 10
+            ContingencyExtraDepth = 10,
+            SafetyStopDepth = 15
         },
         _ => Metric
     };

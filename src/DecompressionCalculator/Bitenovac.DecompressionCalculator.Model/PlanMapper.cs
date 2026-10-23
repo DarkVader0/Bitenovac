@@ -37,7 +37,10 @@ internal static class PlanMapper
         settings.LastStopAtSixMeters,
         settings.SwitchAtRequiredStop,
         settings.OxygenBreaks,
-        oxygenIsNarcotic: false);
+        oxygenIsNarcotic: false,
+        safetyStopDurationMinutes: settings.SafetyStopDurationMinutes,
+        safetyStopDepthMeter: UnitConversion.ToDepth(settings.SafetyStopDepth, units).InMeter,
+        safetyStopAtLastStop: settings.SafetyStopAtLastStop);
 
     public static Cylinder ToCylinder(CylinderInput cylinder, UnitSystem units) => new(
         GasMixture.FromPercent(cylinder.OxygenPercent, cylinder.HeliumPercent),
