@@ -150,10 +150,6 @@ button:disabled {
 
 /* ------------------------------------------------------------------- validation -- */
 
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid var(--success);
-}
-
 .invalid {
     outline: 1px solid var(--danger);
 }
@@ -1617,16 +1613,6 @@ tr.gas-warning td:first-child {
     position: absolute;
     right: 0.75rem;
     top: 0.5rem;
-}
-
-.blazor-error-boundary {
-    background: var(--danger);
-    padding: 1rem;
-    color: var(--on-brand);
-}
-
-.blazor-error-boundary::after {
-    content: "An error has occurred.";
 }
 
 /* Covers the app as it starts, and fades away once the dive on it is whole. */
