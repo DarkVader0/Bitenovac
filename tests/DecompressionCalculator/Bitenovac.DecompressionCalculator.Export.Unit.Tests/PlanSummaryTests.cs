@@ -122,7 +122,7 @@ public sealed class PlanSummaryTests
         var text = PlanSummary.Text(plan, TestFactory.Now);
 
         // Assert
-        Assert.Contains($"{Environment.NewLine}No decompression stops · safety stop 6 m 3 min{Environment.NewLine}", text,
+        Assert.Contains($"{Environment.NewLine}No decompression stops · safety stop 5 m 3 min{Environment.NewLine}", text,
             StringComparison.Ordinal);
     }
 

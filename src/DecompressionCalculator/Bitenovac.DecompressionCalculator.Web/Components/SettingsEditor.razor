@@ -99,6 +99,20 @@
                          ValueChanged="value => ChangeAsync(Value with { StopTimeIncrementMinutes = value })"/>
             <CheckField Label="@WebText.SafetyStop" Value="Value.SafetyStop" Hint="@WebText.HintSafetyStop"
                         ValueChanged="value => ChangeAsync(Value with { SafetyStop = value })"/>
+            @if (Value.SafetyStop)
+            {
+                <NumberField Label="@WebText.SafetyStopDuration" Unit="min" Value="Value.SafetyStopDurationMinutes"
+                             Issue="@Issues[nameof(PlannerSettings.SafetyStopDurationMinutes)]" Hint="@WebText.HintSafetyStopDuration"
+                             ValueChanged="value => ChangeAsync(Value with { SafetyStopDurationMinutes = value })"/>
+                <CheckField Label="@WebText.SafetyStopAtLastStop" Value="Value.SafetyStopAtLastStop" Hint="@WebText.HintSafetyStopAtLastStop"
+                            ValueChanged="value => ChangeAsync(Value with { SafetyStopAtLastStop = value })"/>
+                @if (!Value.SafetyStopAtLastStop)
+                {
+                    <NumberField Label="@WebText.SafetyStopDepth" Unit="@Labels.Depth" Value="Value.SafetyStopDepth"
+                                 Issue="@Issues[nameof(PlannerSettings.SafetyStopDepth)]" Hint="@WebText.HintSafetyStopDepth"
+                                 ValueChanged="value => ChangeAsync(Value with { SafetyStopDepth = value })"/>
+                }
+            }
             <CheckField Label="@Localized.Format(WebText.LastStopAt, LastStopDepth)" Value="Value.LastStopAtSixMeters" Hint="@WebText.HintLastStopAt"
                         ValueChanged="value => ChangeAsync(Value with { LastStopAtSixMeters = value })"/>
             <CheckField Label="@WebText.SwitchAtRequiredStop" Value="Value.SwitchAtRequiredStop" Hint="@WebText.HintSwitchAtRequiredStop"

@@ -32,7 +32,8 @@ public sealed class PlannerSettingsTests
             AscentRateShallow = 3,
             BottomSac = 0.65,
             DecoSac = 0.5,
-            ContingencyExtraDepth = 10
+            ContingencyExtraDepth = 10,
+            SafetyStopDepth = 15
         };
 
         // Act
