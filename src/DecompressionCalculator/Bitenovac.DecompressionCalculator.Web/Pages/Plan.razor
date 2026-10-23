@@ -5,6 +5,8 @@
 @inject NavigationManager Navigation
 @inject CalculatorReturn Returning
 @inject IJSRuntime Js
+@inject ShareService Share
+@inject PreferencesStore Preferences
 
 <PageTitle>@(_plan?.Name ?? "Bitenovac")</PageTitle>
 
@@ -31,6 +33,9 @@
            @onchange="args => ChangeAsync(_plan with { Name = args.Value as string ?? string.Empty })"/>
     <button type="button" class="icon-button gas-tools-button" title="@WebText.GasTools" aria-label="@WebText.GasTools" @onclick="OpenCalculator">
         <Icon Name="IconName.Calculator"/>
+    </button>
+    <button type="button" class="icon-button" title="@WebText.Print" aria-label="@WebText.Print" @onclick="PrintAsync">
+        <Icon Name="IconName.Print"/>
     </button>
     <button type="button" class="icon-button" title="@WebText.Share" aria-label="@WebText.Share" @onclick="() => OpenOverlayAsync(() => _shareOpen = true)">
         <Icon Name="IconName.Share"/>
@@ -268,6 +273,12 @@ else
         Navigation.NavigateTo($"plan/{_plan!.Id:D}?dive={dive}", replace: true);
         Returning.FromPlan = true;
         Navigation.NavigateTo($"calculator?plan={_plan.Id:D}&dive={dive}");
+    }
+
+    private async Task PrintAsync()
+    {
+        var blocks = (await Preferences.GetAsync()).VisibleBlocks();
+        await Share.PrintPdfAsync(DiveSheet.Create(_plan!, _selected, DateTime.UtcNow, AppVersion.Current, blocks));
     }
 
     private Task OpenPlanSettingsAsync()
