@@ -1,6 +1,10 @@
 <label class="field field-check">
     <input type="checkbox" checked="@Value" @onchange="OnChangeAsync"/>
     <span class="field-label">@Label</span>
+    @if (Hint is not null)
+    {
+        <span class="field-hint">@Hint</span>
+    }
 </label>
 
 @code {
@@ -12,6 +16,9 @@
 
     [Parameter]
     public EventCallback<bool> ValueChanged { get; set; }
+
+    [Parameter]
+    public string? Hint { get; set; }
 
     private Task OnChangeAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value is true);
 }

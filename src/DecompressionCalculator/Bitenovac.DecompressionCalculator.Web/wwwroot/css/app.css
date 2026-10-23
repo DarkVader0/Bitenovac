@@ -213,6 +213,11 @@ button.secondary:hover {
     font-size: 0.875rem;
 }
 
+.field-hint {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+}
+
 /* A dropdown takes its column's width, so a long option is cut short instead of pushing past the column. */
 .field select {
     width: 100%;

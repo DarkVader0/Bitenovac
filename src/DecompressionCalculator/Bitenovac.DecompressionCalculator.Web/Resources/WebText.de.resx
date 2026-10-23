@@ -126,9 +126,6 @@
     <data name="Water" xml:space="preserve">
         <value>Wasser</value>
     </data>
-    <data name="GasSwitchDepth" xml:space="preserve">
-        <value>Gaswechseltiefe</value>
-    </data>
     <data name="DescentAndAscent" xml:space="preserve">
         <value>Abstieg und Aufstieg</value>
     </data>
@@ -701,5 +698,98 @@
     </data>
     <data name="WorkingPressureLabel" xml:space="preserve">
         <value>{0} Betriebsdruck in {1}</value>
+    </data>
+    <data name="DepthModel" xml:space="preserve">
+        <value>Tiefenmodell</value>
+    </data>
+    <data name="HintAltitude" xml:space="preserve">
+        <value>Höhe des Tauchplatzes über dem Meeresspiegel. Dünnere Luft in der Höhe verändert die Tiefen und die Gaswerte.</value>
+    </data>
+    <data name="HintWater" xml:space="preserve">
+        <value>Süß- oder Salzwasser. Salzwasser ist dichter, daher steigt der Druck mit der Tiefe schneller.</value>
+    </data>
+    <data name="HintDepthModel" xml:space="preserve">
+        <value>Realistisch berechnet die maximale Tiefe eines Gases aus Wasser und Höhe. Vereinfacht rechnet 10 m pro bar über dem Oberflächendruck.</value>
+    </data>
+    <data name="HintDescentRate" xml:space="preserve">
+        <value>Wie schnell Sie absteigen.</value>
+    </data>
+    <data name="HintAscentRateDeep" xml:space="preserve">
+        <value>Wie schnell Sie aus einer Tiefe unter 75 % der maximalen Tiefe aufsteigen.</value>
+    </data>
+    <data name="HintAscentRateMiddle" xml:space="preserve">
+        <value>Wie schnell Sie zwischen 75 % und 50 % der maximalen Tiefe aufsteigen.</value>
+    </data>
+    <data name="HintAscentRateToStops" xml:space="preserve">
+        <value>Wie schnell Sie von 50 % der maximalen Tiefe bis zum ersten Stopp aufsteigen.</value>
+    </data>
+    <data name="HintAscentRateShallow" xml:space="preserve">
+        <value>Wie schnell Sie über die letzten sechs Meter bis zur Oberfläche aufsteigen.</value>
+    </data>
+    <data name="HintBottomSac" xml:space="preserve">
+        <value>Luftverbrauch pro Minute am Grund, an der Oberfläche gemessen.</value>
+    </data>
+    <data name="HintDecoSac" xml:space="preserve">
+        <value>Luftverbrauch pro Minute während der Dekompression, an der Oberfläche gemessen.</value>
+    </data>
+    <data name="HintBottomPo2" xml:space="preserve">
+        <value>Der höchste Sauerstoffpartialdruck, den ein Grundgas erreichen darf.</value>
+    </data>
+    <data name="HintDecoPo2" xml:space="preserve">
+        <value>Der höchste Sauerstoffpartialdruck, den ein Dekompressionsgas erreichen darf.</value>
+    </data>
+    <data name="HintGasSwitchTime" xml:space="preserve">
+        <value>Die mindestens benötigte Zeit für einen Gaswechsel.</value>
+    </data>
+    <data name="HintOxygenNarcotic" xml:space="preserve">
+        <value>Sauerstoff zählt überall dort als narkotisch, wo eine äquivalente Narkosetiefe angegeben wird. Standardmäßig ein, die vorsichtige Wahl.</value>
+    </data>
+    <data name="HintDensityWarningAbove" xml:space="preserve">
+        <value>Ein dichteres Gas wird gemeldet. Oberhalb dieser Dichte steigt die Atemarbeit stark an.</value>
+    </data>
+    <data name="HintGasShownAs" xml:space="preserve">
+        <value>Druck: das Gas, das jede Flasche abgibt, in bar oder psi. Volumen: das Gas an der Oberfläche, in Litern oder Kubikfuß.</value>
+    </data>
+    <data name="HintBottomOxygenConsumption" xml:space="preserve">
+        <value>Sauerstoff, der am Grund pro Minute verbraucht wird, bei einem Kreislauftauchgerät.</value>
+    </data>
+    <data name="HintDecoOxygenConsumption" xml:space="preserve">
+        <value>Sauerstoff, der während der Dekompression pro Minute verbraucht wird, bei einem Kreislauftauchgerät.</value>
+    </data>
+    <data name="HintLoopVolume" xml:space="preserve">
+        <value>Volumen des Atemkreislaufs bei einem Kreislauftauchgerät.</value>
+    </data>
+    <data name="HintStressFactor" xml:space="preserve">
+        <value>Wie stark die Atmung bei einem Notaufstieg ansteigt. Das Reservegas wird mit diesem Faktor berechnet.</value>
+    </data>
+    <data name="HintDiversSharingGas" xml:space="preserve">
+        <value>Wie viele Taucher das Reservegas bei einem Notaufstieg teilen müssen.</value>
+    </data>
+    <data name="HintStopTimeStep" xml:space="preserve">
+        <value>Stoppzeiten werden auf ein Vielfaches dieses Werts aufgerundet.</value>
+    </data>
+    <data name="HintSafetyStop" xml:space="preserve">
+        <value>Fügt einen Dreiminutenstopp hinzu: bei 6 m bei einem Tauchgang ohne Dekompressionsstopps, sonst nach dem letzten Dekompressionsstopp.</value>
+    </data>
+    <data name="HintLastStopAt" xml:space="preserve">
+        <value>Ob der letzte Stopp bei 6 m statt bei 3 m liegt (20 ft statt 10 ft).</value>
+    </data>
+    <data name="HintSwitchAtRequiredStop" xml:space="preserve">
+        <value>Gaswechsel finden an einem Pflichtstopp statt, nicht an der maximalen Einsatztiefe des Gases.</value>
+    </data>
+    <data name="HintOxygenBreaks" xml:space="preserve">
+        <value>Plant Pausen vom Sauerstoff bei langen Sauerstoffstopps.</value>
+    </data>
+    <data name="HintBreakEvery" xml:space="preserve">
+        <value>Wie lange Sauerstoff geatmet wird, bevor eine Pause kommt.</value>
+    </data>
+    <data name="HintBreakLength" xml:space="preserve">
+        <value>Wie lange jede Pause dauert.</value>
+    </data>
+    <data name="HintExtraTime" xml:space="preserve">
+        <value>Minuten, die in jedem Notfallplan zur tiefsten Stufe hinzugefügt werden.</value>
+    </data>
+    <data name="HintExtraDepth" xml:space="preserve">
+        <value>Tiefe, die in jedem Notfallplan zur tiefsten Stufe hinzugefügt wird.</value>
     </data>
 </root>

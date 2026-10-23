@@ -9,6 +9,10 @@
             <option value="@index">@Text(option)</option>
         }
     </select>
+    @if (Hint is not null)
+    {
+        <span class="field-hint">@Hint</span>
+    }
     @if (Issue is not null)
     {
         <span class="validation-message">@Issue</span>
@@ -33,6 +37,9 @@
 
     [Parameter]
     public string? Issue { get; set; }
+
+    [Parameter]
+    public string? Hint { get; set; }
 
     private int SelectedIndex
     {

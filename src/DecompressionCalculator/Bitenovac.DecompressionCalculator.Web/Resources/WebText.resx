@@ -126,9 +126,6 @@
     <data name="Water" xml:space="preserve">
         <value>Water</value>
     </data>
-    <data name="GasSwitchDepth" xml:space="preserve">
-        <value>Gas switch depth</value>
-    </data>
     <data name="DescentAndAscent" xml:space="preserve">
         <value>Descent and ascent</value>
     </data>
@@ -701,5 +698,98 @@
     </data>
     <data name="WorkingPressureLabel" xml:space="preserve">
         <value>{0} working pressure in {1}</value>
+    </data>
+    <data name="DepthModel" xml:space="preserve">
+        <value>Depth model</value>
+    </data>
+    <data name="HintAltitude" xml:space="preserve">
+        <value>Height of the dive site above sea level. Thinner air at altitude changes the depths and the gas figures.</value>
+    </data>
+    <data name="HintWater" xml:space="preserve">
+        <value>Fresh or salt water. Salt water is denser, so pressure rises faster with depth.</value>
+    </data>
+    <data name="HintDepthModel" xml:space="preserve">
+        <value>Realistic works out a gas's maximum depth from the water and altitude. Simplified allows 10 m per bar above surface pressure.</value>
+    </data>
+    <data name="HintDescentRate" xml:space="preserve">
+        <value>How fast you descend.</value>
+    </data>
+    <data name="HintAscentRateDeep" xml:space="preserve">
+        <value>How fast you ascend from below 75 % of the maximum depth.</value>
+    </data>
+    <data name="HintAscentRateMiddle" xml:space="preserve">
+        <value>How fast you ascend between 75 % and 50 % of the maximum depth.</value>
+    </data>
+    <data name="HintAscentRateToStops" xml:space="preserve">
+        <value>How fast you ascend from 50 % of the maximum depth to the first stop.</value>
+    </data>
+    <data name="HintAscentRateShallow" xml:space="preserve">
+        <value>How fast you ascend over the last six meters before the surface.</value>
+    </data>
+    <data name="HintBottomSac" xml:space="preserve">
+        <value>Air use per minute on the bottom, measured at the surface.</value>
+    </data>
+    <data name="HintDecoSac" xml:space="preserve">
+        <value>Air use per minute during decompression, measured at the surface.</value>
+    </data>
+    <data name="HintBottomPo2" xml:space="preserve">
+        <value>The highest oxygen partial pressure a bottom gas may reach.</value>
+    </data>
+    <data name="HintDecoPo2" xml:space="preserve">
+        <value>The highest oxygen partial pressure a decompression gas may reach.</value>
+    </data>
+    <data name="HintGasSwitchTime" xml:space="preserve">
+        <value>The least time a gas switch takes.</value>
+    </data>
+    <data name="HintOxygenNarcotic" xml:space="preserve">
+        <value>Oxygen counts as narcotic wherever an equivalent narcotic depth is shown. On by default, the cautious choice.</value>
+    </data>
+    <data name="HintDensityWarningAbove" xml:space="preserve">
+        <value>A denser gas is warned about. Breathing work rises steeply above this density.</value>
+    </data>
+    <data name="HintGasShownAs" xml:space="preserve">
+        <value>Pressure: the gas each cylinder gives, in bar or psi. Volume: the gas at the surface, in liters or cubic feet.</value>
+    </data>
+    <data name="HintBottomOxygenConsumption" xml:space="preserve">
+        <value>Oxygen used per minute on the bottom, on a rebreather.</value>
+    </data>
+    <data name="HintDecoOxygenConsumption" xml:space="preserve">
+        <value>Oxygen used per minute during decompression, on a rebreather.</value>
+    </data>
+    <data name="HintLoopVolume" xml:space="preserve">
+        <value>Volume of the breathing loop, on a rebreather.</value>
+    </data>
+    <data name="HintStressFactor" xml:space="preserve">
+        <value>How much breathing rises in an emergency ascent. The reserve gas is sized with this factor.</value>
+    </data>
+    <data name="HintDiversSharingGas" xml:space="preserve">
+        <value>How many divers must share the reserve gas on an emergency ascent.</value>
+    </data>
+    <data name="HintStopTimeStep" xml:space="preserve">
+        <value>Stop times are rounded up to a multiple of this.</value>
+    </data>
+    <data name="HintSafetyStop" xml:space="preserve">
+        <value>Adds a three-minute stop: at 6 m on a dive without decompression stops, or after the last decompression stop.</value>
+    </data>
+    <data name="HintLastStopAt" xml:space="preserve">
+        <value>Whether the last stop is at 6 m instead of 3 m (20 ft instead of 10 ft).</value>
+    </data>
+    <data name="HintSwitchAtRequiredStop" xml:space="preserve">
+        <value>Gas switches wait for a required stop, instead of happening at the gas's maximum operating depth.</value>
+    </data>
+    <data name="HintOxygenBreaks" xml:space="preserve">
+        <value>Plans breaks from oxygen during long oxygen stops.</value>
+    </data>
+    <data name="HintBreakEvery" xml:space="preserve">
+        <value>How long oxygen is breathed before a break.</value>
+    </data>
+    <data name="HintBreakLength" xml:space="preserve">
+        <value>How long each break lasts.</value>
+    </data>
+    <data name="HintExtraTime" xml:space="preserve">
+        <value>Minutes added to the deepest level in each contingency plan.</value>
+    </data>
+    <data name="HintExtraDepth" xml:space="preserve">
+        <value>Depth added to the deepest level in each contingency plan.</value>
     </data>
 </root>
