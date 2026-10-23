@@ -792,4 +792,10 @@
     <data name="HintExtraDepth" xml:space="preserve">
         <value>Depth added to the deepest level in each contingency plan.</value>
     </data>
+    <data name="MergeStops" xml:space="preserve">
+        <value>Merge ascent and descent into stops</value>
+    </data>
+    <data name="HintMergeStops" xml:space="preserve">
+        <value>Shows each ascent or descent that ends in a stop as part of that stop, in the profile table and the PDF. The planned dive does not change.</value>
+    </data>
 </root>

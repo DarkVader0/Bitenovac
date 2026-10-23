@@ -200,7 +200,7 @@ public sealed class UserPreferencesTests
         var json = UserPreferencesJson.Serialize(UserPreferences.Default with { Theme = ThemePreference.Dark });
 
         // Assert
-        Assert.StartsWith("{\"version\":2,\"theme\":\"Dark\",\"language\":null,\"blocks\":[{\"block\":\"Figures\",\"visible\":true}", json, StringComparison.Ordinal);
+        Assert.StartsWith("{\"version\":2,\"theme\":\"Dark\",\"language\":null,\"mergeStops\":false,\"blocks\":[{\"block\":\"Figures\",\"visible\":true}", json, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -276,5 +276,57 @@ public sealed class UserPreferencesTests
 
         // Assert
         Assert.Equal("de", preferences.Language);
+    }
+
+    [Fact]
+    public void Default_ShouldNotMergeStops_WhenNothingWasChosen()
+    {
+        // Arrange
+
+        // Act
+        var preferences = UserPreferences.Default;
+
+        // Assert
+        Assert.False(preferences.MergeStops);
+    }
+
+    [Fact]
+    public void Deserialize_ShouldReturnTheMergeChoice_WhenItWasStored()
+    {
+        // Arrange
+        var stored = UserPreferencesJson.Serialize(new UserPreferences(mergeStops: true));
+
+        // Act
+        var preferences = UserPreferencesJson.Deserialize(stored);
+
+        // Assert
+        Assert.True(preferences.MergeStops);
+    }
+
+    [Fact]
+    public void Deserialize_ShouldNotMergeStops_WhenTheStoredDocumentPredatesTheChoice()
+    {
+        // Arrange
+        const string json = "{\"version\":2,\"theme\":\"Light\",\"language\":\"de\"}";
+
+        // Act
+        var preferences = UserPreferencesJson.Deserialize(json);
+
+        // Assert
+        Assert.False(preferences.MergeStops);
+    }
+
+    [Fact]
+    public void Equals_ShouldDiffer_WhenOnlyTheMergeChoiceDiffers()
+    {
+        // Arrange
+        var merged = new UserPreferences(mergeStops: true);
+        var plain = new UserPreferences();
+
+        // Act
+        var equal = merged.Equals(plain);
+
+        // Assert
+        Assert.False(equal);
     }
 }

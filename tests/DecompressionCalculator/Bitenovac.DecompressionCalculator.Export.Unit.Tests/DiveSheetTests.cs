@@ -469,4 +469,43 @@ public sealed class DiveSheetTests
         Assert.Contains(TestFactory.Shown("Start (psi)"), pdf, StringComparison.Ordinal);
         Assert.Matches(Regex.Escape("(CCR @ 1.3) Tj"), pdf);
     }
+
+    [Fact]
+    public void Create_ShouldBeTheSameSheet_WhenStopsAreNotMerged()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+
+        // Act
+        var pdf = DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, OnePageBlocks, mergeStops: false);
+
+        // Assert
+        Assert.Equal(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, OnePageBlocks), pdf);
+    }
+
+    [Fact]
+    public void Create_ShouldShowADifferentSheet_WhenStopsAreMerged()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+
+        // Act
+        var merged = DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, OnePageBlocks, mergeStops: true);
+
+        // Assert
+        Assert.NotEqual(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, OnePageBlocks), merged);
+    }
+
+    [Fact]
+    public void CreateSeries_ShouldShowADifferentSheet_WhenStopsAreMerged()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+
+        // Act
+        var merged = DiveSheet.CreateSeries(plan, TestFactory.Now, AppVersion, mergeStops: true);
+
+        // Assert
+        Assert.NotEqual(DiveSheet.CreateSeries(plan, TestFactory.Now, AppVersion), merged);
+    }
 }

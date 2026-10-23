@@ -283,6 +283,19 @@ public sealed class DiveResult
     /// </summary>
     public IReadOnlyList<CounterdiffusionRow> Counterdiffusion { get; internal set; } = [];
 
+    /// <summary>
+    /// Returns the result with each ascent or descent that ends in a stop shown as part of that stop; see <see cref="ProfileMerge"/>.
+    /// </summary>
+    /// <returns>The result with the merged profile; every other figure is the same.</returns>
+    public DiveResult WithStopsMerged() =>
+        new(Index, FailureMessage, IsValid, TotalRuntime, StopTime, MaximumDepth, CnsPercent, OxygenToleranceUnits, ReserveSatisfied,
+            [.. ProfileMerge.IntoStops(Profile)], [.. Cylinders], [.. Violations], [.. Timeline])
+        {
+            Contingencies = Contingencies,
+            GasChecks = GasChecks,
+            Counterdiffusion = Counterdiffusion
+        };
+
     internal static DiveResult Failed(int index, string message) =>
         new(index, message, false, TimeSpan.Zero, TimeSpan.Zero, 0, 0, 0, false, [], [], [], []);
 

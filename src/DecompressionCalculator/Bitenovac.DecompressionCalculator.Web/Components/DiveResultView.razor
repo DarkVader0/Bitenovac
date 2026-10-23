@@ -45,7 +45,7 @@
                     break;
                 case ResultBlock.Profile:
                     <h3>@WebText.Profile</h3>
-                    <ProfileTable Result="Result" Units="Units"/>
+                    <ProfileTable Result="Result" Units="Units" MergeStops="_mergeStops"/>
                     break;
                 case ResultBlock.Gas:
                     <h3>@WebText.Gas</h3>
@@ -79,6 +79,7 @@
 
 @code {
     private IReadOnlyList<ResultBlock> _blocks = UserPreferences.Default.VisibleBlocks();
+    private bool _mergeStops;
 
     [Parameter, EditorRequired]
     public DiveResult Result { get; set; } = default!;
@@ -96,7 +97,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _blocks = (await Preferences.GetAsync()).VisibleBlocks();
+        var preferences = await Preferences.GetAsync();
+        _blocks = preferences.VisibleBlocks();
+        _mergeStops = preferences.MergeStops;
         Preferences.Changed += OnChanged;
     }
 
@@ -104,7 +107,9 @@
 
     private void OnChanged() => _ = InvokeAsync(async () =>
     {
-        _blocks = (await Preferences.GetAsync()).VisibleBlocks();
+        var preferences = await Preferences.GetAsync();
+        _blocks = preferences.VisibleBlocks();
+        _mergeStops = preferences.MergeStops;
         StateHasChanged();
     });
 }

@@ -792,4 +792,10 @@
     <data name="HintExtraDepth" xml:space="preserve">
         <value>Tiefe, die in jedem Notfallplan zur tiefsten Stufe hinzugefügt wird.</value>
     </data>
+    <data name="MergeStops" xml:space="preserve">
+        <value>Auf- und Abstieg in Stopps zusammenfassen</value>
+    </data>
+    <data name="HintMergeStops" xml:space="preserve">
+        <value>Zeigt jeden Auf- oder Abstieg, der in einem Stopp endet, als Teil dieses Stopps, in der Profiltabelle und im PDF. Der geplante Tauchgang ändert sich nicht.</value>
+    </data>
 </root>

@@ -277,8 +277,8 @@ else
 
     private async Task PrintAsync()
     {
-        var blocks = (await Preferences.GetAsync()).VisibleBlocks();
-        await Share.PrintPdfAsync(DiveSheet.Create(_plan!, _selected, DateTime.UtcNow, AppVersion.Current, blocks));
+        var preferences = await Preferences.GetAsync();
+        await Share.PrintPdfAsync(DiveSheet.Create(_plan!, _selected, DateTime.UtcNow, AppVersion.Current, preferences.VisibleBlocks(), preferences.MergeStops));
     }
 
     private Task OpenPlanSettingsAsync()
