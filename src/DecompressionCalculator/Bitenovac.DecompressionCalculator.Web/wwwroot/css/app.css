@@ -413,6 +413,14 @@ details > .field-grid {
     stroke-linejoin: round;
 }
 
+/* Add, remove and the calculator are solid shapes; outlining them makes them look hollow. */
+.icon-button > .icon-add,
+.icon-button > .icon-remove,
+.icon-button > .icon-calculator {
+    fill: currentColor;
+    stroke: none;
+}
+
 .icon-button > .icon path {
     vector-effect: non-scaling-stroke;
 }
@@ -658,6 +666,19 @@ select.cell-input {
 .plan-header .icon-button > .icon {
     width: 1.75rem;
     height: 1.75rem;
+}
+
+/* On a phone the icons are filled and fill their buttons. */
+@media (max-width: 640px) {
+    .icon-button > .icon {
+        fill: currentColor;
+        stroke: none;
+    }
+
+    .plan-header .icon-button > .icon {
+        width: 2rem;
+        height: 2rem;
+    }
 }
 
 .info-button:hover {
