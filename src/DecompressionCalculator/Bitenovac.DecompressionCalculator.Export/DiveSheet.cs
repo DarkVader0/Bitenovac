@@ -39,7 +39,6 @@ public static class DiveSheet
     /// <param name="blocks">
     /// The result blocks to show, in order; <see langword="null"/> for every block in the default order.
     /// </param>
-    /// <param name="mergeStops">Whether each ascent or descent that ends in a stop is shown as part of that stop.</param>
     /// <returns>The PDF file.</returns>
     /// <exception cref="ArgumentNullException">
     /// <paramref name="plan"/> or <paramref name="appVersion"/> is <see langword="null"/>.
@@ -56,7 +55,7 @@ public static class DiveSheet
     /// </para>
     /// </remarks>
     public static byte[] Create(
-        DivePlanDocument plan, int dive, DateTime exportedAt, string appVersion, IReadOnlyList<ResultBlock>? blocks = null, bool mergeStops = false)
+        DivePlanDocument plan, int dive, DateTime exportedAt, string appVersion, IReadOnlyList<ResultBlock>? blocks = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(appVersion);
@@ -65,7 +64,7 @@ public static class DiveSheet
 
         var calculation = PlanCalculator.Calculate(plan);
         var sheet = NewSheet();
-        WriteDiveSheet(sheet, plan, calculation, dive, exportedAt, appVersion, blocks ?? UserPreferences.Default.VisibleBlocks(), mergeStops);
+        WriteDiveSheet(sheet, plan, calculation, dive, exportedAt, appVersion, blocks ?? UserPreferences.Default.VisibleBlocks());
         return sheet.Build(Title(plan), exportedAt);
     }
 
@@ -79,7 +78,6 @@ public static class DiveSheet
     /// <param name="blocks">
     /// The result blocks to show on each dive, in order; <see langword="null"/> for every block in the default order.
     /// </param>
-    /// <param name="mergeStops">Whether each ascent or descent that ends in a stop is shown as part of that stop, on each dive.</param>
     /// <returns>The PDF file.</returns>
     /// <exception cref="ArgumentNullException">
     /// <paramref name="plan"/> or <paramref name="appVersion"/> is <see langword="null"/>.
@@ -88,7 +86,7 @@ public static class DiveSheet
     /// A plan with issues is exported as its first page alone, with the issues listed, since no dive can be shown.
     /// </remarks>
     public static byte[] CreateSeries(
-        DivePlanDocument plan, DateTime exportedAt, string appVersion, IReadOnlyList<ResultBlock>? blocks = null, bool mergeStops = false)
+        DivePlanDocument plan, DateTime exportedAt, string appVersion, IReadOnlyList<ResultBlock>? blocks = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(appVersion);
@@ -102,7 +100,7 @@ public static class DiveSheet
             for (var dive = 0; dive < plan.Dives.Count; dive++)
             {
                 sheet.NewPage();
-                WriteDiveSheet(sheet, plan, calculation, dive, exportedAt, appVersion, blocks ?? UserPreferences.Default.VisibleBlocks(), mergeStops);
+                WriteDiveSheet(sheet, plan, calculation, dive, exportedAt, appVersion, blocks ?? UserPreferences.Default.VisibleBlocks());
             }
         }
 
@@ -125,8 +123,7 @@ public static class DiveSheet
         int dive,
         DateTime exportedAt,
         string appVersion,
-        IReadOnlyList<ResultBlock> blocks,
-        bool mergeStops)
+        IReadOnlyList<ResultBlock> blocks)
     {
         WriteTitle(sheet, Title(plan), Localized.Format(ExportText.SheetMeta, Which(plan, dive), Summary.Date(exportedAt), appVersion));
         sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan, plan.SettingsFor(dive))}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
@@ -142,7 +139,7 @@ public static class DiveSheet
         else
         {
             var labels = UnitLabels.For(plan.Units);
-            var result = Shown(calculation.Dives[dive], mergeStops);
+            var result = Shown(calculation.Dives[dive], plan.SettingsFor(dive));
             List<ResultBlock> shown = [.. blocks.Where(static block => block != ResultBlock.Contingencies)];
             WriteDive(sheet, plan, result, labels, shown, plan.SettingsFor(dive).GasQuantity);
 
@@ -156,14 +153,15 @@ public static class DiveSheet
                     sheet.Paragraph(ContingencyMeaning(contingency, labels), PdfFont.Helvetica, 8.5, SheetWriter.Muted);
                     sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan, plan.SettingsFor(dive))}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
                     sheet.Paragraph(interval + Summary.Inputs(input, plan.Units), PdfFont.Helvetica, 8.5, SheetWriter.Text);
-                    WriteDive(sheet, plan, Shown(contingency.Result, mergeStops), labels, shown, plan.SettingsFor(dive).GasQuantity);
+                    WriteDive(sheet, plan, Shown(contingency.Result, plan.SettingsFor(dive)), labels, shown, plan.SettingsFor(dive).GasQuantity);
                 }
             }
         }
     }
 
     /// <remarks>Merging only changes the profile's rows; the figures are the same.</remarks>
-    private static DiveResult Shown(DiveResult result, bool mergeStops) => mergeStops ? result.WithStopsMerged() : result;
+    private static DiveResult Shown(DiveResult result, PlannerSettings settings) =>
+        result.WithStopsMerged(settings.MergeAscentsIntoStops, settings.MergeDescentsIntoStops);
 
     private static void WriteIssues(SheetWriter sheet, PlanCalculation calculation)
     {

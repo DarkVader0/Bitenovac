@@ -202,7 +202,7 @@ public sealed class DiveResultTests
         var result = DiveResult.From(0, CreatePlan(), [], UnitSystem.Metric);
 
         // Act
-        var merged = result.WithStopsMerged();
+        var merged = result.WithStopsMerged(true, true);
 
         // Assert
         Assert.True(merged.Profile.Count < result.Profile.Count);

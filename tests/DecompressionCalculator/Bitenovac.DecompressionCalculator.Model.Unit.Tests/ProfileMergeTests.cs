@@ -18,7 +18,7 @@ public sealed class ProfileMergeTests
         // Arrange
 
         // Act
-        Action act = () => ProfileMerge.IntoStops(null!);
+        Action act = () => ProfileMerge.IntoStops(null!, true, true);
 
         // Assert
         Assert.Throws<ArgumentNullException>(act);
@@ -30,7 +30,7 @@ public sealed class ProfileMergeTests
         // Arrange
 
         // Act
-        var merged = ProfileMerge.IntoStops([]);
+        var merged = ProfileMerge.IntoStops([], true, true);
 
         // Assert
         Assert.Empty(merged);
@@ -48,7 +48,7 @@ public sealed class ProfileMergeTests
         };
 
         // Act
-        var merged = ProfileMerge.IntoStops(profile);
+        var merged = ProfileMerge.IntoStops(profile, true, true);
 
         // Assert
         Assert.Equal(2, merged.Count);
@@ -70,7 +70,7 @@ public sealed class ProfileMergeTests
         };
 
         // Act
-        var merged = ProfileMerge.IntoStops(profile);
+        var merged = ProfileMerge.IntoStops(profile, true, true);
 
         // Assert
         Assert.Single(merged);
@@ -89,7 +89,7 @@ public sealed class ProfileMergeTests
         };
 
         // Act
-        var merged = ProfileMerge.IntoStops(profile);
+        var merged = ProfileMerge.IntoStops(profile, true, true);
 
         // Assert
         Assert.Single(merged);
@@ -107,7 +107,7 @@ public sealed class ProfileMergeTests
         };
 
         // Act
-        var merged = ProfileMerge.IntoStops(profile);
+        var merged = ProfileMerge.IntoStops(profile, true, true);
 
         // Assert
         Assert.Equal(2, merged.Count);
@@ -124,7 +124,7 @@ public sealed class ProfileMergeTests
         };
 
         // Act
-        var merged = ProfileMerge.IntoStops(profile);
+        var merged = ProfileMerge.IntoStops(profile, true, true);
 
         // Assert
         Assert.Equal(2, merged.Count);
@@ -141,7 +141,7 @@ public sealed class ProfileMergeTests
         };
 
         // Act
-        var merged = ProfileMerge.IntoStops(profile);
+        var merged = ProfileMerge.IntoStops(profile, true, true);
 
         // Assert
         Assert.Equal(2, merged.Count);
@@ -158,7 +158,7 @@ public sealed class ProfileMergeTests
         };
 
         // Act
-        var merged = ProfileMerge.IntoStops(profile);
+        var merged = ProfileMerge.IntoStops(profile, true, true);
 
         // Assert
         Assert.Equal(2, merged.Count);
@@ -175,7 +175,7 @@ public sealed class ProfileMergeTests
         };
 
         // Act
-        var merged = ProfileMerge.IntoStops(profile);
+        var merged = ProfileMerge.IntoStops(profile, true, true);
 
         // Assert
         Assert.Equal(2, merged.Count);
@@ -192,7 +192,59 @@ public sealed class ProfileMergeTests
         };
 
         // Act
-        var merged = ProfileMerge.IntoStops(profile);
+        var merged = ProfileMerge.IntoStops(profile, true, true);
+
+        // Assert
+        Assert.Equal(2, merged.Count);
+    }
+
+    [Fact]
+    public void IntoStops_ShouldKeepTheAscent_WhenOnlyDescentsAreMerged()
+    {
+        // Arrange
+        var profile = new[]
+        {
+            Row(SegmentKind.Ascent, 30, 6, 3, 3),
+            Row(SegmentKind.Stop, 6, 6, 3, 6)
+        };
+
+        // Act
+        var merged = ProfileMerge.IntoStops(profile, false, true);
+
+        // Assert
+        Assert.Equal(2, merged.Count);
+    }
+
+    [Fact]
+    public void IntoStops_ShouldFoldOnlyTheDescent_WhenOnlyDescentsAreMerged()
+    {
+        // Arrange
+        var profile = new[]
+        {
+            Row(SegmentKind.Descent, 0, 6, 1, 1),
+            Row(SegmentKind.Stop, 6, 6, 2, 3)
+        };
+
+        // Act
+        var merged = ProfileMerge.IntoStops(profile, false, true);
+
+        // Assert
+        Assert.Single(merged);
+        Assert.Equal(0, merged[0].StartDepth, Precision);
+    }
+
+    [Fact]
+    public void IntoStops_ShouldKeepTheDescent_WhenOnlyAscentsAreMerged()
+    {
+        // Arrange
+        var profile = new[]
+        {
+            Row(SegmentKind.Descent, 0, 6, 1, 1),
+            Row(SegmentKind.Stop, 6, 6, 2, 3)
+        };
+
+        // Act
+        var merged = ProfileMerge.IntoStops(profile, true, false);
 
         // Assert
         Assert.Equal(2, merged.Count);

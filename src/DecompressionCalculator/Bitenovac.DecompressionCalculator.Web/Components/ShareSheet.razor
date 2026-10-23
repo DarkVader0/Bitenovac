@@ -44,7 +44,6 @@
     private bool _canShareFiles;
     private bool _series;
     private IReadOnlyList<ResultBlock> _blocks = UserPreferences.Default.VisibleBlocks();
-    private bool _mergeStops;
     private string? _status;
 
     [Parameter, EditorRequired]
@@ -70,14 +69,12 @@
     protected override async Task OnInitializedAsync()
     {
         _canShareFiles = await Share.CanShareFilesAsync();
-        var preferences = await Preferences.GetAsync();
-        _blocks = preferences.VisibleBlocks();
-        _mergeStops = preferences.MergeStops;
+        _blocks = (await Preferences.GetAsync()).VisibleBlocks();
     }
 
     private byte[] Sheet() => _series
-        ? DiveSheet.CreateSeries(Plan, DateTime.UtcNow, AppVersion.Current, _blocks, _mergeStops)
-        : DiveSheet.Create(Plan, Dive, DateTime.UtcNow, AppVersion.Current, _blocks, _mergeStops);
+        ? DiveSheet.CreateSeries(Plan, DateTime.UtcNow, AppVersion.Current, _blocks)
+        : DiveSheet.Create(Plan, Dive, DateTime.UtcNow, AppVersion.Current, _blocks);
 
     private async Task SharePdfAsync()
     {

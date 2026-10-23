@@ -1,5 +1,5 @@
 <label class="field">
-    <span class="field-label">@Label</span>
+    <span class="field-label-row"><span class="field-label">@Label</span><FieldInfo Text="@Hint"/></span>
     <span class="field-input">
         <input type="number" inputmode="decimal" step="@Step" value="@_text" class="@(Issue is null ? null : "invalid")"
                aria-invalid="@(Issue is null ? null : "true")" @oninput="OnInputAsync"/>
@@ -8,10 +8,6 @@
             <span class="unit">@Unit</span>
         }
     </span>
-    @if (Hint is not null)
-    {
-        <span class="field-hint">@Hint</span>
-    }
     @if (Issue is not null)
     {
         <span class="validation-message">@Issue</span>

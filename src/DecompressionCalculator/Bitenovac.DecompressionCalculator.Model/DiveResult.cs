@@ -284,12 +284,14 @@ public sealed class DiveResult
     public IReadOnlyList<CounterdiffusionRow> Counterdiffusion { get; internal set; } = [];
 
     /// <summary>
-    /// Returns the result with each ascent or descent that ends in a stop shown as part of that stop; see <see cref="ProfileMerge"/>.
+    /// Returns the result with the chosen ascents or descents that end in a stop shown as part of that stop; see <see cref="ProfileMerge"/>.
     /// </summary>
+    /// <param name="ascents">Whether an ascent that ends in a stop is folded into it.</param>
+    /// <param name="descents">Whether a descent that ends in a stop is folded into it.</param>
     /// <returns>The result with the merged profile; every other figure is the same.</returns>
-    public DiveResult WithStopsMerged() =>
+    public DiveResult WithStopsMerged(bool ascents, bool descents) =>
         new(Index, FailureMessage, IsValid, TotalRuntime, StopTime, MaximumDepth, CnsPercent, OxygenToleranceUnits, ReserveSatisfied,
-            [.. ProfileMerge.IntoStops(Profile)], [.. Cylinders], [.. Violations], [.. Timeline])
+            [.. ProfileMerge.IntoStops(Profile, ascents, descents)], [.. Cylinders], [.. Violations], [.. Timeline])
         {
             Contingencies = Contingencies,
             GasChecks = GasChecks,

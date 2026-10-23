@@ -1,10 +1,6 @@
 <label class="field field-check">
     <input type="checkbox" checked="@Value" @onchange="OnChangeAsync"/>
-    <span class="field-label">@Label</span>
-    @if (Hint is not null)
-    {
-        <span class="field-hint">@Hint</span>
-    }
+    <span class="field-label-row"><span class="field-label">@Label</span><FieldInfo Text="@Hint"/></span>
 </label>
 
 @code {

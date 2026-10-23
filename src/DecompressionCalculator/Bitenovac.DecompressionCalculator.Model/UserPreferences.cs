@@ -98,20 +98,17 @@ public sealed record UserPreferences
     /// <param name="theme">How the app is coloured.</param>
     /// <param name="language">The language tag of the app, or <see langword="null"/> and empty to match the device.</param>
     /// <param name="blocks">The result blocks as stored, in order; see <see cref="Blocks"/>.</param>
-    /// <param name="mergeStops">Whether ascents and descents that end in a stop are shown as part of that stop.</param>
     [JsonConstructor]
     public UserPreferences(
         int version = CurrentVersion,
         ThemePreference theme = ThemePreference.Light,
         string? language = null,
-        IReadOnlyList<ResultBlockSetting>? blocks = null,
-        bool mergeStops = false)
+        IReadOnlyList<ResultBlockSetting>? blocks = null)
     {
         Version = version;
         Theme = theme;
         Language = string.IsNullOrWhiteSpace(language) ? null : language;
         _blocks = Normalize(blocks ?? []);
-        MergeStops = mergeStops;
     }
 
     /// <summary>
@@ -128,12 +125,6 @@ public sealed record UserPreferences
     /// Gets the language of the app as a language tag such as <c>en</c>, or <see langword="null"/> to match the device.
     /// </summary>
     public string? Language { get; init; }
-
-    /// <summary>
-    /// Gets whether each ascent or descent that ends in a stop is shown as part of that stop, in the profile table and the PDF.
-    /// </summary>
-    /// <remarks>Display only: the planned dive does not change.</remarks>
-    public bool MergeStops { get; init; }
 
     /// <summary>
     /// Gets every result block in the order it is shown, each with whether it is shown.
@@ -197,11 +188,10 @@ public sealed record UserPreferences
         && Version == other.Version
         && Theme == other.Theme
         && string.Equals(Language, other.Language, StringComparison.Ordinal)
-        && MergeStops == other.MergeStops
         && _blocks.AsSpan().SequenceEqual(other._blocks);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(Version, Theme, Language, MergeStops, _blocks.Length);
+    public override int GetHashCode() => HashCode.Combine(Version, Theme, Language, _blocks.Length);
 
     private static ResultBlockSetting[] Normalize(IReadOnlyList<ResultBlockSetting> blocks)
     {

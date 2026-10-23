@@ -471,41 +471,44 @@ public sealed class DiveSheetTests
     }
 
     [Fact]
-    public void Create_ShouldBeTheSameSheet_WhenStopsAreNotMerged()
+    public void Create_ShouldShowADifferentSheet_WhenAscentsAreMerged()
     {
         // Arrange
         var plan = TestFactory.DecompressionPlan();
+        var merged = plan with { Settings = plan.Settings with { MergeAscentsIntoStops = true } };
 
         // Act
-        var pdf = DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, OnePageBlocks, mergeStops: false);
+        var pdf = DiveSheet.Create(merged, 0, TestFactory.Now, AppVersion, OnePageBlocks);
+
+        // Assert
+        Assert.NotEqual(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, OnePageBlocks), pdf);
+    }
+
+    [Fact]
+    public void Create_ShouldShowTheSameSheet_WhenNoStopIsMerged()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+        var unmerged = plan with { Settings = plan.Settings with { MergeAscentsIntoStops = false, MergeDescentsIntoStops = false } };
+
+        // Act
+        var pdf = DiveSheet.Create(unmerged, 0, TestFactory.Now, AppVersion, OnePageBlocks);
 
         // Assert
         Assert.Equal(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, OnePageBlocks), pdf);
     }
 
     [Fact]
-    public void Create_ShouldShowADifferentSheet_WhenStopsAreMerged()
+    public void CreateSeries_ShouldShowADifferentSheet_WhenAscentsAreMerged()
     {
         // Arrange
         var plan = TestFactory.DecompressionPlan();
+        var merged = plan with { Settings = plan.Settings with { MergeAscentsIntoStops = true } };
 
         // Act
-        var merged = DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, OnePageBlocks, mergeStops: true);
+        var pdf = DiveSheet.CreateSeries(merged, TestFactory.Now, AppVersion);
 
         // Assert
-        Assert.NotEqual(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, OnePageBlocks), merged);
-    }
-
-    [Fact]
-    public void CreateSeries_ShouldShowADifferentSheet_WhenStopsAreMerged()
-    {
-        // Arrange
-        var plan = TestFactory.DecompressionPlan();
-
-        // Act
-        var merged = DiveSheet.CreateSeries(plan, TestFactory.Now, AppVersion, mergeStops: true);
-
-        // Assert
-        Assert.NotEqual(DiveSheet.CreateSeries(plan, TestFactory.Now, AppVersion), merged);
+        Assert.NotEqual(DiveSheet.CreateSeries(plan, TestFactory.Now, AppVersion), pdf);
     }
 }

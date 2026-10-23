@@ -19,8 +19,6 @@
     </div>
     <SelectField TValue="string" Label="@WebText.Language" Options="AppLanguages.Choices" Text="AppLanguages.Name"
                  Value="_preferences.Language ?? AppLanguages.MatchDevice" ValueChanged="ChooseLanguageAsync"/>
-    <CheckField Label="@WebText.MergeStops" Hint="@WebText.HintMergeStops" Value="_preferences.MergeStops"
-                ValueChanged="ChooseMergeStopsAsync"/>
 </section>
 
 <section class="card">
@@ -109,8 +107,6 @@
         await SaveAsync(_preferences with { Language = language == AppLanguages.MatchDevice ? null : language });
         Navigation.Refresh(forceReload: true);
     }
-
-    private Task ChooseMergeStopsAsync(bool merge) => SaveAsync(_preferences with { MergeStops = merge });
 
     private Task ShowAsync(ResultBlock block, bool visible) => SaveAsync(_preferences.WithVisible(block, visible));
 

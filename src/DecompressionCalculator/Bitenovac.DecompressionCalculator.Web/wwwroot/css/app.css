@@ -213,9 +213,40 @@ button.secondary:hover {
     font-size: 0.875rem;
 }
 
+.field-label-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.info-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    min-height: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 50%;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.info-button svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    fill: currentColor;
+}
+
+/* Wraps below the label, so the text takes the field's full width. */
 .field-hint {
+    flex-basis: 100%;
     color: var(--text-muted);
     font-size: 0.8125rem;
+    cursor: pointer;
 }
 
 /* A dropdown takes its column's width, so a long option is cut short instead of pushing past the column. */
@@ -513,6 +544,14 @@ select.cell-input {
     min-width: 0;
     font-size: 1.25rem;
     font-weight: 600;
+}
+
+/* On a phone the name gets its own line, under the buttons, so it is not squeezed between them. */
+@media (max-width: 640px) {
+    .plan-name {
+        order: 1;
+        flex-basis: 100%;
+    }
 }
 
 .icon-button {

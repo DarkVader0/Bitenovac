@@ -1,7 +1,7 @@
 @typeparam TValue
 
 <label class="field">
-    <span class="field-label">@Label</span>
+    <span class="field-label-row"><span class="field-label">@Label</span><FieldInfo Text="@Hint"/></span>
     <select value="@SelectedIndex" class="@(Issue is null ? null : "invalid")" aria-invalid="@(Issue is null ? null : "true")" @onchange="OnChangeAsync">
         @for (var index = 0; index < Options.Count; index++)
         {
@@ -9,10 +9,6 @@
             <option value="@index">@Text(option)</option>
         }
     </select>
-    @if (Hint is not null)
-    {
-        <span class="field-hint">@Hint</span>
-    }
     @if (Issue is not null)
     {
         <span class="validation-message">@Issue</span>

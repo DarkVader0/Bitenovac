@@ -118,6 +118,16 @@
     </details>
 
     <details>
+        <summary>@WebText.Profile</summary>
+        <div class="field-grid">
+            <CheckField Label="@WebText.MergeAscentsIntoStops" Value="Value.MergeAscentsIntoStops" Hint="@WebText.HintMergeAscents"
+                        ValueChanged="value => ChangeAsync(Value with { MergeAscentsIntoStops = value })"/>
+            <CheckField Label="@WebText.MergeDescentsIntoStops" Value="Value.MergeDescentsIntoStops" Hint="@WebText.HintMergeDescents"
+                        ValueChanged="value => ChangeAsync(Value with { MergeDescentsIntoStops = value })"/>
+        </div>
+    </details>
+
+    <details>
         <summary>@WebText.Contingency</summary>
         <div class="field-grid">
             <div class="field-pair">

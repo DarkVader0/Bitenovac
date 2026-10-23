@@ -12,22 +12,24 @@ namespace Bitenovac.DecompressionCalculator.Model;
 public static class ProfileMerge
 {
     /// <summary>
-    /// Returns the profile with each ascent or descent that ends in a stop folded into that stop.
+    /// Returns the profile with each ascent or descent that ends in a stop folded into that stop, for the movements chosen.
     /// </summary>
     /// <param name="profile">The phases of a dive, in order.</param>
+    /// <param name="ascents">Whether an ascent that ends in a stop is folded into it.</param>
+    /// <param name="descents">Whether a descent that ends in a stop is folded into it.</param>
     /// <returns>
-    /// The phases, where a movement that ends at a stop on the same gas and apparatus becomes one stop phase starting at the
-    /// movement's start depth.
+    /// The phases, where a chosen movement that ends at a stop on the same gas and apparatus becomes one stop phase
+    /// starting at the movement's start depth.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="profile"/> is <see langword="null"/>.</exception>
-    public static IReadOnlyList<ProfileRow> IntoStops(IReadOnlyList<ProfileRow> profile)
+    public static IReadOnlyList<ProfileRow> IntoStops(IReadOnlyList<ProfileRow> profile, bool ascents, bool descents)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
         var merged = new List<ProfileRow>(profile.Count);
         foreach (var row in profile)
         {
-            if (merged.Count > 0 && CanMerge(merged[^1], row))
+            if (merged.Count > 0 && CanMerge(merged[^1], row, ascents, descents))
             {
                 merged[^1] = row with { StartDepth = merged[^1].StartDepth, Duration = merged[^1].Duration + row.Duration };
             }
@@ -40,8 +42,13 @@ public static class ProfileMerge
         return merged;
     }
 
-    private static bool CanMerge(ProfileRow movement, ProfileRow stop) =>
-        movement.Kind is SegmentKind.Ascent or SegmentKind.Descent
+    private static bool CanMerge(ProfileRow movement, ProfileRow stop, bool ascents, bool descents) =>
+        (movement.Kind switch
+        {
+            SegmentKind.Ascent => ascents,
+            SegmentKind.Descent => descents,
+            _ => false
+        })
         && stop.Kind is SegmentKind.Stop or SegmentKind.SafetyStop
         && stop.StartDepth == stop.EndDepth
         && stop.StartDepth == movement.EndDepth

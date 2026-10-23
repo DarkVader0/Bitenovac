@@ -80,7 +80,8 @@ else
     var title = _plan.Dives.Count > 1 || !string.IsNullOrWhiteSpace(_plan.Dives[_selected].Name) ? Localized.Format(WebText.ResultsOf, DiveNames[_selected]) : WebText.Results;
     @if (_view.Results[_selected] is { } result)
     {
-        <DiveResultView Result="result" Units="_plan.Units" Quantity="_plan.SettingsFor(_selected).GasQuantity" Title="@title"/>
+        <DiveResultView Result="result" Units="_plan.Units" Quantity="_plan.SettingsFor(_selected).GasQuantity" Title="@title"
+                        MergeAscents="_plan.SettingsFor(_selected).MergeAscentsIntoStops" MergeDescents="_plan.SettingsFor(_selected).MergeDescentsIntoStops"/>
     }
     else
     {
@@ -277,8 +278,8 @@ else
 
     private async Task PrintAsync()
     {
-        var preferences = await Preferences.GetAsync();
-        await Share.PrintPdfAsync(DiveSheet.Create(_plan!, _selected, DateTime.UtcNow, AppVersion.Current, preferences.VisibleBlocks(), preferences.MergeStops));
+        var blocks = (await Preferences.GetAsync()).VisibleBlocks();
+        await Share.PrintPdfAsync(DiveSheet.Create(_plan!, _selected, DateTime.UtcNow, AppVersion.Current, blocks));
     }
 
     private Task OpenPlanSettingsAsync()

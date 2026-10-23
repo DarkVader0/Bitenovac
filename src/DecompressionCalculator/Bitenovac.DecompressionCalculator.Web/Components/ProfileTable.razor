@@ -52,11 +52,14 @@
     public UnitSystem Units { get; set; }
 
     [Parameter]
-    public bool MergeStops { get; set; }
+    public bool MergeAscents { get; set; }
+
+    [Parameter]
+    public bool MergeDescents { get; set; }
 
     private UnitLabels Labels => UnitLabels.For(Units);
 
-    private IReadOnlyList<ProfileRow> Phases => MergeStops ? ProfileMerge.IntoStops(Result.Profile) : Result.Profile;
+    private IReadOnlyList<ProfileRow> Phases => ProfileMerge.IntoStops(Result.Profile, MergeAscents, MergeDescents);
 
     private bool ShowsApparatus => Result.Profile.Any(static phase => phase.Circuit != BreathingLoop.OpenCircuit.ToString());
 }
