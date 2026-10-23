@@ -605,6 +605,37 @@ select.cell-input {
     display: none;
 }
 
+/* The mark plays the loading animation once and stays on the finished dive. */
+.dive-mark .loading-dive-ceiling {
+    animation: loading-dive-ceiling 1.6s linear 0.15s 1 both;
+}
+
+.dive-mark .loading-dive-cover {
+    animation: dive-mark-cover 1.6s linear 0.15s 1 both;
+}
+
+@keyframes dive-mark-cover {
+    0% {
+        transform: translateX(0);
+        animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
+    }
+
+    55%,
+    100% {
+        transform: translateX(101%);
+    }
+}
+
+.plan-header .icon-button > .icon {
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+.info-button:hover {
+    background-color: transparent;
+    color: var(--text);
+}
+
 /* On a phone the dive leads the top row, the plan chooser closes it on the right, and the name takes the row below. */
 @media (max-width: 640px) {
     .dive-mark {
