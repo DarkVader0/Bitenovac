@@ -52,6 +52,8 @@ public enum GasQuantity
 /// <param name="ContingencyExtraDepth">The depth added to the deepest level in the contingency plan, in meters or feet.</param>
 /// <param name="GasDensityLimit">The density, in grams per liter, above which the gas breathed is warned about.</param>
 /// <param name="GasQuantity">How the gas a dive uses is shown in results, the dive sheet and the summary.</param>
+/// <param name="MergeAscentsIntoStops">Whether an ascent that ends at a stop is shown in the same row as that stop. Visual only.</param>
+/// <param name="MergeDescentsIntoStops">Whether a descent that ends at a stop is shown in the same row as that stop. Visual only.</param>
 /// <param name="OxygenNarcotic">
 /// Whether oxygen counts as narcotic wherever an equivalent narcotic depth is given; on by default, the cautious choice.
 /// </param>
@@ -85,7 +87,9 @@ public sealed record PlannerSettings(
     double ContingencyExtraDepth = 3,
     bool OxygenNarcotic = true,
     double GasDensityLimit = GasMath.DefaultDensityLimit,
-    GasQuantity GasQuantity = GasQuantity.Pressure)
+    GasQuantity GasQuantity = GasQuantity.Pressure,
+    bool MergeAscentsIntoStops = false,
+    bool MergeDescentsIntoStops = false)
 {
     /// <summary>
     /// Returns the default settings for a unit system.

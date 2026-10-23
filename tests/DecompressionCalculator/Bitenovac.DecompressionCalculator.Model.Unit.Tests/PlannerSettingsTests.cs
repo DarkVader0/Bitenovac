@@ -41,4 +41,17 @@ public sealed class PlannerSettingsTests
         // Assert
         Assert.Equal(expected, settings);
     }
+
+    [Fact]
+    public void Default_ShouldNotMergeAnyStops_WhenNothingWasChosen()
+    {
+        // Arrange
+
+        // Act
+        var settings = PlannerSettings.Default(UnitSystem.Metric);
+
+        // Assert
+        Assert.False(settings.MergeAscentsIntoStops);
+        Assert.False(settings.MergeDescentsIntoStops);
+    }
 }

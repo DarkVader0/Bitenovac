@@ -4,7 +4,6 @@
         <thead>
         <tr>
             <th>@WebText.Gas</th>
-            <th>@WebText.Use</th>
             <th class="number">@WebText.StartToEnd</th>
             <th class="number">@WebText.Used</th>
             <th class="number">@WebText.Reserve</th>
@@ -21,7 +20,6 @@
             var amount = GasAmounts.For(cylinder, Quantity, Units);
             <tr class="@State(cylinder)">
                 <td class="gas-name">@cylinder.Gas</td>
-                <td>@Display.Name(cylinder.Purpose)</td>
                 <td class="number">@Display.Number(amount.Start) → <span class="gas-end">@Display.Number(amount.End)</span></td>
                 <td class="number">@Display.Number(amount.Used)</td>
                 <td class="number">@Display.Number(amount.Reserve)</td>

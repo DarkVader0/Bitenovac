@@ -56,6 +56,11 @@ public enum IconName
     Grip,
 
     /// <summary>
+    /// Shows what a setting does.
+    /// </summary>
+    Info,
+
+    /// <summary>
     /// Opens the gas calculators.
     /// </summary>
     Calculator,
