@@ -135,9 +135,6 @@
     <data name="PressureRange" xml:space="preserve">
         <value>{0} bis {1}</value>
     </data>
-    <data name="ViolationWarning" xml:space="preserve">
-        <value>Der Aufstieg von {0} auf {1} {2} überschreitet die Dekompressionsdecke bei {3} {2}.</value>
-    </data>
     <data name="RunsOutWarning" xml:space="preserve">
         <value>{0} wird leer: der Tauchgang benötigt {1} {2} mehr, als die Flasche enthält.</value>
     </data>
@@ -197,9 +194,6 @@
     </data>
     <data name="SummaryReserveNotMet" xml:space="preserve">
         <value> - Reserve nicht erreicht</value>
-    </data>
-    <data name="SummaryCeilingWarning" xml:space="preserve">
-        <value>Warnung: Ein Aufstieg zwischen den Stufen überschreitet die Dekompressionsdecke.</value>
     </data>
     <data name="SummaryWarning" xml:space="preserve">
         <value>Warnung: {0}</value>

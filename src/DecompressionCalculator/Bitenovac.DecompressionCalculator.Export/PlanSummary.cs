@@ -108,11 +108,6 @@ public static class PlanSummary
                 (cylinder.ReserveSatisfied ? string.Empty : ExportText.SummaryReserveNotMet));
         }
 
-        if (!result.IsValid)
-        {
-            text.AppendLine(ExportText.SummaryCeilingWarning);
-        }
-
         foreach (var warning in GasWarnings.For(result, plan.Units))
         {
             text.AppendLine(Localized.Format(ExportText.SummaryWarning, warning));

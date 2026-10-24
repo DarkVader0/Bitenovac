@@ -47,5 +47,10 @@ public sealed class IDecompressionAlgorithmTests
         public Depth CurrentCeiling(IDecompressionState state) => ceiling;
 
         public IReadOnlyList<DiveSegment> CalculateFinalAscent(IDecompressionState state, DivePlanRequest request) => [];
+
+        public IReadOnlyList<DiveSegment> CalculateAscent(IDecompressionState state,
+            DivePlanRequest request,
+            Depth targetDepth,
+            BreathingLoop breathingLoop) => [];
     }
 }

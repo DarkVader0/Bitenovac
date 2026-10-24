@@ -90,6 +90,29 @@ public interface IDecompressionAlgorithm
     IReadOnlyList<DiveSegment> CalculateFinalAscent(IDecompressionState state, DivePlanRequest request);
 
     /// <summary>
+    /// Computes an ascent from the current state to a shallower depth within the dive, holding at any
+    /// decompression stops the model requires on the way.
+    /// </summary>
+    /// <param name="state">The state from which the ascent begins. It is advanced to the target depth.</param>
+    /// <param name="request">The planning request supplying the cylinders and settings that govern the ascent.</param>
+    /// <param name="targetDepth">The depth at which the ascent ends. It must be shallower than the current depth.</param>
+    /// <param name="breathingLoop">The breathing apparatus through which the ascent is breathed when no stop is required.</param>
+    /// <returns>The ordered, contiguous segments from the current depth to <paramref name="targetDepth"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="state"/> or <paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="targetDepth"/> is not shallower than the current depth.
+    /// </exception>
+    /// <remarks>
+    /// The stops, gas switches and breathing loop of the ascent are resolved in the same way as the
+    /// final ascent. The target is reached only once the model's ceiling there has cleared. The
+    /// returned segments are contiguous and ordered from the current depth to the target.
+    /// </remarks>
+    IReadOnlyList<DiveSegment> CalculateAscent(IDecompressionState state,
+        DivePlanRequest request,
+        Depth targetDepth,
+        BreathingLoop breathingLoop);
+
+    /// <summary>
     /// Returns how long the final ascent from the current state would take, without advancing the state.
     /// </summary>
     /// <param name="state">The state from which the ascent would begin.</param>

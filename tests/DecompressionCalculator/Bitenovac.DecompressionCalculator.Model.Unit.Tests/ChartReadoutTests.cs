@@ -24,7 +24,7 @@ public sealed class ChartReadoutTests
     private static DiveResult Custom(DiveSegment[] segments, DiveMoment[] timeline)
     {
         var total = segments.Aggregate(TimeSpan.Zero, static (sum, segment) => sum + segment.Duration);
-        var plan = new DecoPlan(segments, [], total, new ReserveGasResult([]), 0.25, 30, []);
+        var plan = new DecoPlan(segments, [], total, new ReserveGasResult([]), 0.25, 30);
         return DiveResult.From(0, plan, timeline, UnitSystem.Metric);
     }
 

@@ -202,19 +202,6 @@ public sealed class PlanSummaryTests
     }
 
     [Fact]
-    public void Text_ShouldWarnAboutTheCeiling_WhenAnAscentBetweenLevelsPassesIt()
-    {
-        // Arrange
-        var plan = TestFactory.ViolatingPlan();
-
-        // Act
-        var text = PlanSummary.Text(plan, TestFactory.Now);
-
-        // Assert
-        Assert.Contains("Warning: an ascent between levels passes the decompression ceiling.", text, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void Text_ShouldListTheIssuesAndAnUntitledName_WhenThePlanCannotBeCalculated()
     {
         // Arrange

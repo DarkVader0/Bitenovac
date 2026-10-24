@@ -26,8 +26,9 @@ namespace Bitenovac.DecompressionAlgorithms.BuhlmannZhl16c;
 /// <para>
 /// An instance plans one dive at a time and is not thread-safe. The model state and the returned
 /// final-ascent list are pooled and reused, so <see cref="BeginDive"/> invalidates state
-/// previously returned by this instance and <see cref="CalculateFinalAscent"/> invalidates its
-/// previously returned list. A warmed instance allocates nothing on the heap while planning.
+/// previously returned by this instance, and <see cref="CalculateFinalAscent"/> and
+/// <see cref="CalculateAscent"/> each invalidate their previously returned list. A warmed instance
+/// allocates nothing on the heap while planning.
 /// </para>
 /// <para>
 /// The gradient-factor slope is anchored at the first decompression stop: the low factor applies
@@ -52,6 +53,7 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
     private const double PureOxygenFraction = 0.999;
     private const double MaximumStopMinutes = 1440.0;
     private readonly SegmentBuffer _finalAscent = [];
+    private readonly SegmentBuffer _ascent = [];
     private readonly double _gradientFactorHigh;
 
     private readonly double _gradientFactorLow;
@@ -232,6 +234,33 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
         _finalAscent.Clear();
         PlanFinalAscent(buhlmannState, request.Cylinders, request.Settings, _finalAscent);
         return _finalAscent;
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The ascent holds at the decompression stops the model requires between the current depth and
+    /// the target, with the same stop grid, gas switches, and oxygen breaks as the final ascent. The
+    /// target is reached only once its ceiling has cleared. The returned list is pooled and is
+    /// invalidated by the next call to this method.
+    /// </remarks>
+    public IReadOnlyList<DiveSegment> CalculateAscent(IDecompressionState state,
+        DivePlanRequest request,
+        Depth targetDepth,
+        BreathingLoop breathingLoop)
+    {
+        var buhlmannState = RequireOwnState(state);
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (targetDepth.InMeter >= buhlmannState.CurrentDepthMeter)
+        {
+            throw new ArgumentOutOfRangeException(nameof(targetDepth), targetDepth.InMeter,
+                "The target depth must be shallower than the current depth.");
+        }
+
+        _ascent.Clear();
+        buhlmannState.CurrentLoop = breathingLoop;
+        PlanAscent(buhlmannState, targetDepth.InMeter, false, request.Cylinders, request.Settings, _ascent);
+        return _ascent;
     }
 
     /// <inheritdoc/>
@@ -545,26 +574,60 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
         }
 
         state.CurrentLoop = state.CurrentLoop.ForDecompression();
+        PlanAscent(state, 0.0, true, cylinders, settings, output);
+    }
 
+    /// <summary>
+    /// Plans an ascent from the state's current depth to the target depth, holding at each decompression
+    /// stop the model requires on the way.
+    /// </summary>
+    /// <param name="state">The state from which the ascent begins. It is advanced to the target depth.</param>
+    /// <param name="targetMeter">The depth at which the ascent ends, zero for the surface.</param>
+    /// <param name="toSurface">Whether the ascent ends at the surface, with the safety stop and the last stop applying.</param>
+    /// <param name="cylinders">The cylinders available to the diver.</param>
+    /// <param name="settings">The settings that govern the ascent.</param>
+    /// <param name="output">The list the resulting segments are emitted to, or <see langword="null"/> to emit none.</param>
+    /// <remarks>
+    /// Stops lie on the stop grid between the current depth and the target, and the target is reached
+    /// only once its ceiling has cleared. The tissues are loaded along the way.
+    /// </remarks>
+    private void PlanAscent(BuhlmannState state,
+        double targetMeter,
+        bool toSurface,
+        IReadOnlyList<Cylinder> cylinders,
+        DivePlanSettings settings,
+        SegmentBuffer? output)
+    {
         var averageDepthMeter = state.RuntimeMinutes > 0.0
             ? state.DepthTimeIntegralMeterMinutes / state.RuntimeMinutes
             : state.CurrentDepthMeter;
 
         var lastStopMeter = settings.LastStopAtSixMeters ? SixMeterStopDepthMeter : ShallowStopDepthMeter;
         var ceilingMeter = CeilingMeter(state, _gradientFactorLow);
-        var requiresStops = ceilingMeter > DepthToleranceMeter;
+        var requiresStops = ceilingMeter > targetMeter + DepthToleranceMeter;
 
         if (!requiresStops)
         {
-            AscendWithSafetyStop(state, settings, averageDepthMeter, output);
+            if (toSurface)
+            {
+                AscendWithSafetyStop(state, settings, averageDepthMeter, output);
+            }
+            else
+            {
+                AscendTo(state, targetMeter, averageDepthMeter, settings, output);
+            }
+
             return;
         }
 
-        var firstStopMeter = Math.Max(CeilToStopGrid(ceilingMeter), lastStopMeter);
+        state.CurrentLoop = state.CurrentLoop.ForDecompression();
+
+        var floorMeter = toSurface ? lastStopMeter : targetMeter;
+        var firstStopMeter = Math.Max(CeilToStopGrid(ceilingMeter), floorMeter);
         var entryStopMeter = FloorToStopGrid(state.CurrentDepthMeter);
         if (firstStopMeter > entryStopMeter)
         {
-            firstStopMeter = Math.Max(entryStopMeter, StopIntervalMeter);
+            firstStopMeter = Math.Max(Math.Max(entryStopMeter, StopIntervalMeter), floorMeter);
         }
 
         var anchorMeter = firstStopMeter;
@@ -576,22 +639,29 @@ public sealed class BuhlmannZhl16cAlgorithm : IDecompressionAlgorithm
                 GradientFactorAt(firstStopMeter, anchorMeter), cylinders, settings, output, TimeSpan.Zero);
         }
 
-        var stopMeter = (double)firstStopMeter;
-        while (state.CurrentDepthMeter > DepthToleranceMeter)
+        var stopMeter = firstStopMeter;
+        while (state.CurrentDepthMeter > targetMeter + DepthToleranceMeter)
         {
             AscendThroughSwitches(state, stopMeter, averageDepthMeter, cylinders, settings, output);
 
-            if (stopMeter <= DepthToleranceMeter)
+            if (stopMeter <= targetMeter + DepthToleranceMeter)
             {
                 break;
             }
 
             SwitchGasIfRicher(state, stopMeter, cylinders, settings, output);
 
-            var nextStopMeter = NextStopBelow(stopMeter, lastStopMeter);
-            var safetyHold = settings.SafetyStop && nextStopMeter <= DepthToleranceMeter ? settings.SafetyStopDuration : TimeSpan.Zero;
+            var nextStopMeter = toSurface
+                ? NextStopBelow(stopMeter, lastStopMeter)
+                : Math.Max(stopMeter - StopIntervalMeter, targetMeter);
+            var safetyHold = toSurface && settings.SafetyStop && nextStopMeter <= DepthToleranceMeter
+                ? settings.SafetyStopDuration
+                : TimeSpan.Zero;
+            var nextGradientFactor = toSurface || nextStopMeter > targetMeter + DepthToleranceMeter
+                ? GradientFactorAt(nextStopMeter, anchorMeter)
+                : _gradientFactorLow;
             HoldUntilClear(state, stopMeter, nextStopMeter,
-                GradientFactorAt(nextStopMeter, anchorMeter), cylinders, settings, output, safetyHold);
+                nextGradientFactor, cylinders, settings, output, safetyHold);
             stopMeter = nextStopMeter;
         }
     }

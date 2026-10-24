@@ -53,7 +53,6 @@ public sealed class PlanCalculatorTests
         Assert.Empty(calculation.Issues);
         var dive = Assert.Single(calculation.Dives);
         Assert.True(dive.Succeeded, dive.FailureMessage);
-        Assert.True(dive.IsValid);
         Assert.Equal(30, dive.MaximumDepth, 9);
         Assert.True(dive.TotalRuntime > TimeSpan.FromMinutes(20 + descentMinutes));
         Assert.True(dive.CnsPercent > 0);
@@ -209,7 +208,6 @@ public sealed class PlanCalculatorTests
         var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
 
         // Assert
-        Assert.True(dive.IsValid);
         Assert.Contains(dive.Ceiling, static point => point.Depth > 0);
         Assert.All(dive.Ceiling, point => Assert.True(DepthAt(dive, point.Runtime) >= point.Depth - 1e-6,
             $"At {point.Runtime} the ceiling is {point.Depth} m, the diver at {DepthAt(dive, point.Runtime)} m."));
@@ -230,7 +228,7 @@ public sealed class PlanCalculatorTests
     }
 
     [Fact]
-    public void Calculate_ShouldTraceTheCeilingBelowTheNextLevel_WhenAnAscentBetweenLevelsPassesIt()
+    public void Calculate_ShouldShowStopsBetweenLevels_WhenAnAscentBetweenLevelsPassesTheCeiling()
     {
         // Arrange
         var plan = TestFactory.Plan(TestFactory.Dive(depth: 40, minutes: 30,
@@ -243,11 +241,7 @@ public sealed class PlanCalculatorTests
         var dive = Assert.Single(PlanCalculator.Calculate(plan).Dives);
 
         // Assert
-        var violation = Assert.Single(dive.Violations);
-        var endOfLevel = dive.Profile.First(static phase => phase.Kind == SegmentKind.Bottom).Runtime;
-        var ceiling = dive.Ceiling.Single(point => (point.Runtime - endOfLevel).Duration() < TimeSpan.FromSeconds(1)).Depth;
-        Assert.Equal(violation.Ceiling, ceiling, Precision);
-        Assert.True(ceiling > violation.ToDepth);
+        Assert.Contains(dive.Profile, static phase => phase.Kind == SegmentKind.Stop && phase.EndDepth > 3);
     }
 
     [Fact]
