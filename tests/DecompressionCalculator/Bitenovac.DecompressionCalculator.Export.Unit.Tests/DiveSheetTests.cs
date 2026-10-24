@@ -8,7 +8,7 @@ namespace Bitenovac.DecompressionCalculator.Export.Unit.Tests;
 public sealed class DiveSheetTests
 {
     private const string AppVersion = "2026.10.13.001";
-    private const string CeilingStroke = "0.702 0.129 0.129 RG 2.2 w";
+    private const string CeilingStroke = "0.702 0.129 0.129 RG 2.8 w";
     private const string CeilingZoneFill = "0.816 0.612 0.635 rg";
     private const string DecompressionStopStroke = "0.702 0.129 0.129 RG 3 w";
     private const string SafetyStopStroke = "0.91 0.537 0.047 RG 3 w";
