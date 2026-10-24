@@ -506,11 +506,11 @@ public static class DiveSheet
             page.Polygon([.. ceiling, (ceiling[^1].Item1, surface), (ceiling[0].Item1, surface)], CeilingZone);
         }
 
-        page.Polyline(points, 3, SheetWriter.Brand);
+        page.Polyline(points, 2, SheetWriter.Brand);
 
         if (ceiling.Length > 0)
         {
-            page.Polyline(ceiling, 2.2, SheetWriter.Danger);
+            page.Polyline(ceiling, 2.8, SheetWriter.Danger);
         }
 
         foreach (var stop in chart.Stops)

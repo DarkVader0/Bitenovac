@@ -6,7 +6,7 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#03173d",
+  "background_color": "#ffffff",
   "theme_color": "#03173d",
   "categories": ["sports", "utilities"],
   "prefer_related_applications": false,
