@@ -48,8 +48,7 @@ public sealed class DiveResultTests
             new CylinderReserveStatus(Stage, Volume.FromLiter(200), Volume.FromLiter(100))
         ]),
         0.25,
-        30,
-        [new AscentViolation(Depth.FromMeter(20), Depth.FromMeter(10), Depth.FromMeter(12))]);
+        30);
 
     [Fact]
     public void Failed_ShouldCarryTheMessageAndNoFigures_WhenTheDiveCouldNotBePlanned()
@@ -63,7 +62,6 @@ public sealed class DiveResultTests
         Assert.Equal(1, result.Index);
         Assert.Equal("No breathable gas at 40 m.", result.FailureMessage);
         Assert.False(result.Succeeded);
-        Assert.False(result.IsValid);
         Assert.Equal(TimeSpan.Zero, result.TotalRuntime);
         Assert.Equal(TimeSpan.Zero, result.StopTime);
         Assert.Equal(0, result.MaximumDepth);
@@ -72,7 +70,6 @@ public sealed class DiveResultTests
         Assert.False(result.ReserveSatisfied);
         Assert.Empty(result.Profile);
         Assert.Empty(result.Cylinders);
-        Assert.Empty(result.Violations);
     }
 
     [Fact]
@@ -88,7 +85,6 @@ public sealed class DiveResultTests
         Assert.Equal(0, result.Index);
         Assert.Null(result.FailureMessage);
         Assert.True(result.Succeeded);
-        Assert.False(result.IsValid);
         Assert.Equal(TimeSpan.FromMinutes(41), result.TotalRuntime);
         Assert.Equal(TimeSpan.FromMinutes(1 + 2 + 2 + 2 + 3 + 4 + 1), result.StopTime);
         Assert.Equal(30, result.MaximumDepth, Precision);
@@ -140,7 +136,6 @@ public sealed class DiveResultTests
             ("NX50", CylinderPurpose.DecoGas, 300.0, 200.0, 157.0, false, 200.0, 100.0, false)
         ],
         result.Cylinders.Select(static c => (c.Gas, c.Purpose, c.GasUsed, c.StartPressure, c.EndPressure, c.IsExhausted, c.RequiredReserve, c.ProjectedRemaining, c.ReserveSatisfied)).ToArray());
-        Assert.Equal([new ViolationRow(20, 10, 12)], result.Violations);
     }
 
     [Fact]
@@ -161,10 +156,6 @@ public sealed class DiveResultTests
         Assert.Equal(50 / BarPerPsi, back.EndPressure, Precision);
         Assert.Equal(600 / LitersPerCubicFoot, back.RequiredReserve, Precision);
         Assert.Equal(600 / LitersPerCubicFoot, back.ProjectedRemaining, Precision);
-        var violation = Assert.Single(result.Violations);
-        Assert.Equal(20 * FeetPerMeter, violation.FromDepth, Precision);
-        Assert.Equal(10 * FeetPerMeter, violation.ToDepth, Precision);
-        Assert.Equal(12 * FeetPerMeter, violation.Ceiling, Precision);
     }
 
     [Fact]

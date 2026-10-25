@@ -135,9 +135,6 @@
     <data name="PressureRange" xml:space="preserve">
         <value>{0} to {1}</value>
     </data>
-    <data name="ViolationWarning" xml:space="preserve">
-        <value>Ascent from {0} to {1} {2} passes the decompression ceiling at {3} {2}.</value>
-    </data>
     <data name="RunsOutWarning" xml:space="preserve">
         <value>{0} runs out: the dive needs {1} {2} more than the cylinder holds.</value>
     </data>
@@ -197,9 +194,6 @@
     </data>
     <data name="SummaryReserveNotMet" xml:space="preserve">
         <value> - reserve not met</value>
-    </data>
-    <data name="SummaryCeilingWarning" xml:space="preserve">
-        <value>Warning: an ascent between levels passes the decompression ceiling.</value>
     </data>
     <data name="SummaryWarning" xml:space="preserve">
         <value>Warning: {0}</value>

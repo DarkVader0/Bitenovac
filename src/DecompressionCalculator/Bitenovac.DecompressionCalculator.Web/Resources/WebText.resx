@@ -468,9 +468,6 @@
     <data name="Contingencies" xml:space="preserve">
         <value>Contingencies</value>
     </data>
-    <data name="CeilingViolation" xml:space="preserve">
-        <value>An ascent between levels passes the decompression ceiling. Add a stop or shorten the level.</value>
-    </data>
     <data name="ReserveNotMet" xml:space="preserve">
         <value>A cylinder does not hold the reserve gas the plan requires.</value>
     </data>
@@ -599,9 +596,6 @@
     </data>
     <data name="CannotBePlanned" xml:space="preserve">
         <value>Cannot be planned</value>
-    </data>
-    <data name="CeilingPassed" xml:space="preserve">
-        <value>An ascent between levels passes the decompression ceiling.</value>
     </data>
     <data name="NeedsAttention" xml:space="preserve">
         <value>{0} needs attention</value>

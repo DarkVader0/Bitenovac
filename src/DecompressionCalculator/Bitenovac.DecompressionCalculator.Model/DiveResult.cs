@@ -93,14 +93,6 @@ public sealed record CylinderRow(
 }
 
 /// <summary>
-/// Represents a planned ascent that rises above the decompression ceiling, in the plan's units.
-/// </summary>
-/// <param name="FromDepth">The depth the ascent starts at, in meters or feet.</param>
-/// <param name="ToDepth">The depth the ascent ends at, in meters or feet.</param>
-/// <param name="Ceiling">The ceiling at the start of the ascent, in meters or feet.</param>
-public sealed record ViolationRow(double FromDepth, double ToDepth, double Ceiling);
-
-/// <summary>
 /// Represents the decompression ceiling at one moment of a calculated dive, in the plan's units.
 /// </summary>
 /// <param name="Runtime">The time since leaving the surface.</param>
@@ -143,7 +135,6 @@ public sealed class DiveResult
     private DiveResult(
         int index,
         string? failureMessage,
-        bool isValid,
         TimeSpan totalRuntime,
         TimeSpan stopTime,
         double maximumDepth,
@@ -152,12 +143,10 @@ public sealed class DiveResult
         bool reserveSatisfied,
         ProfileRow[] profile,
         CylinderRow[] cylinders,
-        ViolationRow[] violations,
         DiveMoment[] timeline)
     {
         Index = index;
         FailureMessage = failureMessage;
-        IsValid = isValid;
         TotalRuntime = totalRuntime;
         StopTime = stopTime;
         MaximumDepth = maximumDepth;
@@ -166,7 +155,6 @@ public sealed class DiveResult
         ReserveSatisfied = reserveSatisfied;
         Profile = profile;
         Cylinders = cylinders;
-        Violations = violations;
         Timeline = timeline;
         Ceiling = [.. timeline.Select(static moment => new CeilingPoint(moment.Runtime, moment.Ceiling))];
     }
@@ -185,11 +173,6 @@ public sealed class DiveResult
     /// Gets a value indicating whether the dive was planned.
     /// </summary>
     public bool Succeeded => FailureMessage is null;
-
-    /// <summary>
-    /// Gets a value indicating whether every planned ascent stays below the decompression ceiling.
-    /// </summary>
-    public bool IsValid { get; }
 
     /// <summary>
     /// Gets the time from leaving the surface to reaching it again.
@@ -243,17 +226,12 @@ public sealed class DiveResult
     public IReadOnlyList<CylinderRow> Cylinders { get; }
 
     /// <summary>
-    /// Gets the planned ascents that rise above the decompression ceiling.
-    /// </summary>
-    public IReadOnlyList<ViolationRow> Violations { get; }
-
-    /// <summary>
     /// Gets the decompression ceiling through the dive, from leaving the surface to surfacing.
     /// </summary>
     /// <remarks>
     /// The ceiling is traced at least once a minute and at the end of every phase. It is the
     /// model's own continuous ceiling, not rounded to a stop depth; a planned dive stays at or below
-    /// it except where an ascent between levels is reported in <see cref="Violations"/>.
+    /// it.
     /// </remarks>
     public IReadOnlyList<CeilingPoint> Ceiling { get; }
 
@@ -290,8 +268,8 @@ public sealed class DiveResult
     /// <param name="descents">Whether a descent that ends in a stop is folded into it.</param>
     /// <returns>The result with the merged profile; every other figure is the same.</returns>
     public DiveResult WithStopsMerged(bool ascents, bool descents) =>
-        new(Index, FailureMessage, IsValid, TotalRuntime, StopTime, MaximumDepth, CnsPercent, OxygenToleranceUnits, ReserveSatisfied,
-            [.. ProfileMerge.IntoStops(Profile, ascents, descents)], [.. Cylinders], [.. Violations], [.. Timeline])
+        new(Index, FailureMessage, TotalRuntime, StopTime, MaximumDepth, CnsPercent, OxygenToleranceUnits, ReserveSatisfied,
+            [.. ProfileMerge.IntoStops(Profile, ascents, descents)], [.. Cylinders], [.. Timeline])
         {
             Contingencies = Contingencies,
             GasChecks = GasChecks,
@@ -299,7 +277,7 @@ public sealed class DiveResult
         };
 
     internal static DiveResult Failed(int index, string message) =>
-        new(index, message, false, TimeSpan.Zero, TimeSpan.Zero, 0, 0, 0, false, [], [], [], []);
+        new(index, message, TimeSpan.Zero, TimeSpan.Zero, 0, 0, 0, false, [], [], []);
 
     internal static DiveResult From(int index, DecoPlan plan, IReadOnlyList<DiveMoment> timeline, UnitSystem units)
     {
@@ -315,17 +293,9 @@ public sealed class DiveResult
             .Select((usage, cylinder) => ToCylinderRow(usage, plan.ReserveGas.CylinderStatuses[cylinder], units))
             .ToArray();
 
-        var violations = plan.Violations
-            .Select(violation => new ViolationRow(
-                UnitConversion.FromDepth(violation.FromDepth, units),
-                UnitConversion.FromDepth(violation.ToDepth, units),
-                UnitConversion.FromDepth(violation.Ceiling, units)))
-            .ToArray();
-
         return new DiveResult(
             index,
             failureMessage: null,
-            plan.IsValid,
             plan.TotalRuntime,
             stopTime,
             UnitConversion.FromDepth(maximumDepth, units),
@@ -334,7 +304,6 @@ public sealed class DiveResult
             plan.ReserveGas.AllSatisfied,
             BuildProfile(segments, units),
             cylinders,
-            violations,
             [.. timeline]);
     }
 

@@ -160,10 +160,12 @@ public sealed class DivePlannerTests
     }
 
     [Fact]
-    public void CreatePlan_ShouldRecordAViolation_WhenAnInterLevelAscentBreachesTheCeiling()
+    public void CreatePlan_ShouldPlanTheInterLevelAscentThroughTheModel_WhenTheCeilingIsDeeperThanTheTarget()
     {
         // Arrange
-        var algorithm = new FakeAlgorithm(Depth.FromMeter(24));
+        var stop = new DiveSegment(Depth.FromMeter(24), TimeSpan.FromMinutes(3), GasMixture.Air, SegmentKind.Stop);
+        var ascent = new DiveSegment(Depth.FromMeter(20), TimeSpan.FromMinutes(1), GasMixture.Air, SegmentKind.Ascent);
+        var algorithm = new FakeAlgorithm(Depth.FromMeter(24), interLevelAscent: [stop, ascent]);
         var planner = new DivePlanner(algorithm);
         var request = CreateRequest([
             TestFactory.CreateSegment(30, 10),
@@ -174,51 +176,15 @@ public sealed class DivePlannerTests
         var plan = planner.CreatePlan(request);
 
         // Assert
-        Assert.Single(plan.Violations);
-        Assert.Equal(30, plan.Violations[0].FromDepth.InMeter, Precision);
-        Assert.Equal(20, plan.Violations[0].ToDepth.InMeter, Precision);
-        Assert.Equal(24, plan.Violations[0].Ceiling.InMeter, Precision);
+        Assert.Equal(20, Assert.Single(algorithm.InterLevelTargetsMeter), Precision);
+        Assert.Equal(SegmentKind.Stop, plan.ExpandedSegments[2].Kind);
+        Assert.Equal(24, plan.ExpandedSegments[2].Depth.InMeter, Precision);
+        Assert.Equal(SegmentKind.Ascent, plan.ExpandedSegments[3].Kind);
+        Assert.Equal(SegmentKind.Bottom, plan.ExpandedSegments[4].Kind);
     }
 
     [Fact]
-    public void CreatePlan_ShouldMarkThePlanInvalid_WhenAnInterLevelAscentBreachesTheCeiling()
-    {
-        // Arrange
-        var algorithm = new FakeAlgorithm(Depth.FromMeter(24));
-        var planner = new DivePlanner(algorithm);
-        var request = CreateRequest([
-            TestFactory.CreateSegment(30, 10),
-            TestFactory.CreateSegment(20, 5)
-        ]);
-
-        // Act
-        var plan = planner.CreatePlan(request);
-
-        // Assert
-        Assert.False(plan.IsValid);
-    }
-
-    [Fact]
-    public void CreatePlan_ShouldStillEmitTheAscentSegment_WhenTheInterLevelAscentIsAViolation()
-    {
-        // Arrange
-        var algorithm = new FakeAlgorithm(Depth.FromMeter(24));
-        var planner = new DivePlanner(algorithm);
-        var request = CreateRequest([
-            TestFactory.CreateSegment(30, 10),
-            TestFactory.CreateSegment(20, 5)
-        ]);
-
-        // Act
-        var plan = planner.CreatePlan(request);
-
-        // Assert
-        Assert.Equal(SegmentKind.Ascent, plan.ExpandedSegments[2].Kind);
-        Assert.Equal(20, plan.ExpandedSegments[2].Depth.InMeter, Precision);
-    }
-
-    [Fact]
-    public void CreatePlan_ShouldRecordNoViolation_WhenTheCeilingIsShallowerThanTheTargetDepth()
+    public void CreatePlan_ShouldTravelTheInterLevelAscentWithoutTheModel_WhenTheCeilingIsShallowerThanTheTarget()
     {
         // Arrange
         var algorithm = new FakeAlgorithm(Depth.FromMeter(10));
@@ -232,12 +198,13 @@ public sealed class DivePlannerTests
         var plan = planner.CreatePlan(request);
 
         // Assert
-        Assert.Empty(plan.Violations);
-        Assert.True(plan.IsValid);
+        Assert.Empty(algorithm.InterLevelTargetsMeter);
+        Assert.Equal(SegmentKind.Ascent, plan.ExpandedSegments[2].Kind);
+        Assert.Equal(20, plan.ExpandedSegments[2].Depth.InMeter, Precision);
     }
 
     [Fact]
-    public void CreatePlan_ShouldRecordNoViolation_WhenTheCeilingEqualsTheTargetDepth()
+    public void CreatePlan_ShouldTravelTheInterLevelAscentWithoutTheModel_WhenTheCeilingEqualsTheTargetDepth()
     {
         // Arrange
         var algorithm = new FakeAlgorithm(Depth.FromMeter(20));
@@ -251,7 +218,9 @@ public sealed class DivePlannerTests
         var plan = planner.CreatePlan(request);
 
         // Assert
-        Assert.True(plan.IsValid);
+        Assert.Empty(algorithm.InterLevelTargetsMeter);
+        Assert.Equal(SegmentKind.Ascent, plan.ExpandedSegments[2].Kind);
+        Assert.Equal(20, plan.ExpandedSegments[2].Depth.InMeter, Precision);
     }
 
     [Fact]
@@ -269,7 +238,8 @@ public sealed class DivePlannerTests
         var plan = planner.CreatePlan(request);
 
         // Assert
-        Assert.Empty(plan.Violations);
+        Assert.Empty(algorithm.InterLevelTargetsMeter);
+        Assert.Equal(SegmentKind.Descent, plan.ExpandedSegments[0].Kind);
     }
 
     [Fact]
@@ -474,14 +444,20 @@ public sealed class DivePlannerTests
     {
         private readonly Depth _ceiling;
         private readonly DiveSegment[] _finalAscent;
+        private readonly DiveSegment[] _interLevelAscent;
 
-        public FakeAlgorithm(Depth? ceiling = null, IEnumerable<DiveSegment>? finalAscent = null)
+        public FakeAlgorithm(Depth? ceiling = null,
+            IEnumerable<DiveSegment>? finalAscent = null,
+            IEnumerable<DiveSegment>? interLevelAscent = null)
         {
             _ceiling = ceiling ?? Depth.Zero;
             _finalAscent = finalAscent?.ToArray() ?? [];
+            _interLevelAscent = interLevelAscent?.ToArray() ?? [];
         }
 
         public List<DiveSegment> LoadedSegments { get; } = [];
+
+        public List<double> InterLevelTargetsMeter { get; } = [];
 
         public int BeginDiveCallCount => BeginDivePriorDiveCounts.Count;
 
@@ -507,6 +483,15 @@ public sealed class DivePlannerTests
         {
             FinalAscentRequest = request;
             return _finalAscent;
+        }
+
+        public IReadOnlyList<DiveSegment> CalculateAscent(IDecompressionState state,
+            DivePlanRequest request,
+            Depth targetDepth,
+            BreathingLoop breathingLoop)
+        {
+            InterLevelTargetsMeter.Add(targetDepth.InMeter);
+            return _interLevelAscent;
         }
     }
 }

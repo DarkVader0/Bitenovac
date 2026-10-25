@@ -12,23 +12,16 @@ namespace Bitenovac.DecompressionAlgorithms.Core.Planning;
 /// <para>
 /// The plan holds the fully expanded dive profile including descent, working ascent, bottom, and
 /// decompression stop segments, the gas consumed from each cylinder, the total runtime, the
-/// per-cylinder reserve gas assessment, the accrued oxygen toxicity exposure, and whether the plan
-/// is valid.
+/// per-cylinder reserve gas assessment, and the accrued oxygen toxicity exposure.
 /// </para>
 /// <para>
-/// A plan is invalid when one or more planned inter-level ascents would incur a decompression
-/// obligation. Such ascents are recorded in <see cref="Violations"/> so that the diver can amend
-/// the profile.
-/// </para>
-/// <para>
-/// The expanded segments, gas usage, and violations are copied on construction.
+/// The expanded segments and gas usage are copied on construction.
 /// </para>
 /// </remarks>
 public sealed class DecoPlan
 {
     private readonly DiveSegment[] _expandedSegments;
     private readonly CylinderGasUsage[] _gasUsage;
-    private readonly AscentViolation[] _violations;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DecoPlan"/> class.
@@ -42,14 +35,13 @@ public sealed class DecoPlan
     /// limit.
     /// </param>
     /// <param name="oxygenToleranceUnits">The accrued pulmonary oxygen toxicity, in oxygen tolerance units.</param>
-    /// <param name="violations">The inter-level ascents, if any, that would incur a decompression obligation.</param>
     /// <exception cref="ArgumentNullException">
-    /// <paramref name="expandedSegments"/>, <paramref name="gasUsage"/>, <paramref name="reserveGas"/>, or
-    /// <paramref name="violations"/> is <see langword="null"/>.
+    /// <paramref name="expandedSegments"/>, <paramref name="gasUsage"/>, or <paramref name="reserveGas"/> is
+    /// <see langword="null"/>.
     /// </exception>
     /// <exception cref="ArgumentException">
-    /// <paramref name="expandedSegments"/> is empty, or <paramref name="gasUsage"/> or
-    /// <paramref name="violations"/> contains a <see langword="null"/> entry.
+    /// <paramref name="expandedSegments"/> is empty, or <paramref name="gasUsage"/> contains a
+    /// <see langword="null"/> entry.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="totalRuntime"/> is negative, <paramref name="centralNervousSystemFraction"/> is negative, or
@@ -61,13 +53,11 @@ public sealed class DecoPlan
         TimeSpan totalRuntime,
         ReserveGasResult reserveGas,
         double centralNervousSystemFraction,
-        double oxygenToleranceUnits,
-        IEnumerable<AscentViolation> violations)
+        double oxygenToleranceUnits)
     {
         ArgumentNullException.ThrowIfNull(expandedSegments);
         ArgumentNullException.ThrowIfNull(gasUsage);
         ArgumentNullException.ThrowIfNull(reserveGas);
-        ArgumentNullException.ThrowIfNull(violations);
 
         var segments = expandedSegments.ToArray();
         if (segments.Length == 0)
@@ -79,12 +69,6 @@ public sealed class DecoPlan
         if (Array.Exists(usage, static item => item is null))
         {
             throw new ArgumentException("The gas usage must not contain a null entry.", nameof(gasUsage));
-        }
-
-        var recordedViolations = violations.ToArray();
-        if (Array.Exists(recordedViolations, static item => item is null))
-        {
-            throw new ArgumentException("The violations must not contain a null entry.", nameof(violations));
         }
 
         if (totalRuntime < TimeSpan.Zero)
@@ -107,7 +91,6 @@ public sealed class DecoPlan
 
         _expandedSegments = segments;
         _gasUsage = usage;
-        _violations = recordedViolations;
         TotalRuntime = totalRuntime;
         ReserveGas = reserveGas;
         CentralNervousSystemFraction = centralNervousSystemFraction;
@@ -151,26 +134,12 @@ public sealed class DecoPlan
     public double OxygenToleranceUnits { get; }
 
     /// <summary>
-    /// Gets the inter-level ascents that would incur a decompression obligation.
-    /// </summary>
-    public IReadOnlyList<AscentViolation> Violations => _violations;
-
-    /// <summary>
-    /// Gets a value that indicates whether the plan is valid.
-    /// </summary>
-    /// <value>
-    /// <see langword="true"/> if no planned inter-level ascent would incur a decompression
-    /// obligation; otherwise, <see langword="false"/>.
-    /// </value>
-    public bool IsValid => _violations.Length == 0;
-
-    /// <summary>
     /// Returns a human-readable summary of the plan.
     /// </summary>
     /// <returns>The multi-line summary of the plan.</returns>
     /// <remarks>
     /// <para>
-    /// The summary contains a header with the validity and total runtime, and a schedule table
+    /// The summary contains a header with the total runtime, and a schedule table
     /// with one line per phase showing the kind, depth, duration, runtime, and breathing gas. The
     /// oxygen exposure, the per-cylinder gas usage, and the reserve assessment follow.
     /// </para>
@@ -184,7 +153,7 @@ public sealed class DecoPlan
     public override string ToString()
     {
         var builder = new StringBuilder();
-        builder.Append(CultureInfo.InvariantCulture, $"Valid: {IsValid}, total runtime: {TotalRuntime.TotalMinutes}")
+        builder.Append(CultureInfo.InvariantCulture, $"Total runtime: {TotalRuntime.TotalMinutes}")
             .AppendLine()
             .AppendLine();
 

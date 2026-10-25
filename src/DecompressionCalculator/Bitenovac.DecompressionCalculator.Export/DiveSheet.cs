@@ -376,14 +376,6 @@ public static class DiveSheet
 
     private static void WriteWarnings(SheetWriter sheet, DiveResult result, UnitLabels labels, UnitSystem units, GasQuantity quantity)
     {
-        foreach (var violation in result.Violations)
-        {
-            sheet.Paragraph(
-                Localized.Format(ExportText.ViolationWarning, Formats.Number(violation.FromDepth), Formats.Number(violation.ToDepth), labels.Depth,
-                    Formats.Number(violation.Ceiling, 1)),
-                PdfFont.HelveticaBold, 8.5, SheetWriter.Danger);
-        }
-
         foreach (var cylinder in result.Cylinders.Where(static cylinder => cylinder.MissingLitres > 0))
         {
             sheet.Paragraph(

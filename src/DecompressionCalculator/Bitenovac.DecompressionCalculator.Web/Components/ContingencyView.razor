@@ -22,11 +22,6 @@
         <ProfileTable Result="Contingency.Result" Units="Units"/>
         <Figures Result="Contingency.Result"/>
 
-        @if (!Contingency.Result.IsValid)
-        {
-            <p class="alert alert-danger">@WebText.CeilingPassed</p>
-        }
-
         <GasTable Result="Contingency.Result" Units="Units" Quantity="Quantity"/>
     }
 </details>

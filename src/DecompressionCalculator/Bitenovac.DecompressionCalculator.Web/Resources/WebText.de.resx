@@ -468,9 +468,6 @@
     <data name="Contingencies" xml:space="preserve">
         <value>Notfallpläne</value>
     </data>
-    <data name="CeilingViolation" xml:space="preserve">
-        <value>Ein Aufstieg zwischen den Stufen überschreitet die Dekompressionsdecke. Fügen Sie einen Stopp hinzu oder verkürzen Sie die Stufe.</value>
-    </data>
     <data name="ReserveNotMet" xml:space="preserve">
         <value>Eine Flasche enthält nicht das Reservegas, das der Plan verlangt.</value>
     </data>
@@ -599,9 +596,6 @@
     </data>
     <data name="CannotBePlanned" xml:space="preserve">
         <value>Kann nicht geplant werden</value>
-    </data>
-    <data name="CeilingPassed" xml:space="preserve">
-        <value>Ein Aufstieg zwischen den Stufen überschreitet die Dekompressionsdecke.</value>
     </data>
     <data name="NeedsAttention" xml:space="preserve">
         <value>{0} braucht Aufmerksamkeit</value>

@@ -61,7 +61,7 @@ Descent: 4.44 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 143.66666666166665
+Total runtime: 143.66666666166665
 
 Descent       80 m     4 min     4 min  TX12/65 (CCR @ 1.3)
 Bottom        80 m    20 min    24 min  TX12/65 (CCR @ 1.3)
@@ -166,7 +166,7 @@ Descent: 4.17 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 151.83333333
+Total runtime: 151.83333333
 
 Descent       75 m     4 min     4 min  TX12/60 (CCR @ 1.2)
 Bottom        75 m    20 min    24 min  TX12/60 (CCR @ 1.2)
@@ -282,7 +282,7 @@ Descent: 2.50 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 55.83333333
+Total runtime: 55.83333333
 
 Descent       45 m     2 min     2 min  TX21/35 (CCR @ 1.2)
 Bottom        45 m    25 min    28 min  TX21/35 (CCR @ 1.2)
@@ -364,7 +364,7 @@ Descent: 3.33 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 68.33333333
+Total runtime: 68.33333333
 
 Descent       60 m     3 min     3 min  TX18/45 (CCR @ 1.2)
 Bottom        60 m    20 min    23 min  TX18/45 (CCR @ 1.2)
@@ -453,7 +453,7 @@ Descent: 4.17 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 99.83333333
+Total runtime: 99.83333333
 
 Descent       75 m     4 min     4 min  TX15/55 (CCR @ 1.2)
 Bottom        75 m    20 min    24 min  TX15/55 (CCR @ 1.2)
@@ -551,7 +551,7 @@ Descent: 5.56 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 141.999999995
+Total runtime: 141.999999995
 
 Descent      100 m     6 min     6 min  TX10/70 (CCR @ 1.2)
 Bottom       100 m    15 min    21 min  TX10/70 (CCR @ 1.2)
