@@ -9,7 +9,7 @@
     </PropertyGroup>
     
     <PropertyGroup>
-        <RepositoryTargetFramework>net10.0</RepositoryTargetFramework>
+        <RepositoryTargetFramework>net11.0</RepositoryTargetFramework>
         <TargetFramework Condition="'$(TargetFramework)' == '' AND '$(TargetFrameworks)' == ''">$(RepositoryTargetFramework)</TargetFramework>
     </PropertyGroup>
 
