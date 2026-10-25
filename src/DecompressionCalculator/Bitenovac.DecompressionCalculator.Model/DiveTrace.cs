@@ -18,21 +18,7 @@ internal static class DiveTrace
     {
         var segments = plan.ExpandedSegments;
         var settings = request.Settings;
-
-        var lastLevel = -1;
-        for (var index = 0; index < segments.Count; index++)
-        {
-            if (segments[index].Kind == SegmentKind.Bottom)
-            {
-                lastLevel = index;
-            }
-        }
-
-        var firstStop = segments.Skip(lastLevel + 1)
-            .Where(static segment => segment.Kind == SegmentKind.Stop)
-            .Select(static segment => segment.Depth)
-            .DefaultIfEmpty(Depth.Zero)
-            .Max();
+        var firstStops = FirstStopOfEachLeg(segments);
 
         // Exposure adds up from what earlier dives left, so this dive's own share separates it exactly.
         var alone = OxygenExposure.Calculate(segments, settings);
@@ -71,12 +57,13 @@ internal static class DiveTrace
                 var elapsed = new DiveSegment(stepDepth, segment.Duration * step / count, segment.Gas, segment.Kind, segment.Loop);
                 var exposure = OxygenExposure.Calculate([.. completed, elapsed], settings, carried);
 
-                var ascending = index > lastLevel;
+                var ascending = segment.Kind is SegmentKind.Ascent or SegmentKind.Stop or SegmentKind.GasSwitch
+                    or SegmentKind.SafetyStop;
                 var ceiling = ascending
-                    ? Depth.FromMeter(Math.Min(algorithm.AscentCeiling(state, firstStop).InMeter, stepDepth.InMeter))
+                    ? Depth.FromMeter(Math.Min(algorithm.AscentCeiling(state, firstStops[index]).InMeter, stepDepth.InMeter))
                     : algorithm.CurrentCeiling(state);
 
-                // On the final ascent the rest of the plan is the ascent itself.
+                // On an ascent the rest of the plan is the ascent itself.
                 var timeToSurface = ascending ? plan.TotalRuntime - runtime : algorithm.TimeToSurface(state, request);
 
                 moments.Add(Moment(runtime, stepDepth, ceiling, piece, exposure, timeToSurface, settings, units));
@@ -87,6 +74,41 @@ internal static class DiveTrace
         }
 
         return [.. moments];
+    }
+
+    /// <summary>
+    /// Returns, for every segment, the deepest decompression stop of the leg it belongs to.
+    /// </summary>
+    /// <remarks>
+    /// A leg runs from one level to the next, or from the last level to the surface. The model
+    /// anchors its gradient-factor slope at that deepest stop, so each ascent is traced against it.
+    /// </remarks>
+    private static Depth[] FirstStopOfEachLeg(IReadOnlyList<DiveSegment> segments)
+    {
+        var firstStops = new Depth[segments.Count];
+        var legStart = 0;
+
+        for (var index = 0; index <= segments.Count; index++)
+        {
+            if (index < segments.Count && segments[index].Kind != SegmentKind.Bottom)
+            {
+                continue;
+            }
+
+            var firstStop = segments.Skip(legStart).Take(index - legStart)
+                .Where(static segment => segment.Kind == SegmentKind.Stop)
+                .Select(static segment => segment.Depth)
+                .DefaultIfEmpty(Depth.Zero)
+                .Max();
+            for (var leg = legStart; leg < index; leg++)
+            {
+                firstStops[leg] = firstStop;
+            }
+
+            legStart = index + 1;
+        }
+
+        return firstStops;
     }
 
     private static DiveMoment Moment(TimeSpan runtime, Depth depth, Depth ceiling, DiveSegment breathing,

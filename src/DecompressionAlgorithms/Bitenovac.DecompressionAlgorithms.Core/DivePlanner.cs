@@ -13,14 +13,11 @@ namespace Bitenovac.DecompressionAlgorithms.Core;
 /// <remarks>
 /// <para>
 /// The planner walks the planned profile level by level. It builds the descent, working ascent,
-/// and bottom segments, advances the model's tissue state over each, and validates every
-/// inter-level ascent against the model's ceiling. It then asks the model for the final ascent to
-/// the surface and runs the shared calculators for gas consumption, reserve gas, and oxygen
-/// toxicity over the complete profile.
-/// </para>
-/// <para>
-/// An inter-level ascent that would incur a decompression obligation is recorded as a violation
-/// and marks the resulting plan invalid. It is not planned without the required stop.
+/// and bottom segments, and advances the model's tissue state over each. An inter-level ascent
+/// whose ceiling is deeper than its target is planned by the model, which inserts the decompression
+/// stops it requires. It then asks the model for the final ascent to the surface and runs the
+/// shared calculators for gas consumption, reserve gas, and oxygen toxicity over the complete
+/// profile.
 /// </para>
 /// </remarks>
 public sealed class DivePlanner
@@ -42,12 +39,11 @@ public sealed class DivePlanner
     /// Creates the decompression plan for the specified request.
     /// </summary>
     /// <param name="request">The planning request supplying the profile, cylinders, and settings.</param>
-    /// <returns>The decompression plan, marked invalid if any inter-level ascent would incur an obligation.</returns>
+    /// <returns>The decompression plan, including every decompression stop between levels and on the final ascent.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
     /// <remarks>
-    /// The working phase is built and loaded into the model level by level, and each inter-level
-    /// ascent is validated against the model's ceiling. The model then computes the final ascent to
-    /// the surface, and the shared calculators run over the complete profile.
+    /// The working phase is built and loaded into the model level by level. The model computes the
+    /// final ascent to the surface, and the shared calculators run over the complete profile.
     /// </remarks>
     public DecoPlan CreatePlan(DivePlanRequest request)
     {
@@ -57,8 +53,7 @@ public sealed class DivePlanner
         var cylinders = request.Cylinders;
 
         var carried = CarriedOxygenExposure(request.PriorDives);
-        var violations = new List<AscentViolation>();
-        var segments = BuildDive(request, violations);
+        var segments = BuildDive(request);
 
         var gasUsage = GasConsumption.Calculate(segments, cylinders, settings);
         var reserve = ReserveGas.Calculate(segments, cylinders, settings);
@@ -66,7 +61,7 @@ public sealed class DivePlanner
         var runtime = TotalRuntime(segments);
 
         return new DecoPlan(segments, gasUsage, runtime, reserve,
-            oxygen.CentralNervousSystemFraction, oxygen.OxygenToleranceUnits, violations);
+            oxygen.CentralNervousSystemFraction, oxygen.OxygenToleranceUnits);
     }
     
     /// <summary>
@@ -86,7 +81,7 @@ public sealed class DivePlanner
         {
             var prior = priorDives[i];
             var request = new DivePlanRequest(prior.Profile, prior.Cylinders, prior.Settings, priorDives.Take(i));
-            var segments = BuildDive(request, []);
+            var segments = BuildDive(request);
             var onSurfacing = OxygenExposure.Calculate(segments, prior.Settings, carried);
             carried = OxygenExposure.AfterSurfaceInterval(onSurfacing, prior.SurfaceInterval);
         }
@@ -99,9 +94,8 @@ public sealed class DivePlanner
     /// model's final ascent.
     /// </summary>
     /// <param name="request">The planning request supplying the profile, cylinders, and settings.</param>
-    /// <param name="violations">The list that every inter-level ascent breaching the ceiling is added to.</param>
     /// <returns>The expanded segments, in order.</returns>
-    private List<DiveSegment> BuildDive(DivePlanRequest request, List<AscentViolation> violations)
+    private List<DiveSegment> BuildDive(DivePlanRequest request)
     {
         var settings = request.Settings;
         var cylinders = request.Cylinders;
@@ -125,20 +119,20 @@ public sealed class DivePlanner
             }
             else if (targetDepthMeter < currentDepthMeter)
             {
-                var ceiling = _algorithm.CurrentCeiling(state);
-                if (ceiling.InMeter > targetDepthMeter)
+                if (_algorithm.CurrentCeiling(state).InMeter > targetDepthMeter)
                 {
-                    violations.Add(new AscentViolation(
-                        Depth.FromMeter(currentDepthMeter),
-                        Depth.FromMeter(targetDepthMeter),
-                        ceiling));
+                    segments.AddRange(_algorithm.CalculateAscent(state, request,
+                        Depth.FromMeter(targetDepthMeter), target.Loop));
+                }
+                else
+                {
+                    var ascent = BuildTravel(currentDepthMeter, targetDepthMeter,
+                        settings.AscentRateBelow75PercentMetersPerMinute, SegmentKind.Ascent, cylinders, settings,
+                        target.Loop);
+                    segments.Add(ascent);
+                    state = _algorithm.LoadSegment(state, ascent);
                 }
 
-                var ascent = BuildTravel(currentDepthMeter, targetDepthMeter,
-                    settings.AscentRateBelow75PercentMetersPerMinute, SegmentKind.Ascent, cylinders, settings,
-                    target.Loop);
-                segments.Add(ascent);
-                state = _algorithm.LoadSegment(state, ascent);
                 currentDepthMeter = targetDepthMeter;
             }
 

@@ -441,16 +441,15 @@ public sealed class DiveSheetTests
     }
 
     [Fact]
-    public void Create_ShouldWarnAboutTheCeilingAndTheReserve_WhenTheDiveBreaksThem()
+    public void Create_ShouldWarnAboutTheReserve_WhenTheDiveBreaksIt()
     {
         // Arrange
-        var plan = TestFactory.ViolatingPlan();
+        var plan = TestFactory.BetweenLevelsPlan();
 
         // Act
         var pdf = Sheet(plan);
 
         // Assert
-        Assert.Matches(@"\(Ascent from 40 to 3 m passes the decompression ceiling at [\d.]+ m\.\) Tj", pdf);
         Assert.Contains(TestFactory.Shown("A cylinder does not hold the reserve gas the plan requires."), pdf, StringComparison.Ordinal);
     }
 

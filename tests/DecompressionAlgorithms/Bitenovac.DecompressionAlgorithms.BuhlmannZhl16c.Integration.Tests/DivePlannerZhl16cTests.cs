@@ -15,7 +15,7 @@ public sealed class DivePlannerZhl16cTests
         new DivePlanner(new BuhlmannZhl16cAlgorithm(gradientFactorLow, gradientFactorHigh)).CreatePlan(request);
 
     [Fact]
-    public void CreatePlan_ShouldBeValidAndEndAtSurface_WhenDiveNeedsNoDecompression()
+    public void CreatePlan_ShouldEndAtSurface_WhenDiveNeedsNoDecompression()
     {
         // Arrange
         var request = new DivePlanRequest(TestFactory.CreateProfile((18, 15)), [TestFactory.CreateCylinder()],
@@ -25,7 +25,6 @@ public sealed class DivePlannerZhl16cTests
         var plan = Plan(request, 0.85, 0.85);
 
         // Assert
-        Assert.True(plan.IsValid);
         Assert.Equal(0.0, plan.ExpandedSegments[^1].Depth.InMeter, Precision);
         Assert.True(plan.TotalRuntime > TimeSpan.FromMinutes(15));
     }
@@ -43,7 +42,6 @@ public sealed class DivePlannerZhl16cTests
         var plan = Plan(request);
 
         // Assert
-        Assert.True(plan.IsValid);
         var stops = 0;
         for (var i = 0; i < plan.ExpandedSegments.Count; i++)
         {
@@ -61,7 +59,7 @@ public sealed class DivePlannerZhl16cTests
     }
 
     [Fact]
-    public void CreatePlan_ShouldRecordViolation_WhenProfileAscendsAboveCeiling()
+    public void CreatePlan_ShouldInsertStopsBetweenLevels_WhenProfileAscendsAboveCeiling()
     {
         // Arrange
         var request = new DivePlanRequest(TestFactory.CreateProfile((40, 25), (3, 5)),
@@ -72,10 +70,11 @@ public sealed class DivePlannerZhl16cTests
         var plan = Plan(request);
 
         // Assert
-        Assert.False(plan.IsValid);
-        var violation = Assert.Single(plan.Violations);
-        Assert.Equal(3.0, violation.ToDepth.InMeter, Precision);
-        Assert.True(violation.Ceiling.InMeter > 3.0);
+        Assert.Contains(plan.ExpandedSegments,
+            static segment => segment.Kind == SegmentKind.Stop && segment.Depth.InMeter > 3.0);
+        var lastLevel = plan.ExpandedSegments.Last(static segment => segment.Kind == SegmentKind.Bottom);
+        Assert.Equal(3.0, lastLevel.Depth.InMeter, Precision);
+        Assert.Equal(0.0, plan.ExpandedSegments[^1].Depth.InMeter, Precision);
     }
 
     [Fact]

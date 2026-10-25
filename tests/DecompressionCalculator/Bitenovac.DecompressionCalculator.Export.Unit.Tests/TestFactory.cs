@@ -92,7 +92,7 @@ internal static class TestFactory
         };
     }
 
-    public static DivePlanDocument ViolatingPlan()
+    public static DivePlanDocument BetweenLevelsPlan()
     {
         var plan = Plan();
         return plan with

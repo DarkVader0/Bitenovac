@@ -25,7 +25,7 @@ public sealed class DecoPlanTests
         IEnumerable<DiveSegment> expandedSegments = null!;
 
         // Act
-        Action act = () => new DecoPlan(expandedSegments, [], TimeSpan.Zero, CreateReserveGas(), 0, 0, []);
+        Action act = () => new DecoPlan(expandedSegments, [], TimeSpan.Zero, CreateReserveGas(), 0, 0);
 
         // Assert
         Assert.Throws<ArgumentNullException>(act);
@@ -38,7 +38,7 @@ public sealed class DecoPlanTests
         IEnumerable<CylinderGasUsage> gasUsage = null!;
 
         // Act
-        Action act = () => new DecoPlan([CreateSegment()], gasUsage, TimeSpan.Zero, CreateReserveGas(), 0, 0, []);
+        Action act = () => new DecoPlan([CreateSegment()], gasUsage, TimeSpan.Zero, CreateReserveGas(), 0, 0);
 
         // Assert
         Assert.Throws<ArgumentNullException>(act);
@@ -51,24 +51,12 @@ public sealed class DecoPlanTests
         ReserveGasResult reserveGas = null!;
 
         // Act
-        Action act = () => new DecoPlan([CreateSegment()], [], TimeSpan.Zero, reserveGas, 0, 0, []);
+        Action act = () => new DecoPlan([CreateSegment()], [], TimeSpan.Zero, reserveGas, 0, 0);
 
         // Assert
         Assert.Throws<ArgumentNullException>(act);
     }
 
-    [Fact]
-    public void Constructor_ShouldThrowArgumentNullException_WhenViolationsIsNull()
-    {
-        // Arrange
-        IEnumerable<AscentViolation> violations = null!;
-
-        // Act
-        Action act = () => new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, 0, violations);
-
-        // Assert
-        Assert.Throws<ArgumentNullException>(act);
-    }
 
     [Fact]
     public void Constructor_ShouldThrowArgumentException_WhenExpandedSegmentsIsEmpty()
@@ -77,7 +65,7 @@ public sealed class DecoPlanTests
         var expandedSegments = Array.Empty<DiveSegment>();
 
         // Act
-        Action act = () => new DecoPlan(expandedSegments, [], TimeSpan.Zero, CreateReserveGas(), 0, 0, []);
+        Action act = () => new DecoPlan(expandedSegments, [], TimeSpan.Zero, CreateReserveGas(), 0, 0);
 
         // Assert
         Assert.Throws<ArgumentException>(act);
@@ -90,24 +78,12 @@ public sealed class DecoPlanTests
         var gasUsage = new CylinderGasUsage[] { null! };
 
         // Act
-        Action act = () => new DecoPlan([CreateSegment()], gasUsage, TimeSpan.Zero, CreateReserveGas(), 0, 0, []);
+        Action act = () => new DecoPlan([CreateSegment()], gasUsage, TimeSpan.Zero, CreateReserveGas(), 0, 0);
 
         // Assert
         Assert.Throws<ArgumentException>(act);
     }
 
-    [Fact]
-    public void Constructor_ShouldThrowArgumentException_WhenViolationsContainsNullEntry()
-    {
-        // Arrange
-        var violations = new AscentViolation[] { null! };
-
-        // Act
-        Action act = () => new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, 0, violations);
-
-        // Assert
-        Assert.Throws<ArgumentException>(act);
-    }
 
     [Fact]
     public void Constructor_ShouldThrowArgumentOutOfRangeException_WhenTotalRuntimeIsNegative()
@@ -116,7 +92,7 @@ public sealed class DecoPlanTests
         var totalRuntime = TimeSpan.FromSeconds(-1);
 
         // Act
-        Action act = () => new DecoPlan([CreateSegment()], [], totalRuntime, CreateReserveGas(), 0, 0, []);
+        Action act = () => new DecoPlan([CreateSegment()], [], totalRuntime, CreateReserveGas(), 0, 0);
 
         // Assert
         Assert.Throws<ArgumentOutOfRangeException>(act);
@@ -130,7 +106,7 @@ public sealed class DecoPlanTests
 
         // Act
         Action act = () => new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(),
-            centralNervousSystemFraction, 0, []);
+            centralNervousSystemFraction, 0);
 
         // Assert
         Assert.Throws<ArgumentOutOfRangeException>(act);
@@ -144,7 +120,7 @@ public sealed class DecoPlanTests
 
         // Act
         Action act = () =>
-            new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, oxygenToleranceUnits, []);
+            new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, oxygenToleranceUnits);
 
         // Assert
         Assert.Throws<ArgumentOutOfRangeException>(act);
@@ -157,7 +133,7 @@ public sealed class DecoPlanTests
         var totalRuntime = TimeSpan.Zero;
 
         // Act
-        var plan = new DecoPlan([CreateSegment()], [], totalRuntime, CreateReserveGas(), 0, 0, []);
+        var plan = new DecoPlan([CreateSegment()], [], totalRuntime, CreateReserveGas(), 0, 0);
 
         // Assert
         Assert.Equal(TimeSpan.Zero, plan.TotalRuntime);
@@ -169,7 +145,7 @@ public sealed class DecoPlanTests
         // Arrange
 
         // Act
-        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, 0, []);
+        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, 0);
 
         // Assert
         Assert.Equal(0, plan.CentralNervousSystemFraction, Precision);
@@ -183,7 +159,7 @@ public sealed class DecoPlanTests
         var segment = CreateSegment();
 
         // Act
-        var plan = new DecoPlan([segment], [], TimeSpan.Zero, CreateReserveGas(), 0, 0, []);
+        var plan = new DecoPlan([segment], [], TimeSpan.Zero, CreateReserveGas(), 0, 0);
 
         // Assert
         Assert.Single(plan.ExpandedSegments);
@@ -195,7 +171,7 @@ public sealed class DecoPlanTests
     {
         // Arrange
         var segments = new List<DiveSegment> { CreateSegment() };
-        var plan = new DecoPlan(segments, [], TimeSpan.Zero, CreateReserveGas(), 0, 0, []);
+        var plan = new DecoPlan(segments, [], TimeSpan.Zero, CreateReserveGas(), 0, 0);
 
         // Act
         segments.Add(CreateSegment());
@@ -211,7 +187,7 @@ public sealed class DecoPlanTests
         var usage = new CylinderGasUsage(CreateCylinder(), Volume.FromLiter(500), Pressure.FromBar(100));
 
         // Act
-        var plan = new DecoPlan([CreateSegment()], [usage], TimeSpan.Zero, CreateReserveGas(), 0, 0, []);
+        var plan = new DecoPlan([CreateSegment()], [usage], TimeSpan.Zero, CreateReserveGas(), 0, 0);
 
         // Assert
         Assert.Single(plan.GasUsage);
@@ -225,7 +201,7 @@ public sealed class DecoPlanTests
         var totalRuntime = TimeSpan.FromMinutes(45);
 
         // Act
-        var plan = new DecoPlan([CreateSegment()], [], totalRuntime, CreateReserveGas(), 0, 0, []);
+        var plan = new DecoPlan([CreateSegment()], [], totalRuntime, CreateReserveGas(), 0, 0);
 
         // Assert
         Assert.Equal(totalRuntime, plan.TotalRuntime);
@@ -238,7 +214,7 @@ public sealed class DecoPlanTests
         var reserveGas = CreateReserveGas();
 
         // Act
-        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.Zero, reserveGas, 0, 0, []);
+        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.Zero, reserveGas, 0, 0);
 
         // Assert
         Assert.Same(reserveGas, plan.ReserveGas);
@@ -252,7 +228,7 @@ public sealed class DecoPlanTests
 
         // Act
         var plan = new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), centralNervousSystemFraction,
-            0, []);
+            0);
 
         // Assert
         Assert.Equal(centralNervousSystemFraction, plan.CentralNervousSystemFraction, Precision);
@@ -265,78 +241,27 @@ public sealed class DecoPlanTests
         const double oxygenToleranceUnits = 250;
 
         // Act
-        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, oxygenToleranceUnits, []);
+        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, oxygenToleranceUnits);
 
         // Assert
         Assert.Equal(oxygenToleranceUnits, plan.OxygenToleranceUnits, Precision);
     }
 
-    [Fact]
-    public void Violations_ShouldReturnSuppliedViolations_WhenSet()
-    {
-        // Arrange
-        var violation = new AscentViolation(Depth.FromMeter(30), Depth.FromMeter(20), Depth.FromMeter(24));
 
-        // Act
-        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, 0, [violation]);
 
-        // Assert
-        Assert.Single(plan.Violations);
-        Assert.Same(violation, plan.Violations[0]);
-    }
+
 
     [Fact]
-    public void Violations_ShouldNotReflectChanges_WhenSourceListIsModifiedAfterConstruction()
+    public void ToString_ShouldStartWithTotalRuntime_WhenPlanIsCreated()
     {
         // Arrange
-        var violations = new List<AscentViolation>();
-        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, 0, violations);
-
-        // Act
-        violations.Add(new AscentViolation(Depth.FromMeter(30), Depth.FromMeter(20), Depth.FromMeter(24)));
-
-        // Assert
-        Assert.Empty(plan.Violations);
-    }
-
-    [Fact]
-    public void IsValid_ShouldReturnTrue_WhenViolationsIsEmpty()
-    {
-        // Arrange
-        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, 0, []);
-
-        // Act
-        var isValid = plan.IsValid;
-
-        // Assert
-        Assert.True(isValid);
-    }
-
-    [Fact]
-    public void IsValid_ShouldReturnFalse_WhenViolationsIsNotEmpty()
-    {
-        // Arrange
-        var violation = new AscentViolation(Depth.FromMeter(30), Depth.FromMeter(20), Depth.FromMeter(24));
-        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.Zero, CreateReserveGas(), 0, 0, [violation]);
-
-        // Act
-        var isValid = plan.IsValid;
-
-        // Assert
-        Assert.False(isValid);
-    }
-
-    [Fact]
-    public void ToString_ShouldStartWithValidityAndTotalRuntime_WhenPlanIsValid()
-    {
-        // Arrange
-        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.FromMinutes(30), CreateReserveGas(), 0, 0, []);
+        var plan = new DecoPlan([CreateSegment()], [], TimeSpan.FromMinutes(30), CreateReserveGas(), 0, 0);
 
         // Act
         var lines = plan.ToString().Split(System.Environment.NewLine);
 
         // Assert
-        Assert.Equal("Valid: True, total runtime: 30", lines[0]);
+        Assert.Equal("Total runtime: 30", lines[0]);
     }
 
     [Fact]
@@ -352,7 +277,7 @@ public sealed class DecoPlanTests
             new(Depth.FromMeter(6), TimeSpan.FromMinutes(3), nitrox50, SegmentKind.Stop),
             new(Depth.FromMeter(0), TimeSpan.FromMinutes(6), nitrox50, SegmentKind.Ascent)
         ];
-        var plan = new DecoPlan(segments, [], TimeSpan.FromMinutes(32), CreateReserveGas(), 0, 0, []);
+        var plan = new DecoPlan(segments, [], TimeSpan.FromMinutes(32), CreateReserveGas(), 0, 0);
 
         // Act
         var lines = plan.ToString().Split(System.Environment.NewLine);
@@ -370,7 +295,7 @@ public sealed class DecoPlanTests
         // Arrange
         var usage = new CylinderGasUsage(CreateCylinder(), Volume.FromLiter(1234.56), Pressure.FromBar(72.55));
         var plan = new DecoPlan([CreateSegment()], [usage], TimeSpan.FromMinutes(20), CreateReserveGas(),
-            0.4454, 124.08, []);
+            0.4454, 124.08);
 
         // Act
         var text = plan.ToString();

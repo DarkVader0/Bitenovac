@@ -876,6 +876,89 @@ public sealed class BuhlmannZhl16cAlgorithmTests
     }
 
     [Fact]
+    public void CalculateAscent_ShouldThrowArgumentOutOfRangeException_WhenTargetIsNotShallowerThanTheCurrentDepth()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.7);
+        var request = TestFactory.CreateRequest(40, 20);
+        var state = algorithm.BeginDive(request);
+        algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(40), TimeSpan.FromMinutes(20), GasMixture.Air,
+            SegmentKind.Bottom));
+
+        // Act
+        var act = () => algorithm.CalculateAscent(state, request, Depth.FromMeter(40), BreathingLoop.OpenCircuit);
+
+        // Assert
+        Assert.Throws<ArgumentOutOfRangeException>(act);
+    }
+
+    [Fact]
+    public void CalculateAscent_ShouldHoldOnlyAtStopsBelowTheTarget_WhenDecompressionIsRequired()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.7);
+        var request = TestFactory.CreateRequest(50, 30);
+        var state = algorithm.BeginDive(request);
+        algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(50), TimeSpan.FromMinutes(30), GasMixture.Air,
+            SegmentKind.Bottom));
+
+        // Act
+        var ascent = algorithm.CalculateAscent(state, request, Depth.FromMeter(20), BreathingLoop.OpenCircuit);
+
+        // Assert
+        var stops = 0;
+        for (var i = 0; i < ascent.Count; i++)
+        {
+            if (ascent[i].Kind != SegmentKind.Stop)
+            {
+                continue;
+            }
+
+            stops++;
+            Assert.True(ascent[i].Depth.InMeter > 20.0);
+            Assert.Equal(0.0, ascent[i].Depth.InMeter % 3.0, Precision);
+        }
+
+        Assert.True(stops > 0);
+    }
+
+    [Fact]
+    public void CalculateAscent_ShouldEndAtTheTarget_WhenDecompressionIsRequired()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.7);
+        var request = TestFactory.CreateRequest(50, 30);
+        var state = algorithm.BeginDive(request);
+        algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(50), TimeSpan.FromMinutes(30), GasMixture.Air,
+            SegmentKind.Bottom));
+
+        // Act
+        var ascent = algorithm.CalculateAscent(state, request, Depth.FromMeter(20), BreathingLoop.OpenCircuit);
+
+        // Assert
+        Assert.Equal(20.0, ascent[^1].Depth.InMeter, Precision);
+    }
+
+    [Fact]
+    public void CalculateAscent_ShouldContainOnlyAscents_WhenNoDecompressionIsRequired()
+    {
+        // Arrange
+        var algorithm = new BuhlmannZhl16cAlgorithm(0.3, 0.7);
+        var request = TestFactory.CreateRequest(40, 2);
+        var state = algorithm.BeginDive(request);
+        algorithm.LoadSegment(state, new DiveSegment(Depth.FromMeter(40), TimeSpan.FromMinutes(2), GasMixture.Air,
+            SegmentKind.Bottom));
+
+        // Act
+        var ascent = algorithm.CalculateAscent(state, request, Depth.FromMeter(30), BreathingLoop.OpenCircuit);
+
+        // Assert
+        Assert.NotEmpty(ascent);
+        Assert.All(ascent, static segment => Assert.Equal(SegmentKind.Ascent, segment.Kind));
+        Assert.Equal(30.0, ascent[^1].Depth.InMeter, Precision);
+    }
+
+    [Fact]
     public void BeginDive_ShouldRetainLessNitrogen_WhenPriorDiveProfileAscendsToShallowerLevel()
     {
         // Arrange
