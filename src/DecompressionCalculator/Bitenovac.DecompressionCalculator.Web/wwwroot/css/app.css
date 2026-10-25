@@ -668,8 +668,20 @@ select.cell-input {
     height: 1.75rem;
 }
 
+.app-icon {
+    display: none;
+}
+
 /* On a phone the icons are filled and fill their buttons. */
 @media (max-width: 640px) {
+    .app-icon {
+        display: block;
+        flex: none;
+        width: var(--touch-target);
+        height: var(--touch-target);
+        order: -1;
+    }
+
     .icon-button > .icon {
         fill: currentColor;
         stroke: none;
