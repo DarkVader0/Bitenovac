@@ -679,6 +679,13 @@ select.cell-input {
         width: 2rem;
         height: 2rem;
     }
+
+    .plan-header .gas-tools-button > .icon {
+        width: 2.35rem;
+        height: 2.35rem;
+        stroke: currentColor;
+        stroke-width: 1.1;
+    }
 }
 
 .info-button:hover {
