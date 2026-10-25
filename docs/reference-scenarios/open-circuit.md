@@ -54,7 +54,7 @@ Descent to 42 m: 2.33 min. Travel 42 → 27 m generated.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 101.33333333
+Total runtime: 101.33333333
 
 Descent       42 m     2 min     2 min  Air
 Bottom        42 m    25 min    27 min  Air
@@ -134,7 +134,7 @@ Descent: 3.06 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 51.95555555333333
+Total runtime: 51.95555555333333
 
 Descent       55 m     3 min     3 min  Air
 Bottom        55 m    20 min    23 min  Air
@@ -212,14 +212,14 @@ Descent to 33 m: 2.75 min at the reduced rate. Travel 33 → 21 m generated.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 54.749999996666666
+Total runtime: 54.749999996666666
 
 Descent       33 m     3 min     3 min  NX32
 Bottom        33 m    20 min    23 min  NX32
 Ascent        21 m     1 min    24 min  NX32
 Bottom        21 m    20 min    44 min  NX32
 Ascent         3 m     5 min    49 min  NX50
-Stop           3 m     3 min    52 min  NX50
+SafetyStop      3 m     3 min    52 min  NX50
 Ascent         0 m     3 min    55 min  NX50
 
 CNS: 22.96 %
@@ -285,7 +285,7 @@ Descent: 3.00 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 77.33333333
+Total runtime: 77.33333333
 
 Descent       45 m     3 min     3 min  TX21/35
 Bottom        45 m    30 min    33 min  TX21/35
@@ -367,7 +367,7 @@ Descent: 3.33 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 89.33333333
+Total runtime: 89.33333333
 
 Descent       60 m     3 min     3 min  TX18/45
 Bottom        60 m    25 min    28 min  TX18/45
@@ -456,7 +456,7 @@ Descent: 3.75 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 106.91666666333333
+Total runtime: 106.91666666333333
 
 Descent       75 m     4 min     4 min  TX15/55
 Bottom        75 m    20 min    24 min  TX15/55
@@ -555,7 +555,7 @@ Descent: 5.00 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 150.44444444166666
+Total runtime: 150.44444444166666
 
 Descent      100 m     5 min     5 min  TX10/70
 Bottom       100 m    15 min    20 min  TX10/70
@@ -662,7 +662,7 @@ Descent: 5.00 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 122.33333333333333
+Total runtime: 122.33333333333333
 
 Descent       90 m     5 min     5 min  TX12/60
 Bottom        90 m    15 min    20 min  TX12/60
@@ -764,7 +764,7 @@ Descent: 3.47 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 64.577777775
+Total runtime: 64.577777775
 
 Descent       52 m     3 min     3 min  TX18/45
 Bottom        52 m    20 min    23 min  TX18/45
@@ -854,7 +854,7 @@ Both dives.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 49.999999996666666
+Total runtime: 49.999999996666666
 
 Descent       40 m     2 min     2 min  TX21/35
 Bottom        40 m    20 min    22 min  TX21/35
@@ -866,8 +866,8 @@ Ascent         6 m     0 min    29 min  NX50
 Stop           6 m    15 min    44 min  NX50
 Ascent         0 m     6 min    50 min  NX50
 
-CNS: 16.23 %
-OTU: 43.23
+CNS: 25.38 %
+OTU: 105.36
 
 Cylinder TX21/35: used 2152.16 L, end pressure 142.33 bar
 Cylinder NX50: used 651.13 L, end pressure 141.34 bar
@@ -936,7 +936,7 @@ All three dives.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 41.999999996666666
+Total runtime: 41.999999996666666
 
 Descent       28 m     2 min     2 min  Air
 Bottom        28 m    30 min    32 min  Air
@@ -944,8 +944,8 @@ Ascent        21 m     1 min    32 min  Air
 GasSwitch     21 m     2 min    34 min  NX50
 Ascent         0 m     8 min    42 min  NX50
 
-CNS: 11.53 %
-OTU: 28.59
+CNS: 20.08 %
+OTU: 98.28
 
 Cylinder Air: used 2218.14 L, end pressure 84.12 bar
 Cylinder NX50: used 300.8 L, end pressure 172.9 bar
@@ -1010,7 +1010,7 @@ Descent: 6.00 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 198.055555555
+Total runtime: 198.055555555
 
 Descent      120 m     6 min     6 min  TX8/80
 Bottom       120 m    12 min    18 min  TX8/80
@@ -1125,7 +1125,7 @@ Descent: 2.50 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 58.83333333
+Total runtime: 58.83333333
 
 Descent       45 m     2 min     2 min  TX21/35
 Bottom        45 m    25 min    28 min  TX21/35
@@ -1206,7 +1206,7 @@ Descent: 3.33 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 72.33333333
+Total runtime: 72.33333333
 
 Descent       60 m     3 min     3 min  TX18/45
 Bottom        60 m    20 min    23 min  TX18/45
@@ -1294,7 +1294,7 @@ Descent: 4.17 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 107.83333333
+Total runtime: 107.83333333
 
 Descent       75 m     4 min     4 min  TX15/55
 Bottom        75 m    20 min    24 min  TX15/55
@@ -1394,7 +1394,7 @@ Descent: 5.56 min.
 ### Bitenovac plan
 
 ```
-Valid: True, total runtime: 143.999999995
+Total runtime: 143.999999995
 
 Descent      100 m     6 min     6 min  TX10/70
 Bottom       100 m    15 min    21 min  TX10/70
