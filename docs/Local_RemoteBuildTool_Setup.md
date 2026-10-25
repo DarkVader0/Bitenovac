@@ -404,7 +404,7 @@ runner image reads it directly; for example, every project of one build with wha
 (Ubuntu):
 
 ```bash
-docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint duckdb bitenovac-remotebuildtool-runner:10.0.400 \
+docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint duckdb bitenovac-remotebuildtool-runner:11.0.100-rc.2.26504.105 \
     -c "SELECT unnest(Configurations.Debug, recursive := true) FROM read_json('/logs/PR_18/16473829-1/build-graph.json')"
 ```
 
@@ -541,7 +541,7 @@ logs volume is in use: `sudo systemctl stop 'actions.runner.*'`.
 cd ~/bitenovac
 sudo bash runner/setup-runner.sh --uninstall --purge --token unused
 docker volume rm bitenovac-official
-docker image rm bitenovac-remotebuildtool-runner:10.0.400
+docker image rm bitenovac-remotebuildtool-runner:11.0.100-rc.2.26504.105
 sudo rm /etc/exports.d/bitenovac.exports && sudo exportfs -ra
 sudo rm -rf /srv/bitenovac
 ```

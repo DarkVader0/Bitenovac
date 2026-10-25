@@ -21,20 +21,20 @@ public sealed class ShareService(IJSRuntime js) : IAsyncDisposable
 
     private IJSObjectReference? _module;
 
-    public async ValueTask<bool> CanShareFilesAsync() => await (await ModuleAsync()).InvokeAsync<bool>("canShareFiles");
+    public async ValueTask<bool> CanShareFilesAsync() => await (await ModuleAsync()).InvokeGuardedAsync<bool>("canShareFiles");
 
     public async ValueTask<ShareOutcome> ShareFileAsync(byte[] bytes, string fileName, string type, string title, string text) =>
-        Outcome(await (await ModuleAsync()).InvokeAsync<string>("shareFile", bytes, fileName, type, title, text));
+        Outcome(await (await ModuleAsync()).InvokeGuardedAsync<string>("shareFile", bytes, fileName, type, title, text));
 
     public async ValueTask DownloadAsync(byte[] bytes, string fileName, string type) =>
-        await (await ModuleAsync()).InvokeVoidAsync("download", bytes, fileName, type);
+        await (await ModuleAsync()).InvokeVoidGuardedAsync("download", bytes, fileName, type);
 
     /// <summary>
     /// Prints a PDF; where the browser cannot print one from the page, as on phones and tablets, it opens the PDF to print from instead.
     /// </summary>
     /// <returns><see langword="true"/> when the print dialog opened, <see langword="false"/> when the PDF was opened instead.</returns>
     public async ValueTask<bool> PrintPdfAsync(byte[] bytes) =>
-        await (await ModuleAsync()).InvokeAsync<string>("printPdf", bytes) == "printing";
+        await (await ModuleAsync()).InvokeGuardedAsync<string>("printPdf", bytes) == "printing";
 
     public async ValueTask DisposeAsync()
     {
@@ -44,10 +44,10 @@ public sealed class ShareService(IJSRuntime js) : IAsyncDisposable
         }
     }
 
-    private async ValueTask<IJSObjectReference> ModuleAsync() =>
-        _module ??= await js.InvokeAsync<IJSObjectReference>("import", "./js/share.js");
+    private async ValueTask<IJSObjectReference?> ModuleAsync() =>
+        _module ??= await js.InvokeGuardedAsync<IJSObjectReference>("import", "./js/share.js");
 
-    private static ShareOutcome Outcome(string result) => result switch
+    private static ShareOutcome Outcome(string? result) => result switch
     {
         "shared" => ShareOutcome.Shared,
         "cancelled" => ShareOutcome.Cancelled,

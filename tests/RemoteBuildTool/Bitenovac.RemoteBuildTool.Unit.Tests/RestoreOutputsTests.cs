@@ -35,7 +35,7 @@ public sealed class RestoreOutputsTests
         var root = directory.Combine("pr/restore");
         var project = TestFactory.WriteFile(repository, "src/A/A.csproj", "<Project/>");
         TestFactory.WriteFile(repository, "src/A/obj/project.assets.json", "assets");
-        TestFactory.WriteFile(repository, "src/A/obj/Debug/net10.0/A.dll", "assembly");
+        TestFactory.WriteFile(repository, "src/A/obj/Debug/net11.0/A.dll", "assembly");
 
         // Act
         RestoreOutputs.Save(repository, [project], root);

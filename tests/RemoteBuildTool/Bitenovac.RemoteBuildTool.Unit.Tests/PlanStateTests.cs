@@ -59,7 +59,7 @@ public sealed class PlanStateTests
             toolchain: "rust",
             references: ["src/B/B.csproj", "native/C/Cargo.toml"],
             coverageName: "A",
-            properties: new Dictionary<string, string> { ["RunCommand"] = "/repo/src/A/bin/Release/net10.0/A" },
+            properties: new Dictionary<string, string> { ["RunCommand"] = "/repo/src/A/bin/Release/net11.0/A" },
             isTestProject: true,
             excludeFromCoverage: true,
             minimumLineCoverage: 92.5,
@@ -81,7 +81,7 @@ public sealed class PlanStateTests
         Assert.Equal("rust", loaded.Toolchain);
         Assert.Equal(["src/B/B.csproj", "native/C/Cargo.toml"], loaded.References);
         Assert.Equal("A", loaded.CoverageName);
-        Assert.Equal("/repo/src/A/bin/Release/net10.0/A", loaded.Properties["RunCommand"]);
+        Assert.Equal("/repo/src/A/bin/Release/net11.0/A", loaded.Properties["RunCommand"]);
         Assert.True(loaded.IsTestProject);
         Assert.True(loaded.ExcludeFromCoverage);
         Assert.Equal(92.5, loaded.MinimumLineCoverage, Precision);

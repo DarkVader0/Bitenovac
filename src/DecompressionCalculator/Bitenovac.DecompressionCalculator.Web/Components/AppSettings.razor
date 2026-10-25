@@ -62,8 +62,8 @@
         if (firstRender)
         {
             _self = DotNetObjectReference.Create(this);
-            _module = await Js.InvokeAsync<IJSObjectReference>("import", "./js/reorder.js");
-            _reorder = await _module.InvokeAsync<IJSObjectReference>("attach", _list, _self);
+            _module = await Js.InvokeGuardedAsync<IJSObjectReference>("import", "./js/reorder.js");
+            _reorder = await _module.InvokeGuardedAsync<IJSObjectReference>("attach", _list, _self);
         }
     }
 
@@ -78,7 +78,7 @@
     {
         if (_reorder is not null)
         {
-            await _reorder.InvokeVoidAsync("dispose");
+            await _reorder.InvokeVoidGuardedAsync("dispose");
             await _reorder.DisposeAsync();
         }
 
