@@ -9,6 +9,7 @@
     --border: #d6d5d5;
     --text: #16181d;
     --text-muted: #5b6068;
+    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235b6068' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     --link: #0060a8;
 
     --danger: #b32121;
@@ -43,6 +44,7 @@
         --border: #3a3f47;
         --text: #e7e9ec;
         --text-muted: #a3a9b2;
+        --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a3a9b2' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
         --link: #74b4f5;
 
         --danger: #f07070;
@@ -542,18 +544,16 @@ select {
     -webkit-appearance: none;
     -moz-appearance: none;
     padding-right: 2.25rem;
-    background-image:
-        linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
-        linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
-    background-position: calc(100% - 1.15rem) 50%, calc(100% - 0.8rem) 50%;
-    background-size: 0.35rem 0.35rem;
+    background-image: var(--chevron);
+    background-position: calc(100% - 0.9rem) 50%;
+    background-size: 0.6rem 0.36rem;
     background-repeat: no-repeat;
     cursor: pointer;
 }
 
 select.cell-input {
     padding-right: 1.35rem;
-    background-position: calc(100% - 0.85rem) 50%, calc(100% - 0.5rem) 50%;
+    background-position: calc(100% - 0.6rem) 50%;
 }
 
 .cell-input::-webkit-inner-spin-button,
