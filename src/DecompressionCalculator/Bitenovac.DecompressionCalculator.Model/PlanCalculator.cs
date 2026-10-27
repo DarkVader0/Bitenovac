@@ -117,7 +117,7 @@ public static class PlanCalculator
 
         contingencies.Add(new Contingency(
             ContingencyKind.Extended,
-            PlanWithoutTimeline(index, new DivePlanRequest(PlanMapper.ToProfile(extended, cylinders, loop, plan.Units), cylinders, settings, priorDives), plan))
+            Plan(index, new DivePlanRequest(PlanMapper.ToProfile(extended, cylinders, loop, plan.Units), cylinders, settings, priorDives), plan))
         {
             ExtraMinutes = planner.ContingencyExtraMinutes,
             ExtraDepth = planner.ContingencyExtraDepth
@@ -128,7 +128,7 @@ public static class PlanCalculator
             Cylinder[] remaining = [.. cylinders.Where(cylinder => cylinder.Gas.ToString() != lost)];
             var result = remaining.Length == 0
                 ? DiveResult.Failed(index, "No gas is left to breathe.")
-                : PlanWithoutTimeline(index, new DivePlanRequest(PlanMapper.ToProfile(dive, remaining, loop, plan.Units), remaining, settings, priorDives), plan);
+                : Plan(index, new DivePlanRequest(PlanMapper.ToProfile(dive, remaining, loop, plan.Units), remaining, settings, priorDives), plan);
             contingencies.Add(new Contingency(ContingencyKind.LostGas, result) { LostGas = lost });
         }
 
@@ -140,19 +140,6 @@ public static class PlanCalculator
         (result.GasChecks, result.Counterdiffusion) =
             GasChecks.For(decoPlan.ExpandedSegments, request.Settings, plan.SettingsFor(index).OxygenNarcotic, plan.SettingsFor(index).GasDensityLimit, plan.Units);
         return result;
-    }
-
-    private static DiveResult PlanWithoutTimeline(int index, DivePlanRequest request, DivePlanDocument plan)
-    {
-        try
-        {
-            var decoPlan = new DivePlanner(AlgorithmCatalog.Create(plan.Algorithm)).CreatePlan(request);
-            return Checked(DiveResult.From(index, decoPlan, [], plan.Units), index, decoPlan, request, plan);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return DiveResult.Failed(index, FailureMessages.Describe(exception, plan.Units));
-        }
     }
 
     private static DiveResult Plan(int index, DivePlanRequest request, DivePlanDocument plan)

@@ -1,0 +1,84 @@
+@if (!Result.Succeeded)
+{
+    <p class="alert alert-danger">@Result.FailureMessage</p>
+}
+else
+{
+    @if (!Result.ReserveSatisfied)
+    {
+        <p class="alert alert-warning">@WebText.ReserveNotMet</p>
+    }
+
+    @foreach (var warning in GasWarnings.For(Result, Units))
+    {
+        <p class="alert alert-warning">@warning</p>
+    }
+
+    @foreach (var block in Blocks)
+    {
+        switch (block)
+        {
+            case ResultBlock.Figures:
+                <Figures Result="Result"/>
+                break;
+            case ResultBlock.Profile:
+                <h3>@WebText.Profile</h3>
+                <ProfileTable Result="Result" Units="Units" MergeAscents="MergeAscents" MergeDescents="MergeDescents"/>
+                break;
+            case ResultBlock.Gas:
+                <h3>@WebText.Gas</h3>
+                <GasTable Result="Result" Units="Units" Quantity="Quantity"/>
+                break;
+            case ResultBlock.GasChecks:
+                <h3>@WebText.GasChecks</h3>
+                <GasChecksTable Result="Result" Units="Units"/>
+                break;
+            case ResultBlock.Chart:
+                <h3>@WebText.ProfileChart</h3>
+                <ProfileChartView Result="Result" Units="Units"/>
+                break;
+            case ResultBlock.Contingencies:
+                <h3>@WebText.Contingencies</h3>
+                @foreach (var contingency in Result.Contingencies)
+                {
+                    <ContingencyView Contingency="contingency" Units="Units" Quantity="Quantity" Blocks="_nestedBlocks"
+                                     MergeAscents="MergeAscents" MergeDescents="MergeDescents"/>
+                }
+
+                break;
+        }
+    }
+
+    @if (Blocks.Count == 0)
+    {
+        <p class="block-note">@WebText.AllBlocksHidden</p>
+    }
+}
+
+@code {
+    private IReadOnlyList<ResultBlock> _nestedBlocks = [];
+
+    [Parameter, EditorRequired]
+    public DiveResult Result { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ResultBlock> Blocks { get; set; } = [];
+
+    [Parameter]
+    public UnitSystem Units { get; set; }
+
+    [Parameter]
+    public GasQuantity Quantity { get; set; }
+
+    [Parameter]
+    public bool MergeAscents { get; set; }
+
+    [Parameter]
+    public bool MergeDescents { get; set; }
+
+    /// <remarks>
+    /// A contingency shows the same blocks as its dive, but never another set of contingencies.
+    /// </remarks>
+    protected override void OnParametersSet() =>
+        _nestedBlocks = [.. Blocks.Where(static block => block != ResultBlock.Contingencies)];
+}
