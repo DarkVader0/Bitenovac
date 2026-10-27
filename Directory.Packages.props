@@ -6,10 +6,10 @@
 
     <ItemGroup>
         <PackageVersion Include="BenchmarkDotNet" Version="0.15.4"/>
-        <PackageVersion Include="Bitenovac.DecompressionCalculator.Export" Version="10.4.0"/>
-        <PackageVersion Include="Bitenovac.DecompressionCalculator.Model" Version="10.4.0"/>
-        <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.11"/>
-        <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.11"/>
+        <PackageVersion Include="Bitenovac.DecompressionCalculator.Export" Version="11.0.0"/>
+        <PackageVersion Include="Bitenovac.DecompressionCalculator.Model" Version="11.0.0"/>
+        <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0-rc.2.26504.105"/>
+        <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="11.0.0-rc.2.26504.105"/>
         <PackageVersion Include="Microsoft.Build" Version="18.9.6"/>
         <PackageVersion Include="Microsoft.Build.Locator" Version="1.11.2"/>
         <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="18.9.6"/>
@@ -19,6 +19,6 @@
         <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport.Abstractions" Version="2.3.2"/>
         <PackageVersion Include="coverlet.MTP" Version="10.0.1"/>
         <PackageVersion Include="DuckDB.NET.Data.Full" Version="1.5.6"/>
-        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12"/>
+        <PackageVersion Include="Microsoft.Extensions.Hosting" Version="11.0.0-rc.2.26504.105"/>
     </ItemGroup>
 </Project>

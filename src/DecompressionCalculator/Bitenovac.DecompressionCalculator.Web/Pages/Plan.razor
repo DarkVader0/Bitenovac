@@ -308,7 +308,7 @@ else
         }
 
         _overlayEntry = true;
-        await Js.InvokeVoidAsync("history.pushState", null, "", Navigation.Uri);
+        await Js.InvokeVoidGuardedAsync("history.pushState", null, "", Navigation.Uri);
     }
 
     /// <remarks>
@@ -325,7 +325,7 @@ else
         }
 
         _overlayEntry = false;
-        await Js.InvokeVoidAsync("history.back");
+        await Js.InvokeVoidGuardedAsync("history.back");
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args)

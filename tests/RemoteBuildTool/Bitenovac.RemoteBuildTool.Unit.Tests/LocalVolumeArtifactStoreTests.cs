@@ -422,13 +422,13 @@ public sealed class LocalVolumeArtifactStoreTests
         // Arrange
         using var directory = TestFactory.Directory();
         var binDirectory = directory.Combine("bin");
-        TestFactory.WriteFile(binDirectory, "Debug/net10.0/A.dll", "assembly");
+        TestFactory.WriteFile(binDirectory, "Debug/net11.0/A.dll", "assembly");
 
         // Act
         var sources = LocalVolumeArtifactStore.EnumerateAsSources(binDirectory, "bin/").ToList();
 
         // Assert
-        Assert.Equal("bin/Debug/net10.0/A.dll", Assert.Single(sources).Path);
+        Assert.Equal("bin/Debug/net11.0/A.dll", Assert.Single(sources).Path);
     }
 
     [Theory]
