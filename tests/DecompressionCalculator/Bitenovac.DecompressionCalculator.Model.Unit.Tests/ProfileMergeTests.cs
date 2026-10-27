@@ -234,6 +234,78 @@ public sealed class ProfileMergeTests
     }
 
     [Fact]
+    public void IntoStops_ShouldFoldADescentIntoTheLevelItEnds_WhenALevelFollows()
+    {
+        // Arrange
+        var profile = new[]
+        {
+            Row(SegmentKind.Descent, 0, 9, 2, 2),
+            Row(SegmentKind.Bottom, 9, 9, 10, 12)
+        };
+
+        // Act
+        var merged = ProfileMerge.IntoStops(profile, false, true);
+
+        // Assert
+        Assert.Single(merged);
+        Assert.Equal(0, merged[0].StartDepth, Precision);
+        Assert.Equal(12, merged[0].Duration.TotalMinutes, Precision);
+    }
+
+    [Fact]
+    public void IntoStops_ShouldFoldADescentIntoTheSafetyStopItEnds_WhenASafetyStopFollows()
+    {
+        // Arrange
+        var profile = new[]
+        {
+            Row(SegmentKind.Descent, 0, 5, 1, 1),
+            Row(SegmentKind.SafetyStop, 5, 5, 3, 4)
+        };
+
+        // Act
+        var merged = ProfileMerge.IntoStops(profile, false, true);
+
+        // Assert
+        Assert.Single(merged);
+        Assert.Equal(0, merged[0].StartDepth, Precision);
+        Assert.Equal(4, merged[0].Duration.TotalMinutes, Precision);
+    }
+
+    [Fact]
+    public void IntoStops_ShouldKeepBothRows_WhenADescentIsFollowedByAnotherMovement()
+    {
+        // Arrange
+        var profile = new[]
+        {
+            Row(SegmentKind.Descent, 0, 6, 1, 1),
+            Row(SegmentKind.Ascent, 6, 6, 1, 2)
+        };
+
+        // Act
+        var merged = ProfileMerge.IntoStops(profile, true, true);
+
+        // Assert
+        Assert.Equal(2, merged.Count);
+    }
+
+    [Fact]
+    public void IntoStops_ShouldKeepBothRows_WhenAnAscentEndsAtALevel()
+    {
+        // Arrange
+        var profile = new[]
+        {
+            Row(SegmentKind.Ascent, 30, 9, 2, 2),
+            Row(SegmentKind.Bottom, 9, 9, 10, 12)
+        };
+
+        // Act
+        var merged = ProfileMerge.IntoStops(profile, true, true);
+
+        // Assert
+        Assert.Equal(2, merged.Count);
+    }
+
+    [Fact]
     public void IntoStops_ShouldKeepTheDescent_WhenOnlyAscentsAreMerged()
     {
         // Arrange

@@ -9,6 +9,7 @@
     --border: #d6d5d5;
     --text: #16181d;
     --text-muted: #5b6068;
+    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235b6068' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     --link: #0060a8;
 
     --danger: #b32121;
@@ -43,6 +44,7 @@
         --border: #3a3f47;
         --text: #e7e9ec;
         --text-muted: #a3a9b2;
+        --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a3a9b2' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
         --link: #74b4f5;
 
         --danger: #f07070;
@@ -405,12 +407,10 @@ details > .field-grid {
     fill: currentColor;
 }
 
-/* Icon buttons draw an outline, and fill it in on hover or focus. */
+/* Icon buttons are filled, the same on a computer as on a phone. */
 .icon-button > .icon {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.25px;
-    stroke-linejoin: round;
+    fill: currentColor;
+    stroke: none;
 }
 
 /* Add, remove and the calculator are solid shapes; outlining them makes them look hollow. */
@@ -542,18 +542,16 @@ select {
     -webkit-appearance: none;
     -moz-appearance: none;
     padding-right: 2.25rem;
-    background-image:
-        linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
-        linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
-    background-position: calc(100% - 1.15rem) 50%, calc(100% - 0.8rem) 50%;
-    background-size: 0.35rem 0.35rem;
+    background-image: var(--chevron);
+    background-position: calc(100% - 0.9rem) 50%;
+    background-size: 0.6rem 0.36rem;
     background-repeat: no-repeat;
     cursor: pointer;
 }
 
 select.cell-input {
     padding-right: 1.35rem;
-    background-position: calc(100% - 0.85rem) 50%, calc(100% - 0.5rem) 50%;
+    background-position: calc(100% - 0.6rem) 50%;
 }
 
 .cell-input::-webkit-inner-spin-button,
@@ -664,15 +662,22 @@ select.cell-input {
 }
 
 .plan-header .icon-button > .icon {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 2rem;
+    height: 2rem;
+}
+
+.plan-header .gas-tools-button > .icon {
+    width: 2.35rem;
+    height: 2.35rem;
+    stroke: currentColor;
+    stroke-width: 1.1;
 }
 
 .app-icon {
     display: none;
 }
 
-/* On a phone the icons are filled and fill their buttons. */
+/* On a phone the app's own mark leads the top row, filling the same square as the buttons beside it. */
 @media (max-width: 640px) {
     .app-icon {
         display: block;
@@ -680,23 +685,6 @@ select.cell-input {
         width: var(--touch-target);
         height: var(--touch-target);
         order: -1;
-    }
-
-    .icon-button > .icon {
-        fill: currentColor;
-        stroke: none;
-    }
-
-    .plan-header .icon-button > .icon {
-        width: 2rem;
-        height: 2rem;
-    }
-
-    .plan-header .gas-tools-button > .icon {
-        width: 2.35rem;
-        height: 2.35rem;
-        stroke: currentColor;
-        stroke-width: 1.1;
     }
 }
 
