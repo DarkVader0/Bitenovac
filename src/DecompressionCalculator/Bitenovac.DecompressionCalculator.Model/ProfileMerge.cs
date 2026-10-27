@@ -49,11 +49,16 @@ public static class ProfileMerge
             SegmentKind.Descent => descents,
             _ => false
         })
-        && (movement.Kind == SegmentKind.Descent
-            ? stop.Kind is SegmentKind.Stop or SegmentKind.SafetyStop or SegmentKind.Bottom
-            : stop.Kind is SegmentKind.Stop or SegmentKind.SafetyStop)
+        && EndsAtAStop(movement, stop)
         && stop.StartDepth == stop.EndDepth
         && stop.StartDepth == movement.EndDepth
         && movement.Gas == stop.Gas
         && movement.Circuit == stop.Circuit;
+
+    private static bool EndsAtAStop(ProfileRow movement, ProfileRow stop) => stop.Kind switch
+    {
+        SegmentKind.Stop or SegmentKind.SafetyStop => true,
+        SegmentKind.Bottom => movement.Kind == SegmentKind.Descent,
+        _ => false
+    };
 }
