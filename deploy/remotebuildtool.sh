@@ -23,7 +23,6 @@ set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# shellcheck source=../runner/lib/common.sh
 source "${REPO_ROOT}/runner/lib/common.sh"
 
 readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-${OFFICIAL_VOLUME}}"
@@ -44,7 +43,6 @@ readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"
 docker image inspect "${IMAGE}" > /dev/null 2>&1 \
     || fail "The image ${IMAGE} is missing. Run runner/build-image.sh on this machine."
 
-# Mounting a volume that does not exist would create it empty and hide the real problem.
 docker volume inspect "${OFFICIAL_VOLUME}" > /dev/null 2>&1 \
     || fail "The volume ${OFFICIAL_VOLUME} does not exist. Has Official run on this machine?"
 
