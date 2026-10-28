@@ -17,12 +17,16 @@
 set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly NUGET_VOLUME="${REMOTEBUILDTOOL_NUGET_VOLUME:-bitenovac-runner-nuget}"
-readonly MAIN_VOLUME="${REMOTEBUILDTOOL_MAIN_VOLUME:-bitenovac-main}"
-readonly LOGS_VOLUME="${REMOTEBUILDTOOL_LOGS_VOLUME:-bitenovac-logs}"
-readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-bitenovac-official}"
-readonly TELEMETRY_VOLUME="${REMOTEBUILDTOOL_TELEMETRY_VOLUME:-bitenovac-telemetry}"
-readonly STAGING_VOLUME="${REMOTEBUILDTOOL_STAGING_VOLUME:-bitenovac-staging}"
+
+# shellcheck source=lib/common.sh
+source "${REPO_ROOT}/runner/lib/common.sh"
+
+readonly NUGET_VOLUME="${REMOTEBUILDTOOL_NUGET_VOLUME:-${NUGET_VOLUME}}"
+readonly MAIN_VOLUME="${REMOTEBUILDTOOL_MAIN_VOLUME:-${MAIN_VOLUME}}"
+readonly LOGS_VOLUME="${REMOTEBUILDTOOL_LOGS_VOLUME:-${LOGS_VOLUME}}"
+readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-${OFFICIAL_VOLUME}}"
+readonly TELEMETRY_VOLUME="${REMOTEBUILDTOOL_TELEMETRY_VOLUME:-${TELEMETRY_VOLUME}}"
+readonly STAGING_VOLUME="${REMOTEBUILDTOOL_STAGING_VOLUME:-${STAGING_VOLUME}}"
 readonly RUN_STORE="${GITHUB_RUN_ID:-local}"
 
 cd "${REPO_ROOT}"
@@ -36,7 +40,7 @@ fail() { printf '\nerror: %s\n' "$*" >&2; exit 1; }
 [[ -z "${REMOTEBUILDTOOL_LOG_RUN:-}" || "${REMOTEBUILDTOOL_LOG_RUN}" =~ ^[A-Za-z]+_[A-Za-z0-9_]+/[0-9]+-[0-9]+$ ]] \
     || fail "REMOTEBUILDTOOL_LOG_RUN '${REMOTEBUILDTOOL_LOG_RUN}' is not <Kind>_<number>/<run id>-<attempt>."
 
-sdk_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' global.json | head -n 1)"
+sdk_version="$(sdk_version_in "${REPO_ROOT}")"
 [[ -n "${sdk_version}" ]] || fail "Could not read the SDK version from global.json."
 
 readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"

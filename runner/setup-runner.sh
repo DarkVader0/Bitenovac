@@ -26,10 +26,12 @@
 #                      workflow runs with: a fine-grained token with read access to Contents,
 #                      Pull requests and Actions. Without it the service is not installed, and
 #                      nothing fills main.
-#   --repo URL         Repository to serve. Defaults to the origin remote of this checkout.
+#   --repo URL         Repository to serve. Defaults to REPOSITORY in the configuration, then to the
+#                      origin remote of this checkout.
 #   --labels LIST      Comma separated labels the workflow selects on.
-#                      Defaults to self-hosted,linux,x64,bitenovac.
-#   --user NAME        Account the agents run as. Created if missing. Defaults to ci-runner.
+#                      Defaults to LABELS in the configuration, then self-hosted,linux,x64,bitenovac.
+#   --user NAME        Account the agents run as. Created if missing. Defaults to RUN_AS in the
+#                      configuration, then ci-runner.
 #   --runner-version V Agent version. Defaults to the latest release.
 #   --uninstall        Stop the services, deregister every agent and remove its files. Needs
 #                      --token as well, since deregistering asks GitHub too.
@@ -38,6 +40,10 @@
 # Installs the agents as systemd services, the image jobs build in with the pinned RemoteBuildTool
 # release in it, the NuGet cache and main as local volumes, an NFS share for staging, logs and
 # telemetry, and, given --api-token, the RemoteBuildTool service.
+#
+# The first run writes /etc/bitenovac/runner.env with the values it used. Later runs read it, so
+# a machine keeps its settings without flags. Set MANAGE_SHARE=false there only on a test machine
+# that must not serve the share; its volumes are then local.
 #
 # Sizing --instances
 # ------------------
@@ -55,24 +61,16 @@
 set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly RUNNER_HOME="/opt/bitenovac-runner"
-readonly NUGET_VOLUME="bitenovac-runner-nuget"
-readonly MAIN_VOLUME="bitenovac-main"
-readonly LOGS_VOLUME="bitenovac-logs"
-readonly OFFICIAL_VOLUME="bitenovac-official"
-readonly TELEMETRY_VOLUME="bitenovac-telemetry"
-readonly WORK_VOLUME="bitenovac-service-work"
-readonly STAGING_VOLUME="bitenovac-staging"
-# Served over NFS, so the logs and telemetry paths records point at resolve the same from every
-# machine that mounts the share. This machine serves it for now.
-readonly SHARE_ROOT="/srv/bitenovac"
+
+# shellcheck source=lib/common.sh
+source "${REPO_ROOT}/runner/lib/common.sh"
 
 # Every agent lives in its own directory under RUNNER_HOME. The glob is what uninstall and
 # reinstall sweep, so it must match every layout this script has ever produced.
 readonly AGENT_DIR_GLOB="actions-runner*"
 
 agent_dir_for() { printf '%s\n' "${RUNNER_HOME}/actions-runner-${1}"; }
-runner_name_for() { printf '%s\n' "$(hostname)-${1}"; }
+runner_name_for() { printf '%s\n' "${RUNNER_NAME_PREFIX}-${1}"; }
 
 existing_agent_dirs() {
     shopt -s nullglob
@@ -106,8 +104,8 @@ fail() { printf '\n\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
 token=""
 repo_url=""
-labels="self-hosted,linux,x64,bitenovac"
-run_as="ci-runner"
+labels="${LABELS}"
+run_as="${RUN_AS}"
 runner_version=""
 instances=1
 cpus=""
@@ -135,7 +133,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ "${EUID}" -eq 0 ]] || fail "Run this with sudo. It creates a user and installs a systemd service."
-command -v systemctl > /dev/null 2>&1 || fail "systemd is required; the agent is installed as a service."
+if ! command -v systemctl > /dev/null 2>&1; then
+    warn "systemd is not installed; installing it"
+    apt-get update -qq
+    apt-get install --yes --no-install-recommends systemd systemd-sysv > /dev/null
+fi
+[[ -d /run/systemd/system ]] || fail "systemd is installed but not running as this machine's init. Under WSL set [boot] systemd=true in /etc/wsl.conf, then restart that distro with: wsl --terminate <distro>"
 
 # --------------------------------------------------------------------------------- uninstall ----
 
@@ -171,7 +174,9 @@ if [[ "${uninstall}" == true ]]; then
     fi
 
     warn "kept ${OFFICIAL_VOLUME}, which holds the Official drops; remove it with: docker volume rm ${OFFICIAL_VOLUME}"
-    warn "kept the NFS export of ${SHARE_ROOT}; remove it with: sudo rm /etc/exports.d/bitenovac.exports && sudo exportfs -ra"
+    if [[ "${MANAGE_SHARE}" == true ]]; then
+        warn "kept the NFS export of ${SHARE_ROOT}; remove it with: sudo rm /etc/exports.d/bitenovac.exports && sudo exportfs -ra"
+    fi
 
     log "Uninstalled."
     exit 0
@@ -184,6 +189,10 @@ fi
 [[ "${instances}" =~ ^[1-9][0-9]*$ ]] || fail "--instances must be a positive integer, got '${instances}'."
 
 if [[ -z "${repo_url}" ]]; then
+    repo_url="${REPOSITORY}"
+fi
+
+if [[ -z "${repo_url}" ]]; then
     repo_url="$(git -C "${REPO_ROOT}" remote get-url origin 2>/dev/null | sed -E 's|^git@github\.com:|https://github.com/|; s|\.git$||')" || true
 fi
 [[ -n "${repo_url}" ]] || fail "Could not determine the repository. Pass --repo https://github.com/OWNER/NAME."
@@ -193,6 +202,65 @@ case "$(uname -m)" in
     aarch64) runner_arch="arm64" ;;
     *)       fail "Unsupported architecture $(uname -m). The agent ships for x64 and arm64." ;;
 esac
+
+# -------------------------------------------------------------------------------- preflight ----
+
+log "Preflight"
+
+os_id="$(. /etc/os-release && echo "${ID:-}")"
+os_name="$(. /etc/os-release && echo "${PRETTY_NAME:-unknown}")"
+[[ "${os_id}" == ubuntu ]] || fail "Ubuntu is required: Docker and NFS come from its packages. This machine runs ${os_name}."
+ok "${os_name}"
+
+command -v apt-get > /dev/null 2>&1 || fail "apt-get is required; this installer supports Ubuntu only."
+ok "apt-get"
+
+# Every command the installer calls is checked here, before anything changes. A command that is
+# missing must stop the run, not pass silently: on a minimal Ubuntu image the shell's
+# command-not-found handler returns success for it, so set -e does not catch it.
+prerequisites=(curl git tar sudo)
+missing=()
+for prerequisite in "${prerequisites[@]}"; do
+    command -v "${prerequisite}" > /dev/null 2>&1 || missing+=("${prerequisite}")
+done
+if (( ${#missing[@]} > 0 )); then
+    warn "installing ${missing[*]}"
+    apt-get update -qq
+    apt-get install --yes --no-install-recommends "${missing[@]}" > /dev/null
+fi
+for prerequisite in "${prerequisites[@]}"; do
+    command -v "${prerequisite}" > /dev/null 2>&1 || fail "${prerequisite} is required and could not be installed."
+done
+ok "${prerequisites[*]}"
+
+# Docker, the image and the agents' work need this much; less and a build fails part way through.
+readonly REQUIRED_FREE_KIB=$(( 10 * 1024 * 1024 ))
+free_kib="$(df -Pk /var/lib | awk 'NR == 2 { print $4 }')"
+(( free_kib >= REQUIRED_FREE_KIB )) || fail "At least 10 GiB must be free under /var/lib; $(( free_kib / 1024 / 1024 )) GiB are."
+ok "$(( free_kib / 1024 / 1024 )) GiB free under /var/lib"
+
+# ------------------------------------------------------------------------------------ config ----
+
+log "Configuration"
+
+# Written once, so a reinstall keeps what an operator set in it. What it holds is what this run
+# uses, so the next run needs no flags to get the same machine.
+if [[ -e "${CONFIG_FILE}" ]]; then
+    ok "${CONFIG_FILE} kept"
+else
+    install -d -m 0755 "$(dirname "${CONFIG_FILE}")"
+    cat > "${CONFIG_FILE}" <<CONF
+RUNNER_HOME=${RUNNER_HOME}
+SHARE_ROOT=${SHARE_ROOT}
+RUN_AS=${run_as}
+LABELS=${labels}
+RUNNER_NAME_PREFIX=${RUNNER_NAME_PREFIX}
+REPOSITORY=${repo_url}
+MANAGE_SHARE=${MANAGE_SHARE}
+CONF
+    chmod 0644 "${CONFIG_FILE}"
+    ok "wrote ${CONFIG_FILE}"
+fi
 
 # ------------------------------------------------------------------------------------ docker ----
 
@@ -252,7 +320,7 @@ fi
 
 # ------------------------------------------------------------------------------------- image ----
 
-sdk_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${REPO_ROOT}/global.json" | head -n 1)"
+sdk_version="$(sdk_version_in "${REPO_ROOT}")"
 [[ -n "${sdk_version}" ]] || fail "Could not read the SDK version from ${REPO_ROOT}/global.json."
 
 log "Building bitenovac-remotebuildtool-runner:${sdk_version} (.NET SDK ${sdk_version}, RemoteBuildTool)"
@@ -262,57 +330,65 @@ bash "${REPO_ROOT}/runner/build-image.sh"
 
 log "NFS share"
 
-apt-get install --yes --no-install-recommends nfs-kernel-server > /dev/null
-install -d -o "${run_as}" -g "${run_as}" "${SHARE_ROOT}" "${SHARE_ROOT}/logs" "${SHARE_ROOT}/telemetry" "${SHARE_ROOT}/staging"
+if [[ "${MANAGE_SHARE}" == true ]]; then
+    apt-get install --yes --no-install-recommends nfs-kernel-server > /dev/null
+    install -d -o "${run_as}" -g "${run_as}" "${SHARE_ROOT}" "${SHARE_ROOT}/logs" "${SHARE_ROOT}/telemetry" "${SHARE_ROOT}/staging"
 
-# Whoever a client runs as, it writes as the agents' account, so job containers and the root
-# container that migrates old logs leave files the agents can prune.
-install -d /etc/exports.d
-printf '%s 127.0.0.1(rw,sync,no_subtree_check,all_squash,anonuid=%s,anongid=%s)\n' \
-    "${SHARE_ROOT}" "${RUN_UID}" "${RUN_GID}" > /etc/exports.d/bitenovac.exports
-systemctl enable --now nfs-server > /dev/null 2>&1 || true
-exportfs -ra || fail "Could not export ${SHARE_ROOT}. Under WSL, systemd must be on (see docs/Local_RemoteBuildTool_Setup.md)."
-ok "exporting ${SHARE_ROOT} to this machine"
+    # Whoever a client runs as, it writes as the agents' account, so job containers and the root
+    # container that migrates old logs leave files the agents can prune.
+    install -d /etc/exports.d
+    printf '%s 127.0.0.1(rw,sync,no_subtree_check,all_squash,anonuid=%s,anongid=%s)\n' \
+        "${SHARE_ROOT}" "${RUN_UID}" "${RUN_GID}" > /etc/exports.d/bitenovac.exports
+    systemctl enable --now nfs-server > /dev/null 2>&1 || true
+    exportfs -ra || fail "Could not export ${SHARE_ROOT}. Under WSL, systemd must be on (see docs/Local_RemoteBuildTool_Setup.md)."
+    ok "exporting ${SHARE_ROOT} to this machine"
 
-# NFS 4.1, not 4.2: the WSL kernel is built without 4.2, and Docker's mount of it fails with
-# "invalid argument".
-readonly SHARE_MOUNT_OPTIONS="addr=127.0.0.1,rw,nfsvers=4.1"
+    # NFS 4.1, not 4.2: the WSL kernel is built without 4.2, and Docker's mount of it fails with
+    # "invalid argument".
+    readonly SHARE_MOUNT_OPTIONS="addr=127.0.0.1,rw,nfsvers=4.1"
 
-# A volume an earlier setup made locally moves onto the share first; one already on the share is
-# made again when its mount options changed, which loses nothing since its files live on the
-# share. Removing either fails while a job still has it mounted.
-share_volume() {
-    local name="$1" directory="$2" type
-    if type="$(docker volume inspect --format '{{index .Options "type"}}' "${name}" 2> /dev/null)"; then
-        if [[ "${type}" == nfs ]]; then
-            if [[ "$(docker volume inspect --format '{{index .Options "o"}}' "${name}")" == "${SHARE_MOUNT_OPTIONS}" ]]; then
-                ok "${name} is on the share"
-                return
+    # A volume an earlier setup made locally moves onto the share first; one already on the share is
+    # made again when its mount options changed, which loses nothing since its files live on the
+    # share. Removing either fails while a job still has it mounted.
+    share_volume() {
+        local name="$1" directory="$2" type
+        if type="$(docker volume inspect --format '{{index .Options "type"}}' "${name}" 2> /dev/null)"; then
+            if [[ "${type}" == nfs ]]; then
+                if [[ "$(docker volume inspect --format '{{index .Options "o"}}' "${name}")" == "${SHARE_MOUNT_OPTIONS}" ]]; then
+                    ok "${name} is on the share"
+                    return
+                fi
+                docker volume rm "${name}" > /dev/null \
+                    || fail "${name} is in use. Stop the runners (sudo systemctl stop 'actions.runner.*') and run setup again."
+                ok "remounting ${name} with ${SHARE_MOUNT_OPTIONS}"
+            else
+                docker run --rm --user 0 --entrypoint cp \
+                    --volume "${name}:/from:ro" \
+                    --volume "${SHARE_ROOT}/${directory}:/to" \
+                    "bitenovac-remotebuildtool-runner:${sdk_version}" -a /from/. /to/
+                docker volume rm "${name}" > /dev/null \
+                    || fail "${name} is in use. Stop the runners (sudo systemctl stop 'actions.runner.*') and run setup again."
+                ok "moved the contents of ${name} onto the share"
             fi
-            docker volume rm "${name}" > /dev/null \
-                || fail "${name} is in use. Stop the runners (sudo systemctl stop 'actions.runner.*') and run setup again."
-            ok "remounting ${name} with ${SHARE_MOUNT_OPTIONS}"
-        else
-            docker run --rm --user 0 --entrypoint cp \
-                --volume "${name}:/from:ro" \
-                --volume "${SHARE_ROOT}/${directory}:/to" \
-                "bitenovac-remotebuildtool-runner:${sdk_version}" -a /from/. /to/
-            docker volume rm "${name}" > /dev/null \
-                || fail "${name} is in use. Stop the runners (sudo systemctl stop 'actions.runner.*') and run setup again."
-            ok "moved the contents of ${name} onto the share"
         fi
-    fi
 
-    docker volume create --driver local \
-        --opt type=nfs \
-        --opt "o=${SHARE_MOUNT_OPTIONS}" \
-        --opt "device=:${SHARE_ROOT}/${directory}" \
-        "${name}" > /dev/null
-    ok "${name} -> ${SHARE_ROOT}/${directory}"
-}
-share_volume "${LOGS_VOLUME}" logs
-share_volume "${TELEMETRY_VOLUME}" telemetry
-share_volume "${STAGING_VOLUME}" staging
+        docker volume create --driver local \
+            --opt type=nfs \
+            --opt "o=${SHARE_MOUNT_OPTIONS}" \
+            --opt "device=:${SHARE_ROOT}/${directory}" \
+            "${name}" > /dev/null
+        ok "${name} -> ${SHARE_ROOT}/${directory}"
+    }
+    share_volume "${LOGS_VOLUME}" logs
+    share_volume "${TELEMETRY_VOLUME}" telemetry
+    share_volume "${STAGING_VOLUME}" staging
+else
+    warn "MANAGE_SHARE is false: the share is not served here, so its volumes stay local"
+    docker volume create "${LOGS_VOLUME}" > /dev/null
+    docker volume create "${TELEMETRY_VOLUME}" > /dev/null
+    docker volume create "${STAGING_VOLUME}" > /dev/null
+    ok "${LOGS_VOLUME}, ${TELEMETRY_VOLUME} and ${STAGING_VOLUME} are local volumes"
+fi
 
 docker volume create "${NUGET_VOLUME}" > /dev/null
 docker volume create "${MAIN_VOLUME}" > /dev/null
@@ -426,7 +502,7 @@ if [[ -n "${api_token}" ]]; then
   "repository": "${repository}",
   "gitHubToken": "${api_token}",
   "pool": "docker",
-  "machine": "$(hostname)-service",
+  "machine": "${RUNNER_NAME_PREFIX}-service",
   "workRoot": "/work",
   "mainStore": "/mnt/main",
   "stagingRoot": "/mnt/staging",

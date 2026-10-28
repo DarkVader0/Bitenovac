@@ -17,6 +17,10 @@
 set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# shellcheck source=lib/common.sh
+source "${REPO_ROOT}/runner/lib/common.sh"
+
 readonly CONTAINER="remotebuildtool-service"
 readonly SETTINGS_DIR="/etc/remotebuildtool"
 
@@ -45,7 +49,7 @@ fi
 # shellcheck source=/dev/null
 source "${SETTINGS_DIR}/.env"
 
-sdk_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${REPO_ROOT}/global.json" | head -n 1)"
+sdk_version="$(sdk_version_in "${REPO_ROOT}")"
 [[ -n "${sdk_version}" ]] || fail "Could not read the SDK version from global.json."
 
 readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"
