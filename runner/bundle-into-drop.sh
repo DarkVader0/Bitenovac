@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Puts the runner bundle into an Official drop, as <drop>/runner/, so the Publish runner bundle
+# Puts the runner bundle into an Official drop, as <drop>/runner/, so the Deploy RemoteBuildTool
 # workflow can release it under the drop's version, the way the Web app is deployed from a drop.
 #
 # Usage, on the runner host, from the checkout Official built:

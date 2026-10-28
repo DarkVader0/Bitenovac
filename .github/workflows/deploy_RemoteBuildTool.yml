@@ -36,3 +36,35 @@ jobs:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
           DROP: ${{ inputs.drop }}
         run: bash deploy/remotebuildtool.sh "${DROP}"
+
+  runner-bundle:
+    name: Runner bundle
+    runs-on: [self-hosted, linux, x64, bitenovac]
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Copy the bundle out of the drop
+        id: drop
+        env:
+          DROP: ${{ inputs.drop }}
+        run: bash deploy/runner-bundle.sh "${RUNNER_TEMP}/bundle" "${DROP}" >> "${GITHUB_OUTPUT}"
+
+      - name: Publish the release
+        env:
+          DROP: ${{ steps.drop.outputs.drop }}
+          SHA: ${{ steps.drop.outputs.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          auth=(-H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
+          body="$(printf '{"tag_name":"bitenovac-runner-%s","target_commitish":"%s","name":"Runner setup %s","body":"Installs the Bitenovac runner setup. Extract the archive, then run runner/setup-runner.sh as described in docs/Local_RemoteBuildTool_Setup.md."}' "${DROP}" "${SHA}" "${DROP}")"
+          release="$(curl -fsSL -X POST "${auth[@]}" -H "Content-Type: application/json" -d "${body}" "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases")"
+          upload="$(printf '%s' "${release}" | sed -n 's/.*"upload_url": *"\([^"{]*\).*/\1/p' | head -n 1)"
+          [[ -n "${upload}" ]] || { echo "error: the release was not created." >&2; exit 1; }
+          for file in "${RUNNER_TEMP}"/bundle/bitenovac-runner-*; do
+              curl -fsSL -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" \
+                  --data-binary "@${file}" "${upload}?name=$(basename "${file}")" > /dev/null
+          done

@@ -293,8 +293,9 @@ the drop.
 
 1. Wait for the Official run that made the drop, or run one: Actions → Official → Run workflow.
    Its run page shows the drop version.
-2. Actions → Publish runner bundle → Run workflow. Leave the drop empty for the newest one. A drop
-   that already has a release fails the run.
+2. Actions → Deploy RemoteBuildTool → Run workflow. Leave the drop empty for the newest one. Besides
+   the NuGet packages, the run publishes the bundle as the release `bitenovac-runner-<drop>`. A drop
+   that already has a release fails that part of the run.
 
 A new machine gets the installer from the release, the same way as every other machine: see
 [Setup](#setup). Nothing on it needs a checkout of the repository.
