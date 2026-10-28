@@ -14,11 +14,13 @@ set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-sdk_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${REPO_ROOT}/global.json" | head -n 1)"
+source "${REPO_ROOT}/runner/lib/common.sh"
+
+sdk_version="$(sdk_version_in "${REPO_ROOT}")"
 [[ -n "${sdk_version}" ]] || { printf 'error: could not read the SDK version from %s/global.json.\n' "${REPO_ROOT}" >&2; exit 1; }
 
 readonly TOOL_PROPS="${REPO_ROOT}/src/RemoteBuildTool/Directory.Build.props"
-tool_version="${REMOTEBUILDTOOL_VERSION:-$(sed -n 's/.*<VersionPrefix>[[:space:]]*\([^<[:space:]]*\)[[:space:]]*<\/VersionPrefix>.*/\1/p' "${TOOL_PROPS}" | head -n 1)}"
+tool_version="${REMOTEBUILDTOOL_VERSION:-$(tool_version_in "${REPO_ROOT}")}"
 [[ -n "${tool_version}" ]] || { printf 'error: could not read <VersionPrefix> from %s.\n' "${TOOL_PROPS}" >&2; exit 1; }
 
 build_args=(
@@ -34,7 +36,6 @@ docker build \
     "$@" \
     "${REPO_ROOT}"
 
-# The service runs the image too; restarting it puts the new release to work at once.
 if [[ -r /etc/remotebuildtool/.env ]]; then
     bash "${REPO_ROOT}/runner/service.sh" start
 fi

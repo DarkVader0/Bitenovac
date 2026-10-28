@@ -17,12 +17,15 @@
 set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly NUGET_VOLUME="${REMOTEBUILDTOOL_NUGET_VOLUME:-bitenovac-runner-nuget}"
-readonly MAIN_VOLUME="${REMOTEBUILDTOOL_MAIN_VOLUME:-bitenovac-main}"
-readonly LOGS_VOLUME="${REMOTEBUILDTOOL_LOGS_VOLUME:-bitenovac-logs}"
-readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-bitenovac-official}"
-readonly TELEMETRY_VOLUME="${REMOTEBUILDTOOL_TELEMETRY_VOLUME:-bitenovac-telemetry}"
-readonly STAGING_VOLUME="${REMOTEBUILDTOOL_STAGING_VOLUME:-bitenovac-staging}"
+
+source "${REPO_ROOT}/runner/lib/common.sh"
+
+readonly NUGET_VOLUME="${REMOTEBUILDTOOL_NUGET_VOLUME:-${NUGET_VOLUME}}"
+readonly MAIN_VOLUME="${REMOTEBUILDTOOL_MAIN_VOLUME:-${MAIN_VOLUME}}"
+readonly LOGS_VOLUME="${REMOTEBUILDTOOL_LOGS_VOLUME:-${LOGS_VOLUME}}"
+readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-${OFFICIAL_VOLUME}}"
+readonly TELEMETRY_VOLUME="${REMOTEBUILDTOOL_TELEMETRY_VOLUME:-${TELEMETRY_VOLUME}}"
+readonly STAGING_VOLUME="${REMOTEBUILDTOOL_STAGING_VOLUME:-${STAGING_VOLUME}}"
 readonly RUN_STORE="${GITHUB_RUN_ID:-local}"
 
 cd "${REPO_ROOT}"
@@ -31,12 +34,10 @@ fail() { printf '\nerror: %s\n' "$*" >&2; exit 1; }
 
 [[ $# -gt 0 ]] || fail "No command given. Pass a Bitenovac.RemoteBuildTool command, for example: test Debug"
 
-# The run's folder in the logs volume, set by the workflow, as in PR_18/16473829-1. The
-# pattern keeps a crafted value from escaping the volume.
 [[ -z "${REMOTEBUILDTOOL_LOG_RUN:-}" || "${REMOTEBUILDTOOL_LOG_RUN}" =~ ^[A-Za-z]+_[A-Za-z0-9_]+/[0-9]+-[0-9]+$ ]] \
     || fail "REMOTEBUILDTOOL_LOG_RUN '${REMOTEBUILDTOOL_LOG_RUN}' is not <Kind>_<number>/<run id>-<attempt>."
 
-sdk_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' global.json | head -n 1)"
+sdk_version="$(sdk_version_in "${REPO_ROOT}")"
 [[ -n "${sdk_version}" ]] || fail "Could not read the SDK version from global.json."
 
 readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"
@@ -44,13 +45,11 @@ readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"
 docker image inspect "${IMAGE}" > /dev/null 2>&1 \
     || fail "The image ${IMAGE} is missing. Run runner/build-image.sh on this machine; it builds the image from global.json."
 
-# Setup puts it on the NFS share; until it has, a local volume owned by the job's account serves.
 if ! docker volume inspect "${STAGING_VOLUME}" > /dev/null 2>&1; then
     docker volume create "${STAGING_VOLUME}" > /dev/null
     docker run --rm --user 0 --entrypoint chown --volume "${STAGING_VOLUME}:/mnt/staging" "${IMAGE}" "$(id -u):$(id -g)" /mnt/staging
 fi
 
-# main is read-only in every job: only the RemoteBuildTool service writes it.
 run_args=(
     --rm
     --init
@@ -61,13 +60,7 @@ run_args=(
     --volume "${STAGING_VOLUME}:/mnt/staging"
     --volume "${LOGS_VOLUME}:/mnt/logs"
     --workdir /repo
-    # Running as a non-root user leaves no writable home, so both are pointed somewhere writable
-    # instead of relying on one. NUGET_PACKAGES is what puts the cache on the mounted volume.
     --env NUGET_PACKAGES=/cache/nuget
-    # NuGet arbitrates concurrent extraction with lock files under the temp directory, not under
-    # the packages folder. Agents share the volume but not /tmp, so leaving this unset lets two
-    # containers extract the same package into one directory with nothing between them, and the
-    # loser's rename target disappears mid-restore.
     --env TMPDIR=/cache/tmp
     --env HOME=/tmp
     --env DOTNET_CLI_HOME=/tmp
@@ -80,15 +73,11 @@ run_args=(
     --env REMOTEBUILDTOOL_DROP_ROOT=/mnt/official
 )
 
-# Only 'release' writes the drops, so no other command can touch them.
 [[ "${1}" == "release" ]] && run_args+=(--volume "${OFFICIAL_VOLUME}:/mnt/official")
 
-# The agent's share of the machine, from its .env (see runner/setup-runner.sh). Swap is capped to
-# the same value, so a job over its memory is killed rather than paging the host.
 [[ -n "${REMOTEBUILDTOOL_CPUS:-}" ]] && run_args+=(--cpus "${REMOTEBUILDTOOL_CPUS}")
 [[ -n "${REMOTEBUILDTOOL_MEMORY:-}" ]] && run_args+=(--memory "${REMOTEBUILDTOOL_MEMORY}" --memory-swap "${REMOTEBUILDTOOL_MEMORY}")
 
-# Passed through when set.
 for variable in GITHUB_ACTIONS GITHUB_RUN_ID GITHUB_RUN_ATTEMPT GITHUB_WORKFLOW GITHUB_JOB GITHUB_REPOSITORY GITHUB_REF GITHUB_SHA \
     REMOTEBUILDTOOL_MAX_CPU REMOTEBUILDTOOL_CACHELESS REMOTEBUILDTOOL_COVERAGE_HTML REMOTEBUILDTOOL_POOL REMOTEBUILDTOOL_LOG_RUN; do
     [[ -n "${!variable:-}" ]] && run_args+=(--env "${variable}=${!variable}")
@@ -96,17 +85,12 @@ done
 
 [[ -n "${REMOTEBUILDTOOL_LOG_RUN:-}" ]] && run_args+=(--env "REMOTEBUILDTOOL_LOGS_DIR=/mnt/logs/${REMOTEBUILDTOOL_LOG_RUN}")
 
-# Telemetry records name the runner, not the throwaway container the command runs in.
 run_args+=(--env "REMOTEBUILDTOOL_MACHINE=${RUNNER_NAME:-$(hostname)}")
 
-# Every command writes its telemetry to the share when this machine has one (see
-# runner/setup-runner.sh); a machine set up before it simply records nothing.
 if docker volume inspect "${TELEMETRY_VOLUME}" > /dev/null 2>&1; then
     run_args+=(--volume "${TELEMETRY_VOLUME}:/mnt/telemetry" --env REMOTEBUILDTOOL_TELEMETRY_DIR=/mnt/telemetry)
 fi
 
-# The step's run summary is a file the runner reads once the step ends; mounted on its own so the
-# command can append to it and nothing else of the runner's directory is visible.
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" && -f "${GITHUB_STEP_SUMMARY}" ]]; then
     run_args+=(--volume "${GITHUB_STEP_SUMMARY}:/mnt/step-summary.md" --env GITHUB_STEP_SUMMARY=/mnt/step-summary.md)
 fi
