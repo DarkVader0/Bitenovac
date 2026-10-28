@@ -1,0 +1,32 @@
+name: Publish runner bundle
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: publish_runner_bundle
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Make the bundle
+        run: mkdir -p "$RUNNER_TEMP/bundle" && bash runner/make-bundle.sh "$RUNNER_TEMP/bundle"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(sed -n 's/.*<VersionPrefix>[[:space:]]*\([^<[:space:]]*\)[[:space:]]*<\/VersionPrefix>.*/\1/p' src/RemoteBuildTool/Directory.Build.props | head -n 1)"
+          gh release create "bitenovac-runner-${version}" "$RUNNER_TEMP"/bundle/* \
+            --target "$GITHUB_SHA" \
+            --title "Runner setup ${version}" \
+            --notes "Installs the Bitenovac runner setup. Extract the archive, then run runner/setup-runner.sh as described in docs/Local_RemoteBuildTool_Setup.md."

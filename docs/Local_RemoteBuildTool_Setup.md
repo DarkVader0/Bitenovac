@@ -284,6 +284,30 @@ NUGET_API_KEY=<KEY> bash src/DecompressionAlgorithms/deploy_libraries.sh [2026.1
 
 ---
 
+## Publishing the runner bundle
+
+The runner setup is published on GitHub Releases as `bitenovac-runner-<version>`: the bundle
+archive and its `.sha256`. Anyone can download it, so it holds only the setup scripts, the image's
+build files and the two pins. No source code, tests, workflows or secrets.
+
+1. Actions → Publish runner bundle → Run workflow, on `master`.
+2. The release is named by `<VersionPrefix>` in `src/RemoteBuildTool/Directory.Build.props`. A
+   version that already has a release fails the run, so bump the version to publish again.
+
+A new machine downloads the latest release instead of making a bundle (Ubuntu):
+
+```bash
+mkdir -p ~/bitenovac-runner && cd ~/bitenovac-runner
+gh release download --repo DarkVader0/Bitenovac --pattern 'bitenovac-runner-*'
+sha256sum -c bitenovac-runner-*.tar.gz.sha256
+tar -xzf bitenovac-runner-*.tar.gz
+sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --repo https://github.com/DarkVader0/Bitenovac --api-token <SERVICE TOKEN>
+```
+
+Without `gh`, download the two files from the release page and continue from `sha256sum`.
+
+---
+
 ## Publishing the Web app
 
 The Web app is a static site on GitHub Pages, served from the root of its own domain. Every
