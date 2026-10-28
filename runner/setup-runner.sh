@@ -387,7 +387,14 @@ else
     docker volume create "${LOGS_VOLUME}" > /dev/null
     docker volume create "${TELEMETRY_VOLUME}" > /dev/null
     docker volume create "${STAGING_VOLUME}" > /dev/null
-    ok "${LOGS_VOLUME}, ${TELEMETRY_VOLUME} and ${STAGING_VOLUME} are local volumes"
+    # A new volume is owned by root. On the share, the NFS export squashes every client to the
+    # agents' account instead, so these need the same ownership by hand.
+    docker run --rm --user 0 --entrypoint chown \
+        --volume "${LOGS_VOLUME}:/mnt/logs" \
+        --volume "${TELEMETRY_VOLUME}:/mnt/telemetry" \
+        --volume "${STAGING_VOLUME}:/mnt/staging" \
+        "bitenovac-remotebuildtool-runner:${sdk_version}" -R "${RUN_UID}:${RUN_GID}" /mnt/logs /mnt/telemetry /mnt/staging
+    ok "${LOGS_VOLUME}, ${TELEMETRY_VOLUME} and ${STAGING_VOLUME} are local volumes owned by ${run_as}"
 fi
 
 docker volume create "${NUGET_VOLUME}" > /dev/null
