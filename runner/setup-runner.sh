@@ -102,9 +102,9 @@ repo_url=""
 labels="${LABELS}"
 run_as="${RUN_AS}"
 runner_version=""
-instances=1
-cpus=""
-memory=""
+instances="${INSTANCES}"
+cpus="${CPUS}"
+memory="${MEMORY}"
 api_token=""
 uninstall=false
 purge=false
@@ -182,6 +182,7 @@ fi
 [[ -n "${token}" ]] || fail "--token is required. Get one from Settings > Actions > Runners > New self-hosted runner."
 
 [[ "${instances}" =~ ^[1-9][0-9]*$ ]] || fail "--instances must be a positive integer, got '${instances}'."
+[[ -z "${cpus}" || "${cpus}" =~ ^[1-9][0-9]*$ ]] || fail "--cpus must be a positive integer, got '${cpus}'."
 
 if [[ -z "${repo_url}" ]]; then
     repo_url="${REPOSITORY}"
@@ -246,6 +247,9 @@ LABELS=${labels}
 RUNNER_NAME_PREFIX=${RUNNER_NAME_PREFIX}
 REPOSITORY=${repo_url}
 MANAGE_SHARE=${MANAGE_SHARE}
+INSTANCES=${instances}
+CPUS=${cpus}
+MEMORY=${memory}
 CONF
     chmod 0644 "${CONFIG_FILE}"
     ok "wrote ${CONFIG_FILE}"

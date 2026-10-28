@@ -4,7 +4,7 @@ Runs the GitHub pull request pipeline on your own PC, inside WSL.
 
 What you end up with:
 
-- 6 GitHub runners in Ubuntu (WSL), each job limited to 1 CPU and 2 GB RAM
+- 3 GitHub runners in Ubuntu (WSL), each job limited to 3 CPUs and 2 GB RAM
 - the pinned RemoteBuildTool release already installed in the runner image
 - the build cache filled from `master`, and kept filled by every merged pull request
 - the **RemoteBuildTool service**, always running beside the runners: it promotes what merged pull
@@ -74,9 +74,16 @@ git pull
 
 ```bash
 cd ~/bitenovac
-sudo systemctl stop 'actions.runner.*' 2> /dev/null
-sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --api-token <SERVICE TOKEN> --instances 6 --cpus 1 --memory 2g
+sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --api-token <SERVICE TOKEN> --instances 3 --cpus 3 --memory 2g
 ```
+
+Setup writes `/etc/bitenovac/runner.env` the first time it runs, with the machine's settings: the
+install folder, runner account, labels, repository, the number of agents (`INSTANCES`), each job's
+CPUs (`CPUS`) and memory (`MEMORY`). Later runs read it, so the flags are only needed to change
+something. A flag given on the command line wins for that run and is not saved.
+
+On this PC the file's values are three agents with 3 CPUs and 2 GB each, the values in the command
+above.
 
 Takes a few minutes. It must end with:
 
@@ -96,8 +103,8 @@ systemctl list-units 'actions.runner.*' --no-pager
 sudo bash runner/service.sh logs
 ```
 
-All six runners must be `active running`. On GitHub, Settings → Actions → Runners must show
-`DESKTOP-...-1` to `DESKTOP-...-6` as **Idle**.
+All three runners must be `active running`. On GitHub, Settings → Actions → Runners must show
+`DESKTOP-...-1` to `DESKTOP-...-3` as **Idle**.
 
 **5. Done.** Open a pull request into `master` and it runs on your PC. Once it is merged, the
 service log shows `PR #<number> merged; run <id>: Promoted <n> entries into main.`
@@ -404,7 +411,7 @@ runner image reads it directly; for example, every project of one build with wha
 (Ubuntu):
 
 ```bash
-docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint duckdb bitenovac-remotebuildtool-runner:10.0.400 \
+docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint duckdb bitenovac-remotebuildtool-runner:10.0.402 \
     -c "SELECT unnest(Configurations.Debug, recursive := true) FROM read_json('/logs/PR_18/16473829-1/build-graph.json')"
 ```
 
@@ -533,22 +540,32 @@ logs volume is in use: `sudo systemctl stop 'actions.runner.*'`.
 
 ## Remove everything
 
-**1.** On GitHub, Settings → Actions → Runners: remove every runner.
-
-**2.** Ubuntu:
+**1.** Create a runner token (step 2 of Setup). Ubuntu:
 
 ```bash
 cd ~/bitenovac
-sudo bash runner/setup-runner.sh --uninstall --purge --token unused
+sudo bash runner/setup-runner.sh --uninstall --token <RUNNER TOKEN>
+```
+
+This stops the service and every agent, deregisters the agents with GitHub, and deletes the agents'
+folders. The cache, the logs, the telemetry, the Official drops and the settings are kept.
+
+**2.** To delete everything this setup made, run the same command with `--purge`, then the rest by
+hand (Ubuntu):
+
+```bash
+cd ~/bitenovac
+sudo bash runner/setup-runner.sh --uninstall --purge --token <RUNNER TOKEN>
 docker volume rm bitenovac-official
-docker image rm bitenovac-remotebuildtool-runner:10.0.400
+docker image rm bitenovac-remotebuildtool-runner:<SDK version from global.json>
+sudo rm -f /etc/bitenovac/runner.env
 sudo rm /etc/exports.d/bitenovac.exports && sudo exportfs -ra
 sudo rm -rf /srv/bitenovac
 ```
 
-`--uninstall` stops the service as well. `--purge` keeps the Official drops and the telemetry; the
-`docker volume rm` deletes the drops and the last line the telemetry. Use the SDK version from
-`global.json` in the image name.
+`--purge` deletes the cache, main, the logs and the service's settings. The Official drops and the
+telemetry are kept by `--purge` itself, so the `docker volume rm` and `rm -rf` lines are what delete
+them.
 
 **3.** Check that nothing is left:
 
@@ -559,5 +576,82 @@ docker image ls | grep bitenovac                     # nothing
 ```
 
 To set it up again, start from [Setup](#setup).
+
+---
+
+## Updating a set-up PC
+
+Setup can run again over an installed PC. It keeps the cache, the logs, the telemetry, the Official
+drops and the NFS share, and it keeps the service's settings unless you pass `--api-token`.
+
+1. In GitHub, Settings → Actions → Runners: every runner must be **Idle**. A running job stops when
+   its agent is replaced.
+2. Ubuntu, from the checkout:
+
+   ```bash
+   cd ~/bitenovac
+   git fetch
+   git switch master && git pull
+   ```
+
+3. Get a new runner token, then run setup (Ubuntu). The agent count and limits come from
+   `/etc/bitenovac/runner.env`:
+
+   ```bash
+   sudo bash runner/setup-runner.sh --token <RUNNER TOKEN>
+   ```
+
+   Add `--api-token <SERVICE TOKEN>` only when the service's token has changed. Without it, the
+   service keeps its current settings and runs on the new image.
+
+Setup replaces the agents, rebuilds the runner image and restarts the service on it. Check the
+result:
+
+```bash
+systemctl list-units 'actions.runner.*' --no-pager
+sudo bash runner/service.sh logs
+```
+
+**Going back.** There is no automatic rollback. Check out the commit you want (`git switch --detach
+<commit>`) and run step 3 again.
+
+---
+
+## Another machine, from the bundle
+
+A machine does not need the repository to be set up. The bundle holds the setup scripts, the Docker
+image's build files and the two pins, `global.json` and the RemoteBuildTool version.
+
+**1. Make it** (from any checkout, Windows or Ubuntu):
+
+```bash
+bash runner/make-bundle.sh <folder>
+```
+
+It writes `bitenovac-runner-<version>.tar.gz` and its `.sha256` file to `<folder>`.
+
+**2. Set it up** (Ubuntu on the new machine). Copy both files there, then:
+
+```bash
+sha256sum -c bitenovac-runner-<version>.tar.gz.sha256
+mkdir -p ~/bitenovac-runner && tar -xzf bitenovac-runner-<version>.tar.gz -C ~/bitenovac-runner
+cd ~/bitenovac-runner
+sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --repo https://github.com/DarkVader0/Bitenovac --api-token <SERVICE TOKEN> --instances 3 --cpus 3 --memory 2g
+```
+
+Without a checkout, `--repo` is needed. Setup then writes it into `/etc/bitenovac/runner.env`, and
+later runs read it from there.
+
+**A test machine** that must not serve the NFS share or take production jobs: before the first run,
+write `/etc/bitenovac/runner.env` with
+
+```
+MANAGE_SHARE=false
+LABELS=self-hosted,linux,x64,bitenovac-test
+RUNNER_NAME_PREFIX=<a name for this machine>
+REPOSITORY=https://github.com/DarkVader0/Bitenovac
+```
+
+Its volumes stay local, and its runners take only jobs labelled `bitenovac-test`.
 
 ---
