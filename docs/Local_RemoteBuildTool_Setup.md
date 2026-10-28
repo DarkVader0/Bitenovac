@@ -44,21 +44,20 @@ and **untick Ubuntu**. Setup installs its own Docker inside Ubuntu.
 
 ## Setup
 
-**1. Get the code** (Ubuntu)
+**1. Download the installer** (Ubuntu)
 
-First time:
-
-```bash
-git clone https://github.com/DarkVader0/Bitenovac.git ~/bitenovac
-```
-
-Every time after that:
+The installer is the newest release, `bitenovac-runner-<drop>` on the GitHub Releases page. It holds
+everything setup needs, so no repository checkout is required. The download uses `gh`; without it,
+download the two files from the release page instead and continue from `sha256sum`.
 
 ```bash
-cd ~/bitenovac
-git switch master
-git pull
+mkdir -p ~/bitenovac-runner && cd ~/bitenovac-runner
+gh release download --repo DarkVader0/Bitenovac --pattern 'bitenovac-runner-*'
+sha256sum -c bitenovac-runner-*.tar.gz.sha256
+tar -xzf bitenovac-runner-*.tar.gz
 ```
+
+Every command below that names `runner/` runs from this folder, `~/bitenovac-runner`.
 
 **2. Get two tokens**
 
@@ -73,8 +72,8 @@ git pull
 **3. Run setup** (Ubuntu)
 
 ```bash
-cd ~/bitenovac
-sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --api-token <SERVICE TOKEN> --instances 3 --cpus 3 --memory 2g
+cd ~/bitenovac-runner
+sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --repo https://github.com/DarkVader0/Bitenovac --api-token <SERVICE TOKEN> --instances 3 --cpus 3 --memory 2g
 ```
 
 Setup writes `/etc/bitenovac/runner.env` the first time it runs, with the machine's settings: the
@@ -204,12 +203,10 @@ not the source in the pull request. To ship a change to RemoteBuildTool:
    cannot overwrite anything.
 
 nuget.org takes a few minutes to index a new package. Once it is listed, and after any Dockerfile or
-`global.json` change merged into `master` (Ubuntu):
+`global.json` change that has been published in a release (Ubuntu):
 
 ```bash
-cd ~/bitenovac
-git switch master
-git pull
+cd ~/bitenovac-runner
 sudo bash runner/build-image.sh
 ```
 
@@ -299,17 +296,8 @@ the drop.
 2. Actions → Publish runner bundle → Run workflow. Leave the drop empty for the newest one. A drop
    that already has a release fails the run.
 
-A new machine downloads the latest release instead of making a bundle (Ubuntu):
-
-```bash
-mkdir -p ~/bitenovac-runner && cd ~/bitenovac-runner
-gh release download --repo DarkVader0/Bitenovac --pattern 'bitenovac-runner-*'
-sha256sum -c bitenovac-runner-*.tar.gz.sha256
-tar -xzf bitenovac-runner-*.tar.gz
-sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --repo https://github.com/DarkVader0/Bitenovac --api-token <SERVICE TOKEN>
-```
-
-Without `gh`, download the two files from the release page and continue from `sha256sum`.
+A new machine gets the installer from the release, the same way as every other machine: see
+[Setup](#setup). Nothing on it needs a checkout of the repository.
 
 ---
 
@@ -529,7 +517,7 @@ minutes after it finishes, and its own builds' rows as they end.
 Query it with the DuckDB CLI in the runner image (Ubuntu):
 
 ```bash
-cd ~/bitenovac
+cd ~/bitenovac-runner
 bash runner/telemetry.sh shell
 bash runner/telemetry.sh query "FROM build_percentiles WHERE Queue = 'PR'"
 ```
@@ -575,7 +563,7 @@ logs volume is in use: `sudo systemctl stop 'actions.runner.*'`.
 **1.** Create a runner token (step 2 of Setup). Ubuntu:
 
 ```bash
-cd ~/bitenovac
+cd ~/bitenovac-runner
 sudo bash runner/setup-runner.sh --uninstall --token <RUNNER TOKEN>
 ```
 
@@ -586,7 +574,7 @@ folders. The cache, the logs, the telemetry, the Official drops and the settings
 hand (Ubuntu):
 
 ```bash
-cd ~/bitenovac
+cd ~/bitenovac-runner
 sudo bash runner/setup-runner.sh --uninstall --purge --token <RUNNER TOKEN>
 docker volume rm bitenovac-official
 docker image rm bitenovac-remotebuildtool-runner:<SDK version from global.json>
@@ -618,18 +606,14 @@ drops and the NFS share, and it keeps the service's settings unless you pass `--
 
 1. In GitHub, Settings → Actions → Runners: every runner must be **Idle**. A running job stops when
    its agent is replaced.
-2. Ubuntu, from the checkout:
+2. Download the release into a new folder, from [Setup step 1](#setup). The newest release is the
+   default; to pick one, give its tag, for example
+   `gh release download bitenovac-runner-2026.10.28.001 --repo DarkVader0/Bitenovac --pattern 'bitenovac-runner-*'`.
+3. Get a new runner token, then run setup from that folder (Ubuntu). The agent count and limits
+   come from `/etc/bitenovac/runner.env`:
 
    ```bash
-   cd ~/bitenovac
-   git fetch
-   git switch master && git pull
-   ```
-
-3. Get a new runner token, then run setup (Ubuntu). The agent count and limits come from
-   `/etc/bitenovac/runner.env`:
-
-   ```bash
+   cd ~/bitenovac-runner
    sudo bash runner/setup-runner.sh --token <RUNNER TOKEN>
    ```
 
@@ -644,35 +628,12 @@ systemctl list-units 'actions.runner.*' --no-pager
 sudo bash runner/service.sh logs
 ```
 
-**Going back.** There is no automatic rollback. Check out the commit you want (`git switch --detach
-<commit>`) and run step 3 again.
+**Going back.** There is no automatic rollback. Download an older release by its tag (step 2) and
+run step 3 from its folder.
 
 ---
 
-## Another machine, from the bundle
-
-A machine does not need the repository to be set up. The bundle holds the setup scripts, the Docker
-image's build files and the two pins, `global.json` and the RemoteBuildTool version.
-
-**1. Make it** (from any checkout, Windows or Ubuntu):
-
-```bash
-bash runner/make-bundle.sh <folder>
-```
-
-It writes `bitenovac-runner-<version>.tar.gz` and its `.sha256` file to `<folder>`.
-
-**2. Set it up** (Ubuntu on the new machine). Copy both files there, then:
-
-```bash
-sha256sum -c bitenovac-runner-<version>.tar.gz.sha256
-mkdir -p ~/bitenovac-runner && tar -xzf bitenovac-runner-<version>.tar.gz -C ~/bitenovac-runner
-cd ~/bitenovac-runner
-sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --repo https://github.com/DarkVader0/Bitenovac --api-token <SERVICE TOKEN> --instances 3 --cpus 3 --memory 2g
-```
-
-Without a checkout, `--repo` is needed. Setup then writes it into `/etc/bitenovac/runner.env`, and
-later runs read it from there.
+## Test machines
 
 **A test machine** that must not serve the NFS share or take production jobs: before the first run,
 write `/etc/bitenovac/runner.env` with

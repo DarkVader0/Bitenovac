@@ -30,6 +30,7 @@ readonly BUNDLE_FILES=(
     runner/setup-runner.sh
     runner/build-image.sh
     runner/service.sh
+    runner/telemetry.sh
     docker/ci-runner.Dockerfile
     docker/ci-runner.Dockerfile.dockerignore
     docker/entrypoint.sh
