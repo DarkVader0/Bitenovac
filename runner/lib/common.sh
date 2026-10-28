@@ -20,6 +20,9 @@ fi
 : "${RUNNER_NAME_PREFIX:=$(hostname)}"
 : "${REPOSITORY:=}"
 : "${MANAGE_SHARE:=true}"
+: "${INSTANCES:=1}"
+: "${CPUS:=}"
+: "${MEMORY:=}"
 
 : "${NUGET_VOLUME:=bitenovac-runner-nuget}"
 : "${MAIN_VOLUME:=bitenovac-main}"

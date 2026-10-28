@@ -77,12 +77,13 @@ cd ~/bitenovac
 sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --api-token <SERVICE TOKEN> --instances 3 --cpus 3 --memory 2g
 ```
 
-`--instances`, `--cpus` and `--memory` are not stored, so give them on every run. They are the
-values this PC runs with: three agents, each job limited to 3 CPUs and 2 GB.
+Setup writes `/etc/bitenovac/runner.env` the first time it runs, with the machine's settings: the
+install folder, runner account, labels, repository, the number of agents (`INSTANCES`), each job's
+CPUs (`CPUS`) and memory (`MEMORY`). Later runs read it, so the flags are only needed to change
+something. A flag given on the command line wins for that run and is not saved.
 
-Setup also writes `/etc/bitenovac/runner.env` the first time it runs, with the machine's settings
-(install folder, runner account, labels, repository). Later runs read it, so flags are only needed
-to change something. A flag given on the command line wins for that run.
+On this PC the file's values are three agents with 3 CPUs and 2 GB each, the values in the command
+above.
 
 Takes a few minutes. It must end with:
 
@@ -593,10 +594,11 @@ drops and the NFS share, and it keeps the service's settings unless you pass `--
    git switch master && git pull
    ```
 
-3. Get a new runner token, then run setup with the same flags as before (Ubuntu):
+3. Get a new runner token, then run setup (Ubuntu). The agent count and limits come from
+   `/etc/bitenovac/runner.env`:
 
    ```bash
-   sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --instances 3 --cpus 3 --memory 2g
+   sudo bash runner/setup-runner.sh --token <RUNNER TOKEN>
    ```
 
    Add `--api-token <SERVICE TOKEN>` only when the service's token has changed. Without it, the
