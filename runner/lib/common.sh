@@ -10,7 +10,6 @@
 readonly CONFIG_FILE="${BITENOVAC_CONFIG:-/etc/bitenovac/runner.env}"
 
 if [[ -r "${CONFIG_FILE}" ]]; then
-    # shellcheck source=/dev/null
     source "${CONFIG_FILE}"
 fi
 
@@ -20,7 +19,6 @@ fi
 : "${LABELS:=self-hosted,linux,x64,bitenovac}"
 : "${RUNNER_NAME_PREFIX:=$(hostname)}"
 : "${REPOSITORY:=}"
-# Whether this setup serves the NFS share. Only a test machine without one sets it to false.
 : "${MANAGE_SHARE:=true}"
 
 : "${NUGET_VOLUME:=bitenovac-runner-nuget}"
@@ -31,8 +29,6 @@ fi
 : "${WORK_VOLUME:=bitenovac-service-work}"
 : "${STAGING_VOLUME:=bitenovac-staging}"
 
-# The SDK pinned by the repository's global.json, read from the given root.
 sdk_version_in() { sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$1/global.json" | head -n 1; }
 
-# The RemoteBuildTool release named by the <VersionPrefix> of the given root's props file.
 tool_version_in() { sed -n 's/.*<VersionPrefix>[[:space:]]*\([^<[:space:]]*\)[[:space:]]*<\/VersionPrefix>.*/\1/p' "$1/src/RemoteBuildTool/Directory.Build.props" | head -n 1; }

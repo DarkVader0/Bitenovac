@@ -62,11 +62,8 @@ set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# shellcheck source=lib/common.sh
 source "${REPO_ROOT}/runner/lib/common.sh"
 
-# Every agent lives in its own directory under RUNNER_HOME. The glob is what uninstall and
-# reinstall sweep, so it must match every layout this script has ever produced.
 readonly AGENT_DIR_GLOB="actions-runner*"
 
 agent_dir_for() { printf '%s\n' "${RUNNER_HOME}/actions-runner-${1}"; }
@@ -78,8 +75,6 @@ existing_agent_dirs() {
     shopt -u nullglob
 }
 
-# Stops the service, deregisters with GitHub and deletes the directory. Every step tolerates a
-# half-installed agent, since that is exactly the state a failed run leaves behind.
 remove_agent() {
     local dir="$1"
     [[ -d "${dir}" ]] || return 0
@@ -215,9 +210,6 @@ ok "${os_name}"
 command -v apt-get > /dev/null 2>&1 || fail "apt-get is required; this installer supports Ubuntu only."
 ok "apt-get"
 
-# Every command the installer calls is checked here, before anything changes. A command that is
-# missing must stop the run, not pass silently: on a minimal Ubuntu image the shell's
-# command-not-found handler returns success for it, so set -e does not catch it.
 prerequisites=(curl git tar sudo)
 missing=()
 for prerequisite in "${prerequisites[@]}"; do
@@ -233,7 +225,6 @@ for prerequisite in "${prerequisites[@]}"; do
 done
 ok "${prerequisites[*]}"
 
-# Docker, the image and the agents' work need this much; less and a build fails part way through.
 readonly REQUIRED_FREE_KIB=$(( 10 * 1024 * 1024 ))
 free_kib="$(df -Pk /var/lib | awk 'NR == 2 { print $4 }')"
 (( free_kib >= REQUIRED_FREE_KIB )) || fail "At least 10 GiB must be free under /var/lib; $(( free_kib / 1024 / 1024 )) GiB are."
@@ -243,8 +234,6 @@ ok "$(( free_kib / 1024 / 1024 )) GiB free under /var/lib"
 
 log "Configuration"
 
-# Written once, so a reinstall keeps what an operator set in it. What it holds is what this run
-# uses, so the next run needs no flags to get the same machine.
 if [[ -e "${CONFIG_FILE}" ]]; then
     ok "${CONFIG_FILE} kept"
 else
@@ -299,8 +288,6 @@ else
     ok "created ${run_as}"
 fi
 
-# The agent starts the job containers, so it needs the Docker socket. This is root-equivalent on
-# this host: anything that can start a container can mount the filesystem into one.
 usermod --append --groups docker "${run_as}"
 ok "${run_as} is in the docker group"
 
@@ -334,8 +321,6 @@ if [[ "${MANAGE_SHARE}" == true ]]; then
     apt-get install --yes --no-install-recommends nfs-kernel-server > /dev/null
     install -d -o "${run_as}" -g "${run_as}" "${SHARE_ROOT}" "${SHARE_ROOT}/logs" "${SHARE_ROOT}/telemetry" "${SHARE_ROOT}/staging"
 
-    # Whoever a client runs as, it writes as the agents' account, so job containers and the root
-    # container that migrates old logs leave files the agents can prune.
     install -d /etc/exports.d
     printf '%s 127.0.0.1(rw,sync,no_subtree_check,all_squash,anonuid=%s,anongid=%s)\n' \
         "${SHARE_ROOT}" "${RUN_UID}" "${RUN_GID}" > /etc/exports.d/bitenovac.exports
@@ -343,13 +328,8 @@ if [[ "${MANAGE_SHARE}" == true ]]; then
     exportfs -ra || fail "Could not export ${SHARE_ROOT}. Under WSL, systemd must be on (see docs/Local_RemoteBuildTool_Setup.md)."
     ok "exporting ${SHARE_ROOT} to this machine"
 
-    # NFS 4.1, not 4.2: the WSL kernel is built without 4.2, and Docker's mount of it fails with
-    # "invalid argument".
     readonly SHARE_MOUNT_OPTIONS="addr=127.0.0.1,rw,nfsvers=4.1"
 
-    # A volume an earlier setup made locally moves onto the share first; one already on the share is
-    # made again when its mount options changed, which loses nothing since its files live on the
-    # share. Removing either fails while a job still has it mounted.
     share_volume() {
         local name="$1" directory="$2" type
         if type="$(docker volume inspect --format '{{index .Options "type"}}' "${name}" 2> /dev/null)"; then
@@ -387,8 +367,6 @@ else
     docker volume create "${LOGS_VOLUME}" > /dev/null
     docker volume create "${TELEMETRY_VOLUME}" > /dev/null
     docker volume create "${STAGING_VOLUME}" > /dev/null
-    # A new volume is owned by root. On the share, the NFS export squashes every client to the
-    # agents' account instead, so these need the same ownership by hand.
     docker run --rm --user 0 --entrypoint chown \
         --volume "${LOGS_VOLUME}:/mnt/logs" \
         --volume "${TELEMETRY_VOLUME}:/mnt/telemetry" \
@@ -400,9 +378,6 @@ fi
 docker volume create "${NUGET_VOLUME}" > /dev/null
 docker volume create "${MAIN_VOLUME}" > /dev/null
 docker volume create "${OFFICIAL_VOLUME}" > /dev/null
-# A new volume is owned by root, and the job containers run as the agent's user. Without this
-# they cannot write to it, and for the NuGet cache specifically every restore downloads
-# everything again.
 docker run --rm --user 0 --entrypoint chown \
     --volume "${NUGET_VOLUME}:/cache" \
     --volume "${MAIN_VOLUME}:/mnt/main" \
@@ -414,10 +389,6 @@ ok "volumes ready: ${NUGET_VOLUME}, ${MAIN_VOLUME}, ${OFFICIAL_VOLUME} — owned
 
 log "Agent"
 
-# Every previous installation is removed rather than reconfigured: config.sh refuses to
-# reconfigure a registered runner, and a half-updated directory is harder to reason about than a
-# fresh one. Sweeping the whole glob also retires instances that a larger --instances left behind,
-# and the single unsuffixed directory that earlier versions of this script produced.
 while IFS= read -r dir; do
     [[ -n "${dir}" ]] || continue
     warn "an existing installation was found in ${dir##*/}; replacing it"
@@ -432,12 +403,10 @@ if [[ -z "${runner_version}" ]]; then
     [[ -n "${runner_version}" ]] || fail "Could not resolve the latest agent release. Pass --runner-version."
 fi
 
-# Downloaded once and unpacked into each instance, rather than once per instance.
 log "Installing ${instances} agent(s), version ${runner_version}"
 curl -fsSL -o /tmp/actions-runner.tar.gz \
     "https://github.com/actions/runner/releases/download/v${runner_version}/actions-runner-linux-${runner_arch}-${runner_version}.tar.gz"
 
-# System packages, so once for the machine rather than once per agent.
 dependencies_installed=false
 
 for (( instance = 1; instance <= instances; instance++ )); do
@@ -447,9 +416,6 @@ for (( instance = 1; instance <= instances; instance++ )); do
     install -d -o "${run_as}" -g "${run_as}" "${agent_dir}"
     tar -xzf /tmp/actions-runner.tar.gz -C "${agent_dir}"
 
-    # The agent exports this file's contents into every job, and runner/in-container.sh forwards
-    # it into the container. Deriving the share here rather than naming it in the workflow keeps a
-    # core count that is only true of this machine out of the repository.
     {
         printf 'REMOTEBUILDTOOL_MAX_CPU=%s\n' "${cpu_share}"
         printf 'REMOTEBUILDTOOL_CPUS=%s\n' "${cpu_share}"
@@ -465,9 +431,6 @@ for (( instance = 1; instance <= instances; instance++ )); do
         dependencies_installed=true
     fi
 
-    # The token is not spent by this: it stays valid for its hour and registers every instance.
-    # What config.sh writes into .credentials is long lived and refreshed by the agent, so no
-    # token is needed again for the runner to keep accepting jobs.
     log "Registering ${runner_name} with ${repo_url}"
     sudo -u "${run_as}" "${agent_dir}/config.sh" \
         --url "${repo_url}" \
@@ -478,7 +441,6 @@ for (( instance = 1; instance <= instances; instance++ )); do
         --unattended \
         --replace
 
-    # Each runner name yields its own systemd unit, so the instances start and stop independently.
     (cd "${agent_dir}" && ./svc.sh install "${run_as}" > /dev/null && ./svc.sh start > /dev/null)
     ok "${runner_name}: service installed and started"
 done
@@ -487,8 +449,6 @@ rm -f /tmp/actions-runner.tar.gz
 
 # ----------------------------------------------------------------------------------- service ----
 
-# The service is main's only writer. It finds main empty and rebuilds the branch from scratch
-# into it straight away, then keeps it filled from merged pull requests and a rebuild every night.
 if [[ -n "${api_token}" ]]; then
     log "RemoteBuildTool service"
 

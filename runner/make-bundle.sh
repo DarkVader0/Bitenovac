@@ -15,7 +15,6 @@ set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# shellcheck source=lib/common.sh
 source "${REPO_ROOT}/runner/lib/common.sh"
 
 fail() { printf '\nerror: %s\n' "$*" >&2; exit 1; }

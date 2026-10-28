@@ -18,7 +18,6 @@ set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# shellcheck source=lib/common.sh
 source "${REPO_ROOT}/runner/lib/common.sh"
 
 readonly CONTAINER="remotebuildtool-service"
@@ -45,8 +44,6 @@ fi
 [[ -e "${SETTINGS_DIR}/config.json" && -r "${SETTINGS_DIR}/.env" ]] \
     || fail "No service settings in ${SETTINGS_DIR}. Run runner/setup-runner.sh with --api-token."
 
-# Account, limits and volumes; written by setup-runner.sh.
-# shellcheck source=/dev/null
 source "${SETTINGS_DIR}/.env"
 
 sdk_version="$(sdk_version_in "${REPO_ROOT}")"
@@ -73,7 +70,6 @@ run_args=(
     --volume "${NUGET_VOLUME}:/cache"
     --volume "${MAIN_VOLUME}:/mnt/main"
     --volume "${LOGS_VOLUME}:/mnt/logs"
-    # At the share's own path, so the views in telemetry.duckdb resolve wherever the share is mounted alike.
     --volume "${TELEMETRY_VOLUME}:/srv/bitenovac/telemetry"
     --volume "${STAGING_VOLUME}:/mnt/staging"
     --volume "${WORK_VOLUME}:/work"

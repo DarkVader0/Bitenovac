@@ -14,7 +14,6 @@ set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# shellcheck source=lib/common.sh
 source "${REPO_ROOT}/runner/lib/common.sh"
 
 sdk_version="$(sdk_version_in "${REPO_ROOT}")"
@@ -37,7 +36,6 @@ docker build \
     "$@" \
     "${REPO_ROOT}"
 
-# The service runs the image too; restarting it puts the new release to work at once.
 if [[ -r /etc/remotebuildtool/.env ]]; then
     bash "${REPO_ROOT}/runner/service.sh" start
 fi
