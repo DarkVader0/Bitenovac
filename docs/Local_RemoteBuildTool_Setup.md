@@ -286,13 +286,18 @@ NUGET_API_KEY=<KEY> bash src/DecompressionAlgorithms/deploy_libraries.sh [2026.1
 
 ## Publishing the runner bundle
 
-The runner setup is published on GitHub Releases as `bitenovac-runner-<version>`: the bundle
+The runner setup is published on GitHub Releases as `bitenovac-runner-<drop>`, where `<drop>` is the
+Official drop it was built in, the same way the Web app is versioned. The release holds the bundle
 archive and its `.sha256`. Anyone can download it, so it holds only the setup scripts, the image's
 build files and the two pins. No source code, tests, workflows or secrets.
 
-1. Actions → Publish runner bundle → Run workflow, on `master`.
-2. The release is named by `<VersionPrefix>` in `src/RemoteBuildTool/Directory.Build.props`. A
-   version that already has a release fails the run, so bump the version to publish again.
+Every Official drop carries the bundle in its `runner/` folder, so it is made from the same commit as
+the drop.
+
+1. Wait for the Official run that made the drop, or run one: Actions → Official → Run workflow.
+   Its run page shows the drop version.
+2. Actions → Publish runner bundle → Run workflow. Leave the drop empty for the newest one. A drop
+   that already has a release fails the run.
 
 A new machine downloads the latest release instead of making a bundle (Ubuntu):
 
@@ -396,6 +401,9 @@ Release from scratch, with no cache, and drops what can be deployed into the
 The number is the date (UTC) and a counter for that day, so a second build on the same day is
 `2026.10.07.002`. A build that fails drops nothing and does not use up a number. Run one by hand
 from GitHub, Actions → Official → Run workflow.
+
+On GitHub, the drop's version is on the run's page: the notice **Official drop** at the top, and the
+line **Official drop** in the run's summary. Each drop also gets its runner bundle in `runner/`.
 
 An executable with `<IsPublishable>false</IsPublishable>`, such as the benchmarks, is built but
 left out of the drop.
