@@ -4,7 +4,7 @@ Runs the GitHub pull request pipeline on your own PC, inside WSL.
 
 What you end up with:
 
-- 6 GitHub runners in Ubuntu (WSL), each job limited to 1 CPU and 2 GB RAM
+- 3 GitHub runners in Ubuntu (WSL), each job limited to 3 CPUs and 2 GB RAM
 - the pinned RemoteBuildTool release already installed in the runner image
 - the build cache filled from `master`, and kept filled by every merged pull request
 - the **RemoteBuildTool service**, always running beside the runners: it promotes what merged pull
@@ -44,21 +44,20 @@ and **untick Ubuntu**. Setup installs its own Docker inside Ubuntu.
 
 ## Setup
 
-**1. Get the code** (Ubuntu)
+**1. Download the installer** (Ubuntu)
 
-First time:
-
-```bash
-git clone https://github.com/DarkVader0/Bitenovac.git ~/bitenovac
-```
-
-Every time after that:
+The installer is the newest release, `bitenovac-runner-<drop>` on the GitHub Releases page. It holds
+everything setup needs, so no repository checkout is required. The download uses `gh`; without it,
+download the two files from the release page instead and continue from `sha256sum`.
 
 ```bash
-cd ~/bitenovac
-git switch master
-git pull
+mkdir -p ~/bitenovac-runner && cd ~/bitenovac-runner
+gh release download --repo DarkVader0/Bitenovac --pattern 'bitenovac-runner-*'
+sha256sum -c bitenovac-runner-*.tar.gz.sha256
+tar -xzf bitenovac-runner-*.tar.gz
 ```
+
+Every command below that names `runner/` runs from this folder, `~/bitenovac-runner`.
 
 **2. Get two tokens**
 
@@ -73,10 +72,17 @@ git pull
 **3. Run setup** (Ubuntu)
 
 ```bash
-cd ~/bitenovac
-sudo systemctl stop 'actions.runner.*' 2> /dev/null
-sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --api-token <SERVICE TOKEN> --instances 6 --cpus 1 --memory 2g
+cd ~/bitenovac-runner
+sudo bash runner/setup-runner.sh --token <RUNNER TOKEN> --repo https://github.com/DarkVader0/Bitenovac --api-token <SERVICE TOKEN> --instances 3 --cpus 3 --memory 2g
 ```
+
+Setup writes `/etc/bitenovac/runner.env` the first time it runs, with the machine's settings: the
+install folder, runner account, labels, repository, the number of agents (`INSTANCES`), each job's
+CPUs (`CPUS`) and memory (`MEMORY`). Later runs read it, so the flags are only needed to change
+something. A flag given on the command line wins for that run and is not saved.
+
+On this PC the file's values are three agents with 3 CPUs and 2 GB each, the values in the command
+above.
 
 Takes a few minutes. It must end with:
 
@@ -96,8 +102,8 @@ systemctl list-units 'actions.runner.*' --no-pager
 sudo bash runner/service.sh logs
 ```
 
-All six runners must be `active running`. On GitHub, Settings → Actions → Runners must show
-`DESKTOP-...-1` to `DESKTOP-...-6` as **Idle**.
+All three runners must be `active running`. On GitHub, Settings → Actions → Runners must show
+`DESKTOP-...-1` to `DESKTOP-...-3` as **Idle**.
 
 **5. Done.** Open a pull request into `master` and it runs on your PC. Once it is merged, the
 service log shows `PR #<number> merged; run <id>: Promoted <n> entries into main.`
@@ -197,12 +203,10 @@ not the source in the pull request. To ship a change to RemoteBuildTool:
    cannot overwrite anything.
 
 nuget.org takes a few minutes to index a new package. Once it is listed, and after any Dockerfile or
-`global.json` change merged into `master` (Ubuntu):
+`global.json` change that has been published in a release (Ubuntu):
 
 ```bash
-cd ~/bitenovac
-git switch master
-git pull
+cd ~/bitenovac-runner
 sudo bash runner/build-image.sh
 ```
 
@@ -274,6 +278,26 @@ To publish by hand on the runner host instead, with a key from nuget.org:
 ```bash
 NUGET_API_KEY=<KEY> bash src/DecompressionAlgorithms/deploy_libraries.sh [2026.10.11.001]
 ```
+
+---
+
+## Publishing the runner bundle
+
+The runner setup is published on GitHub Releases as `bitenovac-runner-<drop>`, where `<drop>` is the
+Official drop it was built in, the same way the Web app is versioned. The release holds the bundle
+archive and its `.sha256`. Anyone can download it, so it holds only the setup scripts, the image's
+build files and the two pins. No source code, tests, workflows or secrets.
+
+Every Official drop carries the bundle in its `runner/` folder, so it is made from the same commit as
+the drop.
+
+1. Wait for the Official run that made the drop, or run one: Actions → Official → Run workflow.
+   Its run page shows the drop version.
+2. Actions → Publish runner bundle → Run workflow. Leave the drop empty for the newest one. A drop
+   that already has a release fails the run.
+
+A new machine gets the installer from the release, the same way as every other machine: see
+[Setup](#setup). Nothing on it needs a checkout of the repository.
 
 ---
 
@@ -366,6 +390,9 @@ The number is the date (UTC) and a counter for that day, so a second build on th
 `2026.10.07.002`. A build that fails drops nothing and does not use up a number. Run one by hand
 from GitHub, Actions → Official → Run workflow.
 
+On GitHub, the drop's version is on the run's page: the notice **Official drop** at the top, and the
+line **Official drop** in the run's summary. Each drop also gets its runner bundle in `runner/`.
+
 An executable with `<IsPublishable>false</IsPublishable>`, such as the benchmarks, is built but
 left out of the drop.
 
@@ -404,7 +431,7 @@ runner image reads it directly; for example, every project of one build with wha
 (Ubuntu):
 
 ```bash
-docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint duckdb bitenovac-remotebuildtool-runner:11.0.100-rc.2.26504.105 \
+docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint duckdb bitenovac-remotebuildtool-runner:11.0.100-rc.3.26522.148 \
     -c "SELECT unnest(Configurations.Debug, recursive := true) FROM read_json('/logs/PR_18/16473829-1/build-graph.json')"
 ```
 
@@ -490,7 +517,7 @@ minutes after it finishes, and its own builds' rows as they end.
 Query it with the DuckDB CLI in the runner image (Ubuntu):
 
 ```bash
-cd ~/bitenovac
+cd ~/bitenovac-runner
 bash runner/telemetry.sh shell
 bash runner/telemetry.sh query "FROM build_percentiles WHERE Queue = 'PR'"
 ```
@@ -533,22 +560,32 @@ logs volume is in use: `sudo systemctl stop 'actions.runner.*'`.
 
 ## Remove everything
 
-**1.** On GitHub, Settings → Actions → Runners: remove every runner.
-
-**2.** Ubuntu:
+**1.** Create a runner token (step 2 of Setup). Ubuntu:
 
 ```bash
-cd ~/bitenovac
-sudo bash runner/setup-runner.sh --uninstall --purge --token unused
+cd ~/bitenovac-runner
+sudo bash runner/setup-runner.sh --uninstall --token <RUNNER TOKEN>
+```
+
+This stops the service and every agent, deregisters the agents with GitHub, and deletes the agents'
+folders. The cache, the logs, the telemetry, the Official drops and the settings are kept.
+
+**2.** To delete everything this setup made, run the same command with `--purge`, then the rest by
+hand (Ubuntu):
+
+```bash
+cd ~/bitenovac-runner
+sudo bash runner/setup-runner.sh --uninstall --purge --token <RUNNER TOKEN>
 docker volume rm bitenovac-official
-docker image rm bitenovac-remotebuildtool-runner:11.0.100-rc.2.26504.105
+docker image rm bitenovac-remotebuildtool-runner:11.0.100-rc.3.26522.148
+sudo rm -f /etc/bitenovac/runner.env
 sudo rm /etc/exports.d/bitenovac.exports && sudo exportfs -ra
 sudo rm -rf /srv/bitenovac
 ```
 
-`--uninstall` stops the service as well. `--purge` keeps the Official drops and the telemetry; the
-`docker volume rm` deletes the drops and the last line the telemetry. Use the SDK version from
-`global.json` in the image name.
+`--purge` deletes the cache, main, the logs and the service's settings. The Official drops and the
+telemetry are kept by `--purge` itself, so the `docker volume rm` and `rm -rf` lines are what delete
+them.
 
 **3.** Check that nothing is left:
 
@@ -559,5 +596,55 @@ docker image ls | grep bitenovac                     # nothing
 ```
 
 To set it up again, start from [Setup](#setup).
+
+---
+
+## Updating a set-up PC
+
+Setup can run again over an installed PC. It keeps the cache, the logs, the telemetry, the Official
+drops and the NFS share, and it keeps the service's settings unless you pass `--api-token`.
+
+1. In GitHub, Settings → Actions → Runners: every runner must be **Idle**. A running job stops when
+   its agent is replaced.
+2. Download the release into a new folder, from [Setup step 1](#setup). The newest release is the
+   default; to pick one, give its tag, for example
+   `gh release download bitenovac-runner-2026.10.28.001 --repo DarkVader0/Bitenovac --pattern 'bitenovac-runner-*'`.
+3. Get a new runner token, then run setup from that folder (Ubuntu). The agent count and limits
+   come from `/etc/bitenovac/runner.env`:
+
+   ```bash
+   cd ~/bitenovac-runner
+   sudo bash runner/setup-runner.sh --token <RUNNER TOKEN>
+   ```
+
+   Add `--api-token <SERVICE TOKEN>` only when the service's token has changed. Without it, the
+   service keeps its current settings and runs on the new image.
+
+Setup replaces the agents, rebuilds the runner image and restarts the service on it. Check the
+result:
+
+```bash
+systemctl list-units 'actions.runner.*' --no-pager
+sudo bash runner/service.sh logs
+```
+
+**Going back.** There is no automatic rollback. Download an older release by its tag (step 2) and
+run step 3 from its folder.
+
+---
+
+## Test machines
+
+**A test machine** that must not serve the NFS share or take production jobs: before the first run,
+write `/etc/bitenovac/runner.env` with
+
+```
+MANAGE_SHARE=false
+LABELS=self-hosted,linux,x64,bitenovac-test
+RUNNER_NAME_PREFIX=<a name for this machine>
+REPOSITORY=https://github.com/DarkVader0/Bitenovac
+```
+
+Its volumes stay local, and its runners take only jobs labelled `bitenovac-test`.
 
 ---

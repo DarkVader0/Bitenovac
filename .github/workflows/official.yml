@@ -30,4 +30,10 @@ jobs:
         run: bash runner/in-container.sh plan
 
       - name: Build and drop
-        run: bash runner/in-container.sh release
+        run: |
+          set -o pipefail
+          bash runner/in-container.sh release | tee "${RUNNER_TEMP}/release.txt"
+          drop="$(sed -n 's/^Release \([^ ]*\) dropped to .*/\1/p' "${RUNNER_TEMP}/release.txt" | tail -n 1)"
+          echo "::notice title=Official drop::${drop}"
+          echo "### Official drop ${drop}" >> "${GITHUB_STEP_SUMMARY}"
+          bash runner/bundle-into-drop.sh "${drop}"

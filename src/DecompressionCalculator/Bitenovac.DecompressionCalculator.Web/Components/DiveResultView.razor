@@ -4,61 +4,7 @@
 <section class="card results">
     <h2>@Title</h2>
 
-    @if (!Result.Succeeded)
-    {
-        <p class="alert alert-danger">@Result.FailureMessage</p>
-    }
-    else
-    {
-        @if (!Result.ReserveSatisfied)
-        {
-            <p class="alert alert-warning">@WebText.ReserveNotMet</p>
-        }
-
-        @foreach (var warning in GasWarnings.For(Result, Units))
-        {
-            <p class="alert alert-warning">@warning</p>
-        }
-
-        @foreach (var block in _blocks)
-        {
-            switch (block)
-            {
-                case ResultBlock.Figures:
-                    <Figures Result="Result"/>
-                    break;
-                case ResultBlock.Profile:
-                    <h3>@WebText.Profile</h3>
-                    <ProfileTable Result="Result" Units="Units" MergeAscents="MergeAscents" MergeDescents="MergeDescents"/>
-                    break;
-                case ResultBlock.Gas:
-                    <h3>@WebText.Gas</h3>
-                    <GasTable Result="Result" Units="Units" Quantity="Quantity"/>
-                    break;
-                case ResultBlock.GasChecks:
-                    <h3>@WebText.GasChecks</h3>
-                    <GasChecksTable Result="Result" Units="Units"/>
-                    break;
-                case ResultBlock.Chart:
-                    <h3>@WebText.ProfileChart</h3>
-                    <ProfileChartView Result="Result" Units="Units"/>
-                    break;
-                case ResultBlock.Contingencies:
-                    <h3>@WebText.Contingencies</h3>
-                    @foreach (var contingency in Result.Contingencies)
-                    {
-                        <ContingencyView Contingency="contingency" Units="Units" Quantity="Quantity"/>
-                    }
-
-                    break;
-            }
-        }
-
-        @if (_blocks.Count == 0)
-        {
-            <p class="block-note">@WebText.AllBlocksHidden</p>
-        }
-    }
+    <ResultBody Result="Result" Blocks="_blocks" Units="Units" Quantity="Quantity" MergeAscents="MergeAscents" MergeDescents="MergeDescents"/>
 </section>
 
 @code {
@@ -81,8 +27,6 @@
 
     [Parameter]
     public bool MergeDescents { get; set; }
-
-    private UnitLabels Labels => UnitLabels.For(Units);
 
     protected override async Task OnInitializedAsync()
     {

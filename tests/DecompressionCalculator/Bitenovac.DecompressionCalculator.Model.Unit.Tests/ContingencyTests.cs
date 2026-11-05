@@ -161,7 +161,7 @@ public sealed partial class ContingencyTests
     }
 
     [Fact]
-    public void Calculate_ShouldCarryNoTimelineAndNoContingenciesOnTheContingencies_WhenTheDiveHasThem()
+    public void Calculate_ShouldCarryTheTimelineAndNoContingenciesOnTheContingencies_WhenTheDiveHasThem()
     {
         // Arrange
         var plan = TestFactory.Plan(Deep(BottomGas, Nitrox50));
@@ -170,9 +170,9 @@ public sealed partial class ContingencyTests
         var contingencies = Calculate(plan).Contingencies;
 
         // Assert
-        Assert.All(contingencies, contingency =>
+        Assert.All(contingencies.Where(static contingency => contingency.Result.Succeeded), contingency =>
         {
-            Assert.Empty(contingency.Result.Timeline);
+            Assert.NotEmpty(contingency.Result.Timeline);
             Assert.Empty(contingency.Result.Contingencies);
         });
     }

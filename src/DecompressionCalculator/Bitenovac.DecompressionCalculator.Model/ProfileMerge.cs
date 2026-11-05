@@ -3,7 +3,7 @@ using Bitenovac.DecompressionAlgorithms.Core.Planning;
 namespace Bitenovac.DecompressionCalculator.Model;
 
 /// <summary>
-/// Shows each ascent or descent that ends in a stop as part of that stop, for a shorter profile.
+/// Shows each ascent that ends in a stop, and each descent that ends in a stop or a level, as part of that row, for a shorter profile.
 /// </summary>
 /// <remarks>
 /// Display only: the planned dive is unchanged, and the merged phase keeps the time of both rows, so the runtime
@@ -49,9 +49,16 @@ public static class ProfileMerge
             SegmentKind.Descent => descents,
             _ => false
         })
-        && stop.Kind is SegmentKind.Stop or SegmentKind.SafetyStop
+        && EndsAtAStop(movement, stop)
         && stop.StartDepth == stop.EndDepth
         && stop.StartDepth == movement.EndDepth
         && movement.Gas == stop.Gas
         && movement.Circuit == stop.Circuit;
+
+    private static bool EndsAtAStop(ProfileRow movement, ProfileRow stop) => stop.Kind switch
+    {
+        SegmentKind.Stop or SegmentKind.SafetyStop => true,
+        SegmentKind.Bottom => movement.Kind == SegmentKind.Descent,
+        _ => false
+    };
 }

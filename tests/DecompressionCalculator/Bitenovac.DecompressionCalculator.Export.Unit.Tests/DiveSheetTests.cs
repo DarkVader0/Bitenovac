@@ -275,6 +275,34 @@ public sealed class DiveSheetTests
     }
 
     [Fact]
+    public void Create_ShouldDrawTheCeilingOnEachContingencyChart_WhenTheContingenciesArePlanned()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+        var contingencies = TestFactory.Calculate(plan).Contingencies;
+
+        // Act
+        var pdf = TestFactory.Read(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, [ResultBlock.Chart, ResultBlock.Contingencies]));
+
+        // Assert
+        Assert.Equal(1 + contingencies.Count(static contingency => contingency.Result.Succeeded), Regex.Count(pdf, Regex.Escape(CeilingStroke)));
+    }
+
+    [Fact]
+    public void Create_ShouldDrawTheSameChart_WhenAscentsAndDescentsAreMergedIntoStops()
+    {
+        // Arrange
+        var plan = TestFactory.DecompressionPlan();
+        var merged = plan with { Settings = plan.Settings with { MergeAscentsIntoStops = true, MergeDescentsIntoStops = true } };
+
+        // Act
+        var pdf = TestFactory.Read(DiveSheet.Create(merged, 0, TestFactory.Now, AppVersion, [ResultBlock.Chart]));
+
+        // Assert
+        Assert.Equal(TestFactory.Read(DiveSheet.Create(plan, 0, TestFactory.Now, AppVersion, [ResultBlock.Chart])), pdf);
+    }
+
+    [Fact]
     public void Create_ShouldShowEveryBlockAndEachContingencyPage_WhenNoBlocksAreGiven()
     {
         // Arrange

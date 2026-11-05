@@ -13,28 +13,27 @@
         }
     </summary>
 
-    @if (!Contingency.Result.Succeeded)
-    {
-        <p class="alert alert-danger">@Contingency.Result.FailureMessage</p>
-    }
-    else
-    {
-        <ProfileTable Result="Contingency.Result" Units="Units"/>
-        <Figures Result="Contingency.Result"/>
-
-        <GasTable Result="Contingency.Result" Units="Units" Quantity="Quantity"/>
-    }
+    <ResultBody Result="Contingency.Result" Blocks="Blocks" Units="Units" Quantity="Quantity" MergeAscents="MergeAscents" MergeDescents="MergeDescents"/>
 </details>
 
 @code {
     [Parameter, EditorRequired]
     public Contingency Contingency { get; set; } = default!;
 
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ResultBlock> Blocks { get; set; } = [];
+
     [Parameter]
     public UnitSystem Units { get; set; }
 
     [Parameter]
     public GasQuantity Quantity { get; set; }
+
+    [Parameter]
+    public bool MergeAscents { get; set; }
+
+    [Parameter]
+    public bool MergeDescents { get; set; }
 
     private string Name => Contingency.Kind == ContingencyKind.LostGas
         ? Localized.Format(WebText.ContingencyLost, Contingency.LostGas)

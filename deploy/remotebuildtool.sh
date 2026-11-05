@@ -22,7 +22,10 @@
 set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-bitenovac-official}"
+
+source "${REPO_ROOT}/runner/lib/common.sh"
+
+readonly OFFICIAL_VOLUME="${REMOTEBUILDTOOL_OFFICIAL_VOLUME:-${OFFICIAL_VOLUME}}"
 
 fail() { printf '\nerror: %s\n' "$*" >&2; exit 1; }
 
@@ -32,7 +35,7 @@ drop="${1:-}"
 [[ -z "${drop}" || "${drop}" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{3}$ ]] \
     || fail "'${drop}' is not a drop name. Drops are named yyyy.MM.dd.NNN."
 
-sdk_version="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${REPO_ROOT}/global.json" | head -n 1)"
+sdk_version="$(sdk_version_in "${REPO_ROOT}")"
 [[ -n "${sdk_version}" ]] || fail "Could not read the SDK version from global.json."
 
 readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"
@@ -40,7 +43,6 @@ readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"
 docker image inspect "${IMAGE}" > /dev/null 2>&1 \
     || fail "The image ${IMAGE} is missing. Run runner/build-image.sh on this machine."
 
-# Mounting a volume that does not exist would create it empty and hide the real problem.
 docker volume inspect "${OFFICIAL_VOLUME}" > /dev/null 2>&1 \
     || fail "The volume ${OFFICIAL_VOLUME} does not exist. Has Official run on this machine?"
 

@@ -141,7 +141,7 @@ public static class DiveSheet
             var labels = UnitLabels.For(plan.Units);
             var result = Shown(calculation.Dives[dive], plan.SettingsFor(dive));
             List<ResultBlock> shown = [.. blocks.Where(static block => block != ResultBlock.Contingencies)];
-            WriteDive(sheet, plan, result, labels, shown, plan.SettingsFor(dive).GasQuantity);
+            WriteDive(sheet, plan, result, calculation.Dives[dive], labels, shown, plan.SettingsFor(dive).GasQuantity);
 
             if (blocks.Contains(ResultBlock.Contingencies))
             {
@@ -153,7 +153,7 @@ public static class DiveSheet
                     sheet.Paragraph(ContingencyMeaning(contingency, labels), PdfFont.Helvetica, 8.5, SheetWriter.Muted);
                     sheet.Paragraph($"{Summary.Algorithm(plan)} · {Summary.Settings(plan, plan.SettingsFor(dive))}", PdfFont.Helvetica, 7.5, SheetWriter.Muted);
                     sheet.Paragraph(interval + Summary.Inputs(input, plan.Units), PdfFont.Helvetica, 8.5, SheetWriter.Text);
-                    WriteDive(sheet, plan, Shown(contingency.Result, plan.SettingsFor(dive)), labels, shown, plan.SettingsFor(dive).GasQuantity);
+                    WriteDive(sheet, plan, Shown(contingency.Result, plan.SettingsFor(dive)), contingency.Result, labels, shown, plan.SettingsFor(dive).GasQuantity);
                 }
             }
         }
@@ -240,8 +240,12 @@ public static class DiveSheet
         }
     }
 
+    /// <remarks>
+    /// The chart is drawn from <paramref name="unmerged"/>, the result before stops are merged, so its stop bars cover only
+    /// the stop time, as on screen; the profile table and the rest come from <paramref name="result"/>.
+    /// </remarks>
     private static void WriteDive(
-        SheetWriter sheet, DivePlanDocument plan, DiveResult result, UnitLabels labels, IReadOnlyList<ResultBlock> blocks, GasQuantity quantity)
+        SheetWriter sheet, DivePlanDocument plan, DiveResult result, DiveResult unmerged, UnitLabels labels, IReadOnlyList<ResultBlock> blocks, GasQuantity quantity)
     {
         sheet.Advance(Gap / 2);
         if (result.FailureMessage is { } failure)
@@ -260,7 +264,7 @@ public static class DiveSheet
                 sheet.NewPage();
             }
 
-            WritePage(sheet, plan, result, labels, pages[index], quantity);
+            WritePage(sheet, plan, result, unmerged, labels, pages[index], quantity);
         }
     }
 
@@ -291,7 +295,7 @@ public static class DiveSheet
         return pages;
     }
 
-    private static void WritePage(SheetWriter sheet, DivePlanDocument plan, DiveResult result, UnitLabels labels, List<ResultBlock> blocks, GasQuantity quantity)
+    private static void WritePage(SheetWriter sheet, DivePlanDocument plan, DiveResult result, DiveResult unmerged, UnitLabels labels, List<ResultBlock> blocks, GasQuantity quantity)
     {
         var spare = Math.Max(0, sheet.Remaining - Smallest(blocks, result));
         var rows = result.Profile.Count + 1;
@@ -327,7 +331,7 @@ public static class DiveSheet
                     WriteGasChecks(sheet, result, labels);
                     break;
                 case ResultBlock.Chart:
-                    WriteChart(sheet, ProfileChart.Create(result, plan.Units), labels, chartHeight);
+                    WriteChart(sheet, ProfileChart.Create(unmerged, plan.Units), labels, chartHeight);
                     break;
             }
         }
