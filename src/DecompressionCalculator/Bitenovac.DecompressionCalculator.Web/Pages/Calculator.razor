@@ -67,7 +67,7 @@
         Returning.FromPlan = false;
         if (_fromPlan)
         {
-            await Js.InvokeVoidAsync("history.back");
+            await Js.InvokeVoidGuardedAsync("history.back");
             return;
         }
 

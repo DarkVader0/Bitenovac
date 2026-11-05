@@ -42,15 +42,15 @@ public sealed class PwaService(IJSRuntime js) : IAsyncDisposable
         }
 
         _self = DotNetObjectReference.Create(this);
-        _subscription = await (await ModuleAsync()).InvokeAsync<IJSObjectReference>("subscribe", _self);
+        _subscription = await (await ModuleAsync()).InvokeGuardedAsync<IJSObjectReference>("subscribe", _self);
         await RefreshAsync();
     }
 
-    public async ValueTask<bool> InstallAsync() => await (await ModuleAsync()).InvokeAsync<bool>("install");
+    public async ValueTask<bool> InstallAsync() => await (await ModuleAsync()).InvokeGuardedAsync<bool>("install");
 
-    public async ValueTask DismissInstallAsync() => await (await ModuleAsync()).InvokeVoidAsync("dismissInstall");
+    public async ValueTask DismissInstallAsync() => await (await ModuleAsync()).InvokeVoidGuardedAsync("dismissInstall");
 
-    public async ValueTask ApplyUpdateAsync() => await (await ModuleAsync()).InvokeVoidAsync("applyUpdate");
+    public async ValueTask ApplyUpdateAsync() => await (await ModuleAsync()).InvokeVoidGuardedAsync("applyUpdate");
 
     [JSInvokable]
     public async Task OnChanged() => await RefreshAsync();
@@ -59,7 +59,7 @@ public sealed class PwaService(IJSRuntime js) : IAsyncDisposable
     {
         if (_subscription is not null)
         {
-            await _subscription.InvokeVoidAsync("dispose");
+            await _subscription.InvokeVoidGuardedAsync("dispose");
             await _subscription.DisposeAsync();
         }
 
@@ -73,10 +73,10 @@ public sealed class PwaService(IJSRuntime js) : IAsyncDisposable
 
     private async ValueTask RefreshAsync()
     {
-        State = await (await ModuleAsync()).InvokeAsync<PwaState>("state");
+        State = await (await ModuleAsync()).InvokeGuardedAsync<PwaState>("state") ?? PwaState.None;
         Changed?.Invoke();
     }
 
-    private async ValueTask<IJSObjectReference> ModuleAsync() =>
-        _module ??= await js.InvokeAsync<IJSObjectReference>("import", "./js/pwa.js");
+    private async ValueTask<IJSObjectReference?> ModuleAsync() =>
+        _module ??= await js.InvokeGuardedAsync<IJSObjectReference>("import", "./js/pwa.js");
 }

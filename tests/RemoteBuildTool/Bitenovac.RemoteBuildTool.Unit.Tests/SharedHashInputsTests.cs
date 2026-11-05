@@ -24,7 +24,7 @@ public sealed class SharedHashInputsTests
     {
         // Arrange
         using var repository = TestFactory.Directory();
-        const string content = """{ "sdk": { "version": "10.0.100" } }""";
+        const string content = """{ "sdk": { "version": "11.0.100" } }""";
         TestFactory.WriteFile(repository.Path, "global.json", content);
         var expected = $"repo-file:global.json={Hash(content)}";
 

@@ -431,7 +431,7 @@ runner image reads it directly; for example, every project of one build with wha
 (Ubuntu):
 
 ```bash
-docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint duckdb bitenovac-remotebuildtool-runner:10.0.402 \
+docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint duckdb bitenovac-remotebuildtool-runner:11.0.100-rc.3.26522.148 \
     -c "SELECT unnest(Configurations.Debug, recursive := true) FROM read_json('/logs/PR_18/16473829-1/build-graph.json')"
 ```
 
@@ -577,7 +577,7 @@ hand (Ubuntu):
 cd ~/bitenovac-runner
 sudo bash runner/setup-runner.sh --uninstall --purge --token <RUNNER TOKEN>
 docker volume rm bitenovac-official
-docker image rm bitenovac-remotebuildtool-runner:<SDK version from global.json>
+docker image rm bitenovac-remotebuildtool-runner:11.0.100-rc.3.26522.148
 sudo rm -f /etc/bitenovac/runner.env
 sudo rm /etc/exports.d/bitenovac.exports && sudo exportfs -ra
 sudo rm -rf /srv/bitenovac

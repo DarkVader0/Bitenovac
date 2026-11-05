@@ -56,7 +56,7 @@ A miss's log line says why it missed: which inputs changed, or which dependency 
 
 ## Requirements
 
-- **.NET 10 SDK** to run the tool. The repository you build can pin any SDK in its
+- **.NET 11 SDK** to run the tool. The repository you build can pin any SDK in its
   `global.json`; RemoteBuildTool builds with whatever SDK the repository selects.
 - **MSBuild projects** (`.csproj` and friends), each with a single `<TargetFramework>`. A project
   with `<TargetFrameworks>` fails the plan.

@@ -23,5 +23,5 @@ public sealed class ThemeService(IJSRuntime js)
 
     public static string Name(ThemePreference theme) => theme.ToString().ToLowerInvariant();
 
-    public ValueTask ApplyAsync(ThemePreference theme) => js.InvokeVoidAsync("bitenovacTheme.set", Name(theme));
+    public ValueTask ApplyAsync(ThemePreference theme) => js.InvokeVoidGuardedAsync("bitenovacTheme.set", Name(theme));
 }
