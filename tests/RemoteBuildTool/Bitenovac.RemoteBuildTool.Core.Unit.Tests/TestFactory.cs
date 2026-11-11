@@ -1,6 +1,7 @@
 using Bitenovac.RemoteBuildTool.Core.Coverage;
 using Bitenovac.RemoteBuildTool.Core.Graph;
 using Bitenovac.RemoteBuildTool.Core.Planning;
+using Bitenovac.RemoteBuildTool.Core.Scheduling;
 
 namespace Bitenovac.RemoteBuildTool.Core.Unit.Tests;
 
@@ -70,6 +71,12 @@ internal static class TestFactory
     /// </summary>
     public static IReadOnlyDictionary<ProjectId, TimeSpan> Durations(params (string Project, int Seconds)[] entries) =>
         entries.ToDictionary(e => Id(e.Project), e => TimeSpan.FromSeconds(e.Seconds));
+
+    /// <summary>
+    /// Creates a unit of one project, with its work and critical path in seconds.
+    /// </summary>
+    public static BuildUnit Unit(string project, int work, int criticalPath) =>
+        new([Id(project)], TimeSpan.FromSeconds(work), TimeSpan.FromSeconds(criticalPath));
 
     public static CoveragePolicy Policy(double line = 100, double branch = 100) => new(line, branch);
 
