@@ -38,6 +38,7 @@ internal static class TelemetryCompactor
         TelemetryTables.Test,
         TelemetryTables.Machine,
         TelemetryTables.CacheComparison,
+        TelemetryTables.Unit,
     ];
 
     /// <summary>

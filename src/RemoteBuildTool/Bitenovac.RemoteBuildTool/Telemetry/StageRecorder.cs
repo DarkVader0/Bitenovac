@@ -28,6 +28,7 @@ internal sealed class StageRecorder : IDisposable
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly long?[] _phases = new long?[Enum.GetValues<StagePhase>().Length];
     private readonly List<TargetInfo> _targets = [];
+    private readonly List<UnitInfo> _units = [];
     private readonly List<TestInfo> _tests = [];
     private readonly List<ResourceUsage> _processes = [];
     private readonly Lock _gate = new();
@@ -118,6 +119,29 @@ internal sealed class StageRecorder : IDisposable
     public void SetDropVersion(string version) => _dropVersion = version;
 
     /// <summary>
+    /// Records one unit of a stage that built several at once.
+    /// </summary>
+    /// <param name="unit">The unit's record; the build and stage fields are filled in here.</param>
+    public void AddUnit(UnitInfo unit)
+    {
+        lock (_gate)
+        {
+            _units.Add(unit with
+            {
+                BuildId = _identity.BuildId,
+                Queue = _identity.Queue,
+                Pool = _identity.Pool,
+                Machine = _identity.Machine,
+                Stage = Name,
+                Configuration = _configuration,
+                Sha = _identity.Sha,
+                PullRequest = _identity.PullRequest,
+                LogsPath = _identity.LogsPath,
+            });
+        }
+    }
+
+    /// <summary>
     /// Returns how long each project this stage built took, for those whose time is known.
     /// </summary>
     /// <returns>The build time of each project, keyed by its path. A project restored from the cache is left out.</returns>
@@ -201,6 +225,7 @@ internal sealed class StageRecorder : IDisposable
             TelemetryWriter.Write(root, TelemetryTables.Target, name, _startTime, _targets, TelemetryJsonContext.Default.TargetInfo);
             TelemetryWriter.Write(root, TelemetryTables.Test, name, _startTime, _tests, TelemetryJsonContext.Default.TestInfo);
             TelemetryWriter.Write(root, TelemetryTables.Machine, name, _startTime, samples, TelemetryJsonContext.Default.MachineSample);
+            TelemetryWriter.Write(root, TelemetryTables.Unit, name, _startTime, _units, TelemetryJsonContext.Default.UnitInfo);
         }
 
         return exitCode;

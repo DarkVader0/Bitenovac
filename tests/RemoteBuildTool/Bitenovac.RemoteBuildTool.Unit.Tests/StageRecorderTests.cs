@@ -134,6 +134,38 @@ public sealed class StageRecorderTests
     }
 
     [Fact]
+    public void AddUnit_ShouldStampTheBuildAndStage_WhenTheStageCompletes()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.TelemetryOptions(directory);
+        var stage = StageRecorder.Start(options, TestFactory.Silence(), "build", "Debug");
+        stage.AddUnit(new UnitInfo
+        {
+            Unit = 2,
+            Slot = 1,
+            Slots = 2,
+            CoresPerSlot = 4,
+            Projects = 3,
+            FirstProject = "src/A/A.csproj",
+            ExpectedWorkMS = 900,
+            ExpectedCriticalPathMS = 600,
+            StartTime = DateTimeOffset.UnixEpoch,
+            DurationMS = 700,
+            Succeeded = true,
+            ExitCode = 0,
+        });
+
+        // Act
+        stage.Complete(0);
+
+        // Assert
+        var unit = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryTables.Unit, "100-1.", TelemetryJsonContext.Default.UnitInfo));
+        Assert.Equal(("100-1", "build-Debug", "Debug", "host-1", 7), (unit.BuildId, unit.Stage, unit.Configuration, unit.Machine, unit.PullRequest));
+        Assert.Equal((2, 1, 3, "src/A/A.csproj", 700L), (unit.Unit, unit.Slot, unit.Projects, unit.FirstProject, unit.DurationMS));
+    }
+
+    [Fact]
     public void BuildDurations_ShouldReturnTheTimeOfEachProjectThatWasBuilt_WhenOthersWereRestoredOrTested()
     {
         // Arrange

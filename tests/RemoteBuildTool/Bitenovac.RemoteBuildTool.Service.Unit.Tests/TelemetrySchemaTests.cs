@@ -14,6 +14,7 @@ public sealed partial class TelemetrySchemaTests
         { "test", typeof(TestInfo) },
         { "machine", typeof(MachineSample) },
         { "cache_comparison", typeof(CacheComparisonInfo) },
+        { "unit", typeof(UnitInfo) },
     };
 
     [Theory]

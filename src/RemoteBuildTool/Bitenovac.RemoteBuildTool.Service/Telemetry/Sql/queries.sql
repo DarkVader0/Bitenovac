@@ -1,5 +1,5 @@
--- Ready-made queries over the telemetry views build, stage, target, test, machine and
--- cache_comparison. Each is a view, or a table macro where it takes an argument:
+-- Ready-made queries over the telemetry views build, stage, target, test, machine,
+-- cache_comparison and unit. Each is a view, or a table macro where it takes an argument:
 --
 --   FROM build_percentiles WHERE Queue = 'PR';
 --   FROM build_stages('16473829-1');
@@ -154,6 +154,16 @@ SELECT Stage, Project, Kind, TestKind, CacheOutcome, WhyCacheMiss, DurationMS, C
 FROM target
 WHERE BuildId = id
 ORDER BY Stage, DurationMS DESC NULLS LAST;
+
+-- One build's units, for the stages that built several at once: the order they were taken in,
+-- the slot each ran in, and its time beside the time expected of its longest chain and of all
+-- its projects.
+CREATE MACRO build_units(id) AS TABLE
+SELECT Stage, Unit, Slot, Slots, CoresPerSlot, Projects, FirstProject, StartTime, DurationMS,
+    ExpectedCriticalPathMS, ExpectedWorkMS, Succeeded
+FROM unit
+WHERE BuildId = id
+ORDER BY Stage, Unit;
 
 -- Projects whose clean rebuild differed from what main held under the same fingerprint: each one's
 -- fingerprint misses an input that changes its output. Newest first.

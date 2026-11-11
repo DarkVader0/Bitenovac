@@ -12,4 +12,5 @@ namespace Bitenovac.RemoteBuildTool.Telemetry;
 [JsonSerializable(typeof(TestInfo))]
 [JsonSerializable(typeof(MachineSample))]
 [JsonSerializable(typeof(CacheComparisonInfo))]
+[JsonSerializable(typeof(UnitInfo))]
 internal sealed partial class TelemetryJsonContext : JsonSerializerContext;

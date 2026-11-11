@@ -503,6 +503,7 @@ same share, so the logs path in every record opens from anywhere that mounts it.
 | `test` | test case per run | outcome, time, error message |
 | `machine` | sample every 30 s while a stage runs | host CPU and memory, the container's CPU and memory |
 | `cache_comparison` | project the nightly rebuild switched main to | the outcome against what main held (`match`, `mismatch`, `changed`, `new`), both fingerprints, the files that differed |
+| `unit` | unit of a build stage that built several at once | its place in the order, its slot, how many projects it holds, its time, and the time expected of its longest chain and of all its projects |
 
 Files land in `<table>/date=<yyyy-MM-dd>/`, one per stage. Records are written when a stage ends,
 so a job killed by its timeout records nothing.
@@ -536,6 +537,7 @@ Ready-made queries, from `queries.sql` in RemoteBuildTool:
 | `machine_load` | host CPU and memory per machine and hour |
 | `build_stages('<build id>')` | one build's stages in order, with their logs path |
 | `build_targets('<build id>')` | what each stage of one build did with each project |
+| `build_units('<build id>')` | the units of one build's stages that built several at once, with each one's slot and its time beside the time expected |
 | `cache_mismatches` | projects whose rebuild differed from main under the same fingerprint, newest first |
 | `cache_comparison_outcomes` | each rebuild's matches, mismatches, changed and new projects per configuration |
 
