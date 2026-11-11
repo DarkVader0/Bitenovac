@@ -24,7 +24,7 @@ public sealed class PullRequestPromoterTests
                 ["m9"] = """{ "workflow_runs": [ { "id": 91, "run_attempt": 2, "event": "merge_group", "updated_at": "2026-10-14T10:59:00Z" } ] }""",
                 ["h9"] = """{ "workflow_runs": [ { "id": 90, "run_attempt": 1, "event": "pull_request", "updated_at": "2026-10-14T10:00:00Z" } ] }""",
             });
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
         var reports = new List<string>();
 
         // Act
@@ -50,7 +50,7 @@ public sealed class PullRequestPromoterTests
             {
                 ["h9"] = """{ "workflow_runs": [ { "id": 90, "run_attempt": 1, "event": "pull_request", "updated_at": "2026-10-14T10:00:00Z" } ] }""",
             });
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
         var reports = new List<string>();
 
         // Act
@@ -76,7 +76,7 @@ public sealed class PullRequestPromoterTests
                 ]
                 """,
             runs: []);
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
         var remembered = Enumerable.Range(100, 5000).ToList();
         remembered.Add(2);
 

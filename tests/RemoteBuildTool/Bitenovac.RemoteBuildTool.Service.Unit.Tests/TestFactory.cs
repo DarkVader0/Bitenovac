@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using Bitenovac.RemoteBuildTool.Core.Graph;
 using Bitenovac.RemoteBuildTool.Planning;
 using Bitenovac.RemoteBuildTool.Telemetry;
@@ -13,6 +14,11 @@ internal static class TestFactory
     public static ProjectId Id(string relativePath) => new(relativePath);
 
     public static TemporaryDirectory Directory() => new();
+
+    /// <summary>
+    /// Gets the tool the tests name to GitHub.
+    /// </summary>
+    public static ProductInfoHeaderValue UserAgent { get; } = new("Bitenovac.Tests", "1.0");
 
     /// <summary>
     /// Writes <paramref name="content"/> to <paramref name="path"/>, creating its directory.
