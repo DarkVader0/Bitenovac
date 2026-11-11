@@ -62,12 +62,18 @@ internal static class BuildCommand
         output.WriteGroup($"{configuration}: {toBuild.Count} project(s) to rebuild", string.Concat(reasons));
 
         var order = ToolchainOrder.Resolve(entries);
+        var sharding = ShardingSettings.Load(options.RepositoryRoot);
 
         foreach (var name in order)
         {
             var batch = toBuild.Where(entry => entry.Toolchain == name).ToList();
             if (batch.Count == 0)
                 continue;
+
+            var schedule = BuildSharding.Schedule(batch, sharding.Build, PipelineOptions.MaxParallelism());
+            output.WriteGroup(
+                $"{configuration}: {schedule.Units.Count} unit(s) of {name} project(s), built {schedule.Slots} at a time",
+                BuildSharding.Describe(schedule));
 
             var exitCode = toolchains.For(name).Build(options, batch, configuration, output, stage);
             if (exitCode != 0)

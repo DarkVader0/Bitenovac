@@ -93,6 +93,34 @@ public sealed class BuildCommandTests
         Assert.True(new LocalVolumeArtifactStore(options.PrStoreRoot).Contains(TestFactory.Id("src/A/A.csproj"), "Debug"));
     }
 
+    [Fact]
+    public void Run_ShouldSayWhichUnitsItBuilds_WhenIndependentProjectsAreRebuilt()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        TestFactory.Plan(
+            "Debug",
+            TestFactory.Entry("src/App/App.csproj", fullPath: directory.Combine("src/App/App.csproj"), references: ["src/Lib/Lib.csproj"]),
+            TestFactory.Entry("src/Lib/Lib.csproj", fullPath: directory.Combine("src/Lib/Lib.csproj")),
+            TestFactory.Entry("src/Other/Other.csproj", fullPath: directory.Combine("src/Other/Other.csproj"))).Save(options.PlanFile);
+        var toolchain = new FakeToolchain();
+        using var registry = toolchain.Registry();
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = BuildCommand.Run(options, "Debug", output.Pipeline, registry);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Contains(
+            $"--- Debug: 2 unit(s) of dotnet project(s), built 1 at a time{Environment.NewLine}"
+            + $"  unit 1 (slot 1): 2 project(s), from src/Lib/Lib.csproj{Environment.NewLine}"
+            + $"  unit 2 (slot 1): 1 project(s), from src/Other/Other.csproj{Environment.NewLine}",
+            output.Out,
+            StringComparison.Ordinal);
+    }
+
     private static PipelineOptions WarmMain(TemporaryDirectory directory)
     {
         var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
