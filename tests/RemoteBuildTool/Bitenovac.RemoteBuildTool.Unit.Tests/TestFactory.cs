@@ -209,7 +209,17 @@ internal sealed class FakeToolchain : IToolchain
     public Func<PlanEntry, string, TestRunResult> Tests { get; init; } =
         (_, directory) => new TestRunResult(TestRunOutcome.Passed, 0, directory, "");
 
+    /// <summary>
+    /// Gets the exit code of building a set of projects, when it is not the same for all of them.
+    /// </summary>
+    public Func<IReadOnlyList<PlanEntry>, int>? BuildResult { get; init; }
+
     public List<string> Built { get; } = [];
+
+    /// <summary>
+    /// Gets the projects of each call to build, in the order the calls were made.
+    /// </summary>
+    public List<IReadOnlyList<string>> Builds { get; } = [];
 
     public List<string> Published { get; } = [];
 
@@ -230,8 +240,13 @@ internal sealed class FakeToolchain : IToolchain
 
     public int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, PipelineOutput output, StageRecorder stage)
     {
-        Built.AddRange(entries.Select(entry => entry.ProjectPath));
-        return BuildExitCode;
+        lock (Built)
+        {
+            Built.AddRange(entries.Select(entry => entry.ProjectPath));
+            Builds.Add([.. entries.Select(entry => entry.ProjectPath)]);
+        }
+
+        return BuildResult?.Invoke(entries) ?? BuildExitCode;
     }
 
     public int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output, StageRecorder stage)

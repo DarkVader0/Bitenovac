@@ -75,7 +75,10 @@ internal static class BuildCommand
                 $"{configuration}: {schedule.Units.Count} unit(s) of {name} project(s), built {schedule.Slots} at a time",
                 BuildSharding.Describe(schedule));
 
-            var exitCode = toolchains.For(name).Build(options, batch, configuration, output, stage);
+            var toolchain = toolchains.For(name);
+            var exitCode = schedule.Slots == 1
+                ? toolchain.Build(options, batch, configuration, output, stage)
+                : ConcurrentBuild.Run(toolchain, options, batch, schedule, configuration, output, stage);
             if (exitCode != 0)
             {
                 output.AppendSummary($"### {configuration} build\n\n**Build failed** after {Seconds(stopwatch.Elapsed)}; the errors are annotated above.\n");

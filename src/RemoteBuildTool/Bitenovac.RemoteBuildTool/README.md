@@ -126,6 +126,19 @@ Everything is optional. Set these in a project file or in `Directory.Build.props
 
 Percentages are written with a period, such as `95.5`, on every machine.
 
+To build independent projects side by side, give the build stage limits in `remotebuildtool.json`
+at the repository root:
+
+```json
+{ "sharding": { "build": { "min": 1, "max": 4 } } }
+```
+
+`build` groups the projects it has to build into units that do not depend on each other, and builds
+up to `max` of them at once, the unit with the longest chain of projects first, each with an equal
+share of the cores. It picks the number within the limits that it expects to finish soonest. A unit
+that fails does not stop the others. Without the setting, `build` builds everything in one MSBuild
+run.
+
 To make something else part of every project's fingerprint, such as a schema version or a tool a
 build step calls, declare it as an item:
 

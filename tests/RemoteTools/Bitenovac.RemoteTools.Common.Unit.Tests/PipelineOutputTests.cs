@@ -234,6 +234,37 @@ public sealed class PipelineOutputTests
     }
 
     [Fact]
+    public void Adopt_ShouldTakeTheFirstFailureOfTheOtherOutput_WhenItHasNoneOfItsOwn()
+    {
+        // Arrange
+        var output = new PipelineOutput(TextWriter.Null, TextWriter.Null);
+        var heldBack = new PipelineOutput(TextWriter.Null, TextWriter.Null);
+        heldBack.WriteFailure("the unit failed");
+
+        // Act
+        output.Adopt(heldBack);
+
+        // Assert
+        Assert.Equal("the unit failed", output.FirstFailure);
+    }
+
+    [Fact]
+    public void Adopt_ShouldKeepItsOwnFirstFailure_WhenItAlreadyHasOne()
+    {
+        // Arrange
+        var output = new PipelineOutput(TextWriter.Null, TextWriter.Null);
+        output.WriteFailure("the first failure");
+        var heldBack = new PipelineOutput(TextWriter.Null, TextWriter.Null);
+        heldBack.WriteFailure("a later failure");
+
+        // Act
+        output.Adopt(heldBack);
+
+        // Assert
+        Assert.Equal("the first failure", output.FirstFailure);
+    }
+
+    [Fact]
     public void AppendSummary_ShouldAppendLines_WhenThereIsASummaryFile()
     {
         // Arrange

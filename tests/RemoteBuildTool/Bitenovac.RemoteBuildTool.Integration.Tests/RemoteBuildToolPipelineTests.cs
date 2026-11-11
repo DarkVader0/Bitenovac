@@ -108,6 +108,37 @@ public sealed class RemoteBuildToolPipelineTests
     }
 
     [Fact]
+    public void Pipeline_ShouldBuildIndependentProjectsSideBySide_WhenTheRepositoryAllowsSeveralAtOnce()
+    {
+        // Arrange
+        using var fixture = FixtureRepository.Create();
+        fixture.Write("remotebuildtool.json", """{ "sharding": { "build": { "min": 2, "max": 2 } } }""");
+        fixture.Write("src/Other/Other.csproj", """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <ExcludeFromCoverage>true</ExcludeFromCoverage>
+                </PropertyGroup>
+            </Project>
+            """);
+        fixture.Write("src/Other/Thing.cs", "namespace Other; public static class Thing { public static int One() => 1; }");
+
+        // Act
+        var planExitCode = PlanCommand.Run(fixture.Options, _output.Pipeline);
+        var buildExitCode = BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline);
+        var testExitCode = TestCommand.Run(fixture.Options, "Debug", _output.Pipeline);
+
+        // Assert
+        Assert.Equal(0, planExitCode);
+        Assert.Equal(0, buildExitCode);
+        Assert.Equal(0, testExitCode);
+        Assert.Contains("Debug: 2 unit(s) of dotnet project(s), built 2 at a time", _output.ToString(), StringComparison.Ordinal);
+        Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
+        Assert.True(File.Exists(fixture.Combine($"src/Other/bin/Debug/{FixtureRepository.TargetFramework}/Other.dll")));
+        Assert.True(File.Exists(fixture.Options.SyntheticSolutionPath("build-Debug-unit-1")));
+        Assert.True(File.Exists(fixture.Options.SyntheticSolutionPath("build-Debug-unit-2")));
+    }
+
+    [Fact]
     public void Pipeline_ShouldMaterialiseAndReuse_WhenASecondCheckoutFindsMainWarm()
     {
         // Arrange

@@ -1,4 +1,5 @@
 using Bitenovac.RemoteBuildTool.Core.Processes;
+using Bitenovac.RemoteBuildTool.Toolchains;
 
 namespace Bitenovac.RemoteBuildTool.MsBuild;
 
@@ -19,7 +20,7 @@ internal sealed class MsBuildRunner : IMsBuildRunner
     public ProcessResult Restore(string repositoryRoot, IEnumerable<string> projectFullPaths, string configuration, string solutionPath, MsBuildLogs logs)
     {
         SyntheticSolution.Write(solutionPath, projectFullPaths);
-        return RunMsBuild(repositoryRoot, solutionPath, "Restore", configuration, graph: false, new Dictionary<string, string>(), logs);
+        return RunMsBuild(repositoryRoot, solutionPath, "Restore", configuration, graph: false, new Dictionary<string, string>(), logs, slot: null);
     }
 
     /// <inheritdoc/>
@@ -29,10 +30,11 @@ internal sealed class MsBuildRunner : IMsBuildRunner
         string configuration,
         string solutionPath,
         IReadOnlyDictionary<string, string> defaultProperties,
-        MsBuildLogs logs)
+        MsBuildLogs logs,
+        BuildSlot? slot)
     {
         SyntheticSolution.Write(solutionPath, projectFullPaths);
-        return RunMsBuild(repositoryRoot, solutionPath, "Build", configuration, graph: true, defaultProperties, logs);
+        return RunMsBuild(repositoryRoot, solutionPath, "Build", configuration, graph: true, defaultProperties, logs, slot);
     }
 
     /// <inheritdoc/>
@@ -81,19 +83,25 @@ internal sealed class MsBuildRunner : IMsBuildRunner
         string configuration,
         bool graph,
         IReadOnlyDictionary<string, string> defaultProperties,
-        MsBuildLogs logs)
+        MsBuildLogs logs,
+        BuildSlot? slot)
     {
         List<string> arguments =
         [
             "msbuild", solutionPath,
             $"-t:{target}",
             "-nologo",
-            $"-maxCpuCount:{PipelineOptions.MaxParallelism()}",
+            $"-maxCpuCount:{slot?.Cores ?? PipelineOptions.MaxParallelism()}",
             $"-p:Configuration={configuration}",
         ];
 
         if (graph)
             arguments.Add("-graphBuild");
+
+        // Builds running at the same time would write over each other on the console. Their errors
+        // are read from the error log, and everything else is in the binary log.
+        if (slot is not null)
+            arguments.Add("-noConsoleLogger");
 
         AddLogs(arguments, logs);
         return ProcessRunner.Run("dotnet", arguments, repositoryRoot, defaultProperties);

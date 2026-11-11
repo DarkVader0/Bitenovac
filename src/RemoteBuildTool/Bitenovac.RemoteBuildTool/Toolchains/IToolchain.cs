@@ -92,6 +92,17 @@ internal interface IToolchain : IDisposable
     int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, PipelineOutput output, StageRecorder stage);
 
     /// <summary>
+    /// Builds one unit of a stage that builds several at once, in the slot it was given.
+    /// </summary>
+    /// <returns>The process exit code.</returns>
+    /// <remarks>
+    /// Other units are being built at the same time, by other calls. A toolchain that keeps files
+    /// per build, or that can be told how many cores to use, overrides this to keep them apart.
+    /// </remarks>
+    int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, BuildSlot slot, PipelineOutput output, StageRecorder stage) =>
+        Build(options, entries, configuration, output, stage);
+
+    /// <summary>
     /// Builds the specified plan entries in Release, stamped with a release version, and copies the
     /// deployable output of each into a drop directory.
     /// </summary>

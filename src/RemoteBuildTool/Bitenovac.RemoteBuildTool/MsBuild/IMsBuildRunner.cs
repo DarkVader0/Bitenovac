@@ -1,4 +1,5 @@
 using Bitenovac.RemoteBuildTool.Core.Processes;
+using Bitenovac.RemoteBuildTool.Toolchains;
 
 namespace Bitenovac.RemoteBuildTool.MsBuild;
 
@@ -27,6 +28,10 @@ internal interface IMsBuildRunner
     /// <param name="solutionPath">Where the synthetic solution is written.</param>
     /// <param name="defaultProperties">Properties a project keeps its own value of.</param>
     /// <param name="logs">Where MSBuild logs.</param>
+    /// <param name="slot">
+    /// The slot to build in when other sets of projects are built at the same time; otherwise
+    /// <see langword="null"/>, and the build has every core and the console to itself.
+    /// </param>
     /// <returns>The exit code of MSBuild and what it used.</returns>
     ProcessResult Build(
         string repositoryRoot,
@@ -34,7 +39,8 @@ internal interface IMsBuildRunner
         string configuration,
         string solutionPath,
         IReadOnlyDictionary<string, string> defaultProperties,
-        MsBuildLogs logs);
+        MsBuildLogs logs,
+        BuildSlot? slot);
 
     /// <summary>
     /// Packs a project already built in Release into <paramref name="outputDirectory"/>.

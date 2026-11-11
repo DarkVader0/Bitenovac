@@ -1,5 +1,6 @@
 using Bitenovac.RemoteBuildTool.Commands;
 using Bitenovac.RemoteBuildTool.Core.Planning;
+using Bitenovac.RemoteBuildTool.Planning;
 using Bitenovac.RemoteBuildTool.Storage;
 
 namespace Bitenovac.RemoteBuildTool.Unit.Tests;
@@ -119,6 +120,34 @@ public sealed class BuildCommandTests
             + $"  unit 2 (slot 1): 1 project(s), from src/Other/Other.csproj{Environment.NewLine}",
             output.Out,
             StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Run_ShouldBuildEachUnitOnItsOwn_WhenTheRepositoryAllowsSeveralAtOnce()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.WriteFile(directory.Path, ShardingSettings.FileName, """{ "sharding": { "build": { "min": 2, "max": 2 } } }""");
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        TestFactory.Plan(
+            "Debug",
+            TestFactory.Entry("src/App/App.csproj", fullPath: directory.Combine("src/App/App.csproj"), references: ["src/Lib/Lib.csproj"]),
+            TestFactory.Entry("src/Lib/Lib.csproj", fullPath: directory.Combine("src/Lib/Lib.csproj")),
+            TestFactory.Entry("src/Other/Other.csproj", fullPath: directory.Combine("src/Other/Other.csproj"))).Save(options.PlanFile);
+        var toolchain = new FakeToolchain();
+        using var registry = toolchain.Registry();
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = BuildCommand.Run(options, "Debug", output.Pipeline, registry);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Contains("Debug: 2 unit(s) of dotnet project(s), built 2 at a time", output.Out, StringComparison.Ordinal);
+        Assert.Equal(
+            [["src/Lib/Lib.csproj", "src/App/App.csproj"], ["src/Other/Other.csproj"]],
+            toolchain.Builds.OrderByDescending(build => build.Count));
+        Assert.Contains("Debug: build complete, staged 3 rebuilt project(s).", output.Out, StringComparison.Ordinal);
     }
 
     private static PipelineOptions WarmMain(TemporaryDirectory directory)

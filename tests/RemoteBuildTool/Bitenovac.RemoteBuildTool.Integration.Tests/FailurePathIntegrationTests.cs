@@ -30,6 +30,27 @@ public sealed class FailurePathIntegrationTests
     }
 
     [Fact]
+    public void Build_ShouldBuildTheOtherUnitsAndPointAtTheError_WhenOneOfSeveralUnitsDoesNotCompile()
+    {
+        // Arrange
+        using var fixture = FixtureRepository.Create();
+        fixture.Write("remotebuildtool.json", """{ "sharding": { "build": { "min": 2, "max": 2 } } }""");
+        fixture.Write("src/Other/Other.csproj", """<Project Sdk="Microsoft.NET.Sdk"/>""");
+        fixture.Write("src/Other/Thing.cs", "namespace Other; public static class Thing { this is not C# }");
+        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
+
+        // Act
+        var exitCode = BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline);
+
+        // Assert
+        Assert.NotEqual(0, exitCode);
+        Assert.Contains("error: src/Other/Thing.cs(1,", _output.Errors, StringComparison.Ordinal);
+        Assert.Contains("failed 1 project(s) in", _output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("built 2 project(s) in", _output.ToString(), StringComparison.Ordinal);
+        Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
+    }
+
+    [Fact]
     public void Build_ShouldReusePlansRestoreRatherThanRestoreAgain_WhenTheCheckoutWasCleanedAfterPlan()
     {
         // Arrange
