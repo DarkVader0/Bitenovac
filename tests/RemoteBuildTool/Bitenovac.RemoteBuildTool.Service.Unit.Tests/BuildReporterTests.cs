@@ -29,7 +29,7 @@ public sealed class BuildReporterTests
                     { "name": "Plan", "created_at": "2026-10-14T10:58:00Z", "started_at": "2026-10-14T10:58:10Z", "completed_at": "2026-10-14T10:59:00Z" }
                 ] }
                 """);
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
         var reporter = new BuildReporter(new GitHubClient(http, "owner/repo"), host);
 
         // Act
@@ -62,7 +62,7 @@ public sealed class BuildReporterTests
         var github = new FakeGitHub(
             runs: """{ "workflow_runs": [ { "id": 7, "run_attempt": 1, "name": "PR", "head_sha": "head", "head_branch": "feature", "updated_at": "2026-10-14T11:00:00Z" } ] }""",
             jobs: """{ "jobs": [] }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
         var reporter = new BuildReporter(new GitHubClient(http, "owner/repo"), host);
 
         // Act
@@ -81,7 +81,7 @@ public sealed class BuildReporterTests
         var github = new FakeGitHub(
             runs: """{ "workflow_runs": [ { "id": 9, "run_attempt": 1, "updated_at": "2026-10-14T11:00:00Z" } ] }""",
             jobs: """{ "jobs": [] }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
         var reporter = new BuildReporter(new GitHubClient(http, "owner/repo"), Host(directory));
         var remembered = Enumerable.Range(1, 5000).Select(id => $"old-{id}").ToList();
 
