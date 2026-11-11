@@ -73,10 +73,10 @@ internal static class TestFactory
         entries.ToDictionary(e => Id(e.Project), e => TimeSpan.FromSeconds(e.Seconds));
 
     /// <summary>
-    /// Creates a unit of one project, with its work and critical path in seconds.
+    /// Creates a unit of one project, with its work and critical path in seconds and the units it waits for.
     /// </summary>
-    public static BuildUnit Unit(string project, int work, int criticalPath) =>
-        new([Id(project)], TimeSpan.FromSeconds(work), TimeSpan.FromSeconds(criticalPath));
+    public static BuildUnit Unit(string project, int work, int criticalPath, params BuildUnit[] dependencies) =>
+        new([Id(project)], TimeSpan.FromSeconds(work), TimeSpan.FromSeconds(criticalPath), dependencies);
 
     public static CoveragePolicy Policy(double line = 100, double branch = 100) => new(line, branch);
 

@@ -85,6 +85,58 @@ public sealed class BuildSchedulerTests
     }
 
     [Fact]
+    public void Schedule_ShouldThrow_WhenAUnitDependsOnOneThatIsNotScheduled()
+    {
+        // Arrange
+        var missing = TestFactory.Unit("Missing", work: 1, criticalPath: 1);
+        BuildUnit[] units = [TestFactory.Unit("A", work: 1, criticalPath: 1, missing)];
+
+        // Act
+        var act = () => BuildScheduler.Schedule(units, slots: 1, coresPerSlot: 1);
+
+        // Assert
+        Assert.Throws<ArgumentException>(act);
+    }
+
+    [Fact]
+    public void Schedule_ShouldStartAUnitOnceWhatItDependsOnHasEnded_WhenASlotIsFreeEarlier()
+    {
+        // Arrange
+        var shared = TestFactory.Unit("Shared", work: 4, criticalPath: 4);
+        BuildUnit[] units = [shared, TestFactory.Unit("App1", work: 3, criticalPath: 3, shared), TestFactory.Unit("App2", work: 2, criticalPath: 2, shared)];
+
+        // Act
+        var schedule = BuildScheduler.Schedule(units, slots: 2, coresPerSlot: 1);
+
+        // Assert
+        // Shared runs in slot 0 until 4. Slot 1 is free from the start but both apps wait for
+        // Shared: App1 starts there at 4 and ends at 7, and App2 follows Shared in slot 0 from 4 to 6.
+        Assert.Equal(
+            [(0, TimeSpan.Zero, TimeSpan.FromSeconds(4)), (1, TimeSpan.FromSeconds(4), TimeSpan.FromSeconds(7)), (0, TimeSpan.FromSeconds(4), TimeSpan.FromSeconds(6))],
+            schedule.Units.Select(unit => (unit.Slot, unit.Start, unit.End)));
+        Assert.Equal(TimeSpan.FromSeconds(7), schedule.Duration);
+    }
+
+    [Fact]
+    public void Schedule_ShouldFillAWaitWithAUnitThatCanStart_WhenAnEarlierUnitInTheOrderCannotYet()
+    {
+        // Arrange
+        var shared = TestFactory.Unit("Shared", work: 4, criticalPath: 4);
+        var app = TestFactory.Unit("App", work: 3, criticalPath: 3, shared);
+        var other = TestFactory.Unit("Other", work: 2, criticalPath: 2);
+
+        // Act
+        var schedule = BuildScheduler.Schedule([shared, app, other], slots: 2, coresPerSlot: 1);
+
+        // Assert
+        // App is ahead of Other in the order but cannot start before 4, so slot 1 builds Other
+        // from 0 to 2, and then App from 4 to 7.
+        Assert.Equal(
+            [(shared, 0, TimeSpan.Zero, TimeSpan.FromSeconds(4)), (other, 1, TimeSpan.Zero, TimeSpan.FromSeconds(2)), (app, 1, TimeSpan.FromSeconds(4), TimeSpan.FromSeconds(7))],
+            schedule.Units.Select(unit => (unit.Unit, unit.Slot, unit.Start, unit.End)));
+    }
+
+    [Fact]
     public void Best_ShouldThrow_WhenTheUnitsAreNull()
     {
         // Arrange
