@@ -48,7 +48,7 @@ internal static class ConcurrentBuild
         var taken = -1;
         var exitCode = 0;
 
-        Parallel.For(0, schedule.Slots, new ParallelOptions { MaxDegreeOfParallelism = schedule.Slots }, _ =>
+        Parallel.For(0, schedule.Slots, new ParallelOptions { MaxDegreeOfParallelism = schedule.Slots }, slotIndex =>
         {
             int index;
             while ((index = Interlocked.Increment(ref taken)) < schedule.Units.Count)
@@ -60,9 +60,27 @@ internal static class ConcurrentBuild
                 using var unitError = new StringWriter();
                 var unitOutput = new PipelineOutput(unitOut, unitError, output.GitHubActions);
 
+                var startTime = DateTimeOffset.UtcNow;
                 var started = Stopwatch.GetTimestamp();
                 var unitExitCode = toolchain.Build(options, [.. unit.Projects.Select(project => byProject[project])], configuration, slot, unitOutput, stage);
-                var seconds = Stopwatch.GetElapsedTime(started).TotalSeconds;
+                var elapsed = Stopwatch.GetElapsedTime(started);
+                var seconds = elapsed.TotalSeconds;
+
+                stage.AddUnit(new UnitInfo
+                {
+                    Unit = index + 1,
+                    Slot = slotIndex + 1,
+                    Slots = schedule.Slots,
+                    CoresPerSlot = schedule.CoresPerSlot,
+                    Projects = unit.Projects.Count,
+                    FirstProject = unit.Projects[0].Value,
+                    ExpectedWorkMS = (long)unit.Work.TotalMilliseconds,
+                    ExpectedCriticalPathMS = (long)unit.CriticalPath.TotalMilliseconds,
+                    StartTime = startTime,
+                    DurationMS = (long)elapsed.TotalMilliseconds,
+                    Succeeded = unitExitCode == 0,
+                    ExitCode = unitExitCode,
+                });
 
                 lock (gate)
                 {

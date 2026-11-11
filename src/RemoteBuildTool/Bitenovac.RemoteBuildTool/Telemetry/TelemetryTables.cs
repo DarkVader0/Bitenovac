@@ -11,4 +11,5 @@ internal static class TelemetryTables
     public const string Test = "test";
     public const string Machine = "machine";
     public const string CacheComparison = "cache_comparison";
+    public const string Unit = "unit";
 }

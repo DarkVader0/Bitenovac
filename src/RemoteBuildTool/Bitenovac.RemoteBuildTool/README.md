@@ -281,6 +281,7 @@ With `REMOTEBUILDTOOL_TELEMETRY_DIR` set, every command writes its records as JS
 | `test` | test case run: outcome, duration, error |
 | `machine` | sample of the machine while a command runs |
 | `cache_comparison` | project the nightly rebuild compared with the cache |
+| `unit` | unit of a stage that built several at once: its slot, its time and the time expected of it |
 
 The service compacts each finished day into Parquet with DuckDB views and ready-made queries
 over it; see its README.

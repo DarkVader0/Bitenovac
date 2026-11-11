@@ -56,6 +56,35 @@ public sealed class ConcurrentBuildTests
         Assert.Contains("--- unit 2: built 1 project(s) in ", output.Out, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Run_ShouldRecordEachUnitWithWhatWasExpectedOfIt_WhenTheStageKeepsTelemetry()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.TelemetryOptions(directory);
+        var entries = Entries();
+        var schedule = BuildSharding.Schedule(entries, SlotLimits.One, cores: 1);
+        using var toolchain = new FakeToolchain
+        {
+            BuildResult = unit => unit.Any(entry => entry.ProjectPath == "src/Other/Other.csproj") ? 4 : 0,
+        };
+        var stage = StageRecorder.Start(options, TestFactory.Silence(), "build", "Debug");
+
+        // Act
+        var exitCode = ConcurrentBuild.Run(toolchain, options, entries, schedule, "Debug", TestFactory.Silence(), stage);
+        stage.Complete(exitCode);
+
+        // Assert
+        // With no build time known a project is expected to take a second: Lib and App are a chain
+        // of two, so 2 s of work and a 2 s critical path; Other is 1 s of each.
+        var units = TelemetryWriter.Read(options.TelemetryRoot!, TelemetryTables.Unit, "100-1.", TelemetryJsonContext.Default.UnitInfo)
+            .OrderBy(unit => unit.Unit)
+            .Select(unit => (unit.Unit, unit.Slot, unit.Slots, unit.Projects, unit.FirstProject, unit.ExpectedWorkMS, unit.ExpectedCriticalPathMS, unit.Succeeded, unit.ExitCode));
+        Assert.Equal(
+            [(1, 1, 1, 2, "src/Lib/Lib.csproj", 2000L, 2000L, true, 0), (2, 1, 1, 1, "src/Other/Other.csproj", 1000L, 1000L, false, 4)],
+            units);
+    }
+
     private static PlanEntry[] Entries() =>
     [
         TestFactory.Entry("src/App/App.csproj", references: ["src/Lib/Lib.csproj"]),

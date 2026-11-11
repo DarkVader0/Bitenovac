@@ -161,3 +161,28 @@ CREATE TABLE schema_cache_comparison (
     Time TIMESTAMPTZ,
     LogsPath VARCHAR
 );
+
+CREATE TABLE schema_unit (
+    SchemaVersion INTEGER,
+    BuildId VARCHAR,
+    Queue VARCHAR,
+    Pool VARCHAR,
+    Machine VARCHAR,
+    Stage VARCHAR,
+    Configuration VARCHAR,
+    Unit INTEGER,
+    Slot INTEGER,
+    Slots INTEGER,
+    CoresPerSlot INTEGER,
+    Projects INTEGER,
+    FirstProject VARCHAR,
+    ExpectedWorkMS BIGINT,
+    ExpectedCriticalPathMS BIGINT,
+    StartTime TIMESTAMPTZ,
+    DurationMS BIGINT,
+    Succeeded BOOLEAN,
+    ExitCode INTEGER,
+    Sha VARCHAR,
+    PullRequest INTEGER,
+    LogsPath VARCHAR
+);
