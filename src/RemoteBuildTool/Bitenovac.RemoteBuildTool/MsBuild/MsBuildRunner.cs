@@ -37,11 +37,17 @@ internal sealed class MsBuildRunner : IMsBuildRunner
 
     /// <inheritdoc/>
     public ProcessResult Pack(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs) =>
-        RunDotNet(repositoryRoot, "pack", projectFullPath, defaultProperties, outputDirectory, logs);
+        RunDotNet(repositoryRoot, "pack", projectFullPath, defaultProperties, outputDirectory, logs, targetFramework: null);
 
     /// <inheritdoc/>
-    public ProcessResult Publish(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs) =>
-        RunDotNet(repositoryRoot, "publish", projectFullPath, defaultProperties, outputDirectory, logs);
+    public ProcessResult Publish(
+        string repositoryRoot,
+        string projectFullPath,
+        IReadOnlyDictionary<string, string> defaultProperties,
+        string outputDirectory,
+        MsBuildLogs logs,
+        string? targetFramework) =>
+        RunDotNet(repositoryRoot, "publish", projectFullPath, defaultProperties, outputDirectory, logs, targetFramework);
 
     private static ProcessResult RunDotNet(
         string repositoryRoot,
@@ -49,7 +55,8 @@ internal sealed class MsBuildRunner : IMsBuildRunner
         string projectFullPath,
         IReadOnlyDictionary<string, string> defaultProperties,
         string outputDirectory,
-        MsBuildLogs logs)
+        MsBuildLogs logs,
+        string? targetFramework)
     {
         List<string> arguments =
         [
@@ -59,6 +66,9 @@ internal sealed class MsBuildRunner : IMsBuildRunner
             "--nologo",
             "--output", outputDirectory,
         ];
+        if (targetFramework is not null)
+            arguments.AddRange("--framework", targetFramework);
+
 
         AddLogs(arguments, logs);
         return ProcessRunner.Run("dotnet", arguments, repositoryRoot, defaultProperties);

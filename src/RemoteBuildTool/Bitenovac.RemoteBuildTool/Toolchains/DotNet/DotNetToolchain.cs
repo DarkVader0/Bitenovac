@@ -67,10 +67,6 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
     {
         var debug = byConfiguration["Debug"];
 
-        var verifyExitCode = Verify(debug, output);
-        if (verifyExitCode != 0)
-            return ToolchainPreparation.Failed(verifyExitCode);
-
         var restoreExitCode = Run("restore", $"Restoring {debug.Count} project(s)", StagePhase.Restore, options, output, stage, logs => msBuild.Restore(
             options.RepositoryRoot,
             debug.Select(project => project.FullPath),
@@ -110,45 +106,70 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
         {
             var name = Path.GetFileNameWithoutExtension(entry.ProjectPath);
 
-            var (kind, result) = DeploymentOf(entry) switch
+            IReadOnlyList<DeploymentStep> steps = DeploymentOf(entry) switch
             {
-                Deployment.Publish => ("publish", Run($"publish-{name}", $"{name}: publish", StagePhase.Publish, options, output, stage, logs =>
-                    msBuild.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "apps", name), logs))),
-                Deployment.Pack => ("pack", Run($"pack-{name}", $"{name}: pack", StagePhase.Pack, options, output, stage, logs =>
-                    msBuild.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"), logs))),
-                _ => ((string?)null, (ProcessResult?)null),
+                Deployment.Publish => PublishSteps(options, entry, name, defaultProperties, Path.Combine(dropDirectory, "apps", name)),
+                Deployment.Pack => [new DeploymentStep("pack", $"pack-{name}", $"{name}: pack", StagePhase.Pack, logs =>
+                    msBuild.Pack(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(dropDirectory, "packages"), logs))],
+                _ => [],
             };
 
-            if (kind is null || result is null)
+            if (steps.Count == 0)
             {
                 output.WriteLine($"--- {name}: nothing to deploy");
                 continue;
             }
 
-            stage.AddTarget(new TargetInfo
+            foreach (var step in steps)
             {
-                Project = entry.ProjectPath,
-                Toolchain = Name,
-                Kind = kind,
-                CacheOutcome = "miss",
-                OwnHash = entry.OwnHash,
-                FullHash = entry.FullHash,
-                DurationMS = (long)result.Usage.Elapsed.TotalMilliseconds,
-                CpuTimeMS = result.Usage.CpuTime is { } cpu ? (long)cpu.TotalMilliseconds : null,
-                PeakMemoryBytes = result.Usage.PeakMemoryBytes,
-                Succeeded = result.ExitCode == 0,
-                ExitCode = result.ExitCode,
-            });
+                var result = Run(step.Name, step.Title, step.Phase, options, output, stage, step.Run);
 
-            if (result.ExitCode != 0)
-            {
-                output.WriteFailure($"could not deploy {entry.ProjectPath} (exit {result.ExitCode}).");
-                return result.ExitCode;
+                stage.AddTarget(new TargetInfo
+                {
+                    Project = entry.ProjectPath,
+                    Toolchain = Name,
+                    Kind = step.Kind,
+                    CacheOutcome = "miss",
+                    OwnHash = entry.OwnHash,
+                    FullHash = entry.FullHash,
+                    DurationMS = (long)result.Usage.Elapsed.TotalMilliseconds,
+                    CpuTimeMS = result.Usage.CpuTime is { } cpu ? (long)cpu.TotalMilliseconds : null,
+                    PeakMemoryBytes = result.Usage.PeakMemoryBytes,
+                    Succeeded = result.ExitCode == 0,
+                    ExitCode = result.ExitCode,
+                });
+
+                if (result.ExitCode != 0)
+                {
+                    output.WriteFailure($"could not deploy {entry.ProjectPath} (exit {result.ExitCode}).");
+                    return result.ExitCode;
+                }
             }
         }
 
         return 0;
     }
+
+    // An app with one target framework is published into its folder; one with several is
+    // published once for each, into a folder per framework inside it.
+    private IReadOnlyList<DeploymentStep> PublishSteps(
+        PipelineOptions options, PlanEntry entry, string name, IReadOnlyDictionary<string, string> defaultProperties, string appDirectory)
+    {
+        var targetFrameworks = TargetFrameworksOf(entry);
+        if (targetFrameworks.Length == 0)
+        {
+            return [new DeploymentStep("publish", $"publish-{name}", $"{name}: publish", StagePhase.Publish, logs =>
+                msBuild.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, appDirectory, logs, targetFramework: null))];
+        }
+
+        return [.. targetFrameworks.Select(targetFramework => new DeploymentStep(
+            "publish", $"publish-{name}-{targetFramework}", $"{name}: publish {targetFramework}", StagePhase.Publish, logs =>
+                msBuild.Publish(options.RepositoryRoot, entry.FullPath, defaultProperties, Path.Combine(appDirectory, targetFramework), logs, targetFramework)))];
+    }
+
+    private static string[] TargetFrameworksOf(PlanEntry entry) =>
+        entry.Properties.GetValueOrDefault(TargetFrameworksProperty, "")
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private int Build(
         PipelineOptions options,
@@ -214,8 +235,7 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
 
     public IReadOnlyList<TestVariant> TestVariants(PlanEntry entry)
     {
-        var targetFrameworks = entry.Properties.GetValueOrDefault(TargetFrameworksProperty, "")
-            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var targetFrameworks = TargetFrameworksOf(entry);
         if (targetFrameworks.Length == 0)
             return [new TestVariant("", entry)];
 
@@ -294,7 +314,9 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
 
     private static Deployment DeploymentOf(PlanEntry entry)
     {
-        var isExecutable = IsExecutable(entry.Properties);
+        var outputType = entry.Properties.GetValueOrDefault(OutputTypeProperty, "");
+        var isExecutable = outputType.Equals("Exe", StringComparison.OrdinalIgnoreCase)
+            || outputType.Equals("WinExe", StringComparison.OrdinalIgnoreCase);
 
         var isTool = IsTrue(entry.Properties.GetValueOrDefault(PackAsToolProperty));
 
@@ -309,37 +331,11 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
         };
     }
 
-    private static bool IsExecutable(IReadOnlyDictionary<string, string> properties)
-    {
-        var outputType = properties.GetValueOrDefault(OutputTypeProperty, "");
-        return outputType.Equals("Exe", StringComparison.OrdinalIgnoreCase)
-            || outputType.Equals("WinExe", StringComparison.OrdinalIgnoreCase);
-    }
-
     private static bool IsFalse(string? value) => string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsTrue(string? value) => string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
 
-    private static int Verify(IReadOnlyList<EvaluatedProject> projects, PipelineOutput output)
-    {
-        output.WriteLine("==> Verifying build assumptions");
-
-        var offenders = projects
-            .Where(project => !string.IsNullOrEmpty(project.Properties.GetValueOrDefault(TargetFrameworksProperty)))
-            .Where(project => !project.IsTestProject && IsExecutable(project.Properties))
-            .ToList();
-
-        if (offenders.Count > 0)
-        {
-            output.WriteFailure("these executables declare <TargetFrameworks>; RemoteBuildTool builds several target frameworks for libraries and test projects only. Set a single <TargetFramework> instead.");
-            foreach (var project in offenders)
-                output.WriteError($"  {project.Id}");
-            return 1;
-        }
-
-        output.WriteLine("OK: every executable targets a single framework.");
-        return 0;
-    }
+    private sealed record DeploymentStep(string Kind, string Name, string Title, StagePhase Phase, Func<MsBuildLogs, ProcessResult> Run);
 
     private enum Deployment
     {

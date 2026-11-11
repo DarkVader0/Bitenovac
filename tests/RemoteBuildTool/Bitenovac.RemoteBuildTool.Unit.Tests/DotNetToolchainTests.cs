@@ -120,6 +120,25 @@ public sealed class DotNetToolchainTests
     }
 
     [Fact]
+    public void Publish_ShouldPublishOncePerTargetFramework_WhenAnApplicationHasSeveral()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.TelemetryOptions(directory);
+        var msBuild = new FakeMsBuild();
+        using var toolchain = new DotNetToolchain(directory.Path, msBuild);
+        using var stage = StageRecorder.Start(options, TestFactory.Silence(), "release");
+        var entry = Entry(directory, "src/App/App.csproj", new() { ["OutputType"] = "Exe", ["TargetFrameworks"] = "net11.0;net10.0" });
+
+        // Act
+        var exitCode = toolchain.Publish(options, [entry], "2026.10.14.001", directory.Combine("drop"), TestFactory.Silence(), stage);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal(["restore", "build", "publish App net11.0 into net11.0", "publish App net10.0 into net10.0"], msBuild.Calls);
+    }
+
+    [Fact]
     public void Publish_ShouldDeployNothing_WhenTheReleaseBuildFails()
     {
         // Arrange
@@ -357,8 +376,19 @@ public sealed class DotNetToolchainTests
         public ProcessResult Pack(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs) =>
             Result($"pack {Path.GetFileNameWithoutExtension(projectFullPath)}", 0);
 
-        public ProcessResult Publish(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs) =>
-            Result($"publish {Path.GetFileNameWithoutExtension(projectFullPath)}", PublishExitCode, PublishCpuTime);
+        public ProcessResult Publish(
+            string repositoryRoot,
+            string projectFullPath,
+            IReadOnlyDictionary<string, string> defaultProperties,
+            string outputDirectory,
+            MsBuildLogs logs,
+            string? targetFramework) =>
+            Result(
+                targetFramework is null
+                    ? $"publish {Path.GetFileNameWithoutExtension(projectFullPath)}"
+                    : $"publish {Path.GetFileNameWithoutExtension(projectFullPath)} {targetFramework} into {Path.GetFileName(outputDirectory)}",
+                PublishExitCode,
+                PublishCpuTime);
 
         private ProcessResult Result(string call, int exitCode, TimeSpan? cpuTime = null)
         {

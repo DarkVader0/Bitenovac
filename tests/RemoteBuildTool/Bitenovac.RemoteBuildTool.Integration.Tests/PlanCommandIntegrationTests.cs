@@ -110,17 +110,15 @@ public sealed class PlanCommandIntegrationTests
     }
 
     [Fact]
-    public void Run_ShouldFailBeforeRestoring_WhenAnExecutableDeclaresTargetFrameworks()
+    public void Run_ShouldFailAndWriteNoPlan_WhenAPackageCannotBeRestored()
     {
         // Arrange
         using var fixture = FixtureRepository.Create();
-        fixture.Write(FixtureRepository.LibraryProject, $"""
+        fixture.Write(FixtureRepository.LibraryProject, """
             <Project Sdk="Microsoft.NET.Sdk">
-                <PropertyGroup>
-                    <TargetFramework></TargetFramework>
-                    <TargetFrameworks>{FixtureRepository.TargetFramework};netstandard2.0</TargetFrameworks>
-                    <OutputType>Exe</OutputType>
-                </PropertyGroup>
+                <ItemGroup>
+                    <PackageReference Include="Bitenovac.RemoteBuildTool.NoSuchPackage" Version="1.0.0"/>
+                </ItemGroup>
             </Project>
             """);
 
@@ -128,8 +126,7 @@ public sealed class PlanCommandIntegrationTests
         var exitCode = PlanCommand.Run(fixture.Options, _output.Pipeline);
 
         // Assert
-        Assert.Equal(1, exitCode);
-        Assert.False(File.Exists(fixture.Combine("src/Lib/obj/project.assets.json")));
+        Assert.NotEqual(0, exitCode);
         Assert.False(File.Exists(fixture.Options.PlanFile));
     }
 
