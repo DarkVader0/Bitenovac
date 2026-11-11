@@ -47,41 +47,39 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
     private EvaluatedProject Evaluate(string relativePath, string configuration)
     {
         var fullPath = Path.Combine(_repositoryRoot, relativePath);
-        var globalProperties = new Dictionary<string, string> { ["Configuration"] = configuration };
-        var project = new Project(fullPath, globalProperties, toolsVersion: null, _collection);
+        var project = Load(fullPath, configuration, targetFramework: null);
 
         var id = new ProjectId(relativePath);
 
-        var projectReferences = project.GetItems("ProjectReference")
+        // A project that targets several frameworks is evaluated once for each: its sources,
+        // constants and references can differ between them, and all of them are built. As in
+        // MSBuild, a TargetFramework set beside TargetFrameworks wins, and the project has one.
+        var declaredFrameworks = project.GetPropertyValue("TargetFramework").Length == 0
+            ? project.GetPropertyValue(DotNetToolchain.TargetFrameworksProperty)
+            : "";
+        var targetFrameworks = declaredFrameworks.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var perFramework = targetFrameworks
+            .Select(targetFramework => (TargetFramework: targetFramework, Project: Load(fullPath, configuration, targetFramework)))
+            .ToList();
+
+        var projectReferences = perFramework.Select(framework => framework.Project).Prepend(project)
+            .SelectMany(evaluated => evaluated.GetItems("ProjectReference"))
             .Select(item => Path.GetRelativePath(_repositoryRoot, item.GetMetadataValue("FullPath")).Replace('\\', '/'))
+            .Distinct(StringComparer.Ordinal)
             .Select(path => new ProjectId(path))
             .OrderBy(p => p.Value, StringComparer.Ordinal)
             .ToList();
 
-        var ownHashInputs = new List<string>(_shared.CommonEntries)
+        var ownHashInputs = new List<string>(_shared.CommonEntries);
+        if (perFramework.Count == 0)
         {
-            $"property:Configuration={configuration}",
-            $"property:TargetFramework={project.GetPropertyValue("TargetFramework")}",
-            $"property:LangVersion={project.GetPropertyValue("LangVersion")}",
-            $"property:Nullable={project.GetPropertyValue("Nullable")}",
-            $"property:TreatWarningsAsErrors={project.GetPropertyValue("TreatWarningsAsErrors")}",
-            $"property:Optimize={project.GetPropertyValue("Optimize")}",
-            $"property:DefineConstants={project.GetPropertyValue("DefineConstants")}",
-            $"property:Deterministic={project.GetPropertyValue("Deterministic")}",
-            $"property:ContinuousIntegrationBuild={project.GetPropertyValue("ContinuousIntegrationBuild")}",
-            $"property:NETCoreSdkVersion={project.GetPropertyValue("NETCoreSdkVersion")}",
-        };
-
-        AddFileContentEntries(project, "Compile", ownHashInputs);
-        AddFileContentEntries(project, "Content", ownHashInputs);
-        AddFileContentEntries(project, "None", ownHashInputs);
-        AddFileContentEntries(project, "EmbeddedResource", ownHashInputs);
-        AddFileContentEntries(project, "AdditionalFiles", ownHashInputs);
-
-        foreach (var item in project.GetItems("RemoteBuildToolHashInput"))
-            ownHashInputs.Add($"declared:{item.EvaluatedInclude}");
-
-        ownHashInputs.AddRange(RepositoryContributions.Entries(project, _repositoryRoot));
+            ownHashInputs.AddRange(BuildInputs(project, configuration));
+        }
+        else
+        {
+            foreach (var (targetFramework, evaluated) in perFramework)
+                ownHashInputs.AddRange(BuildInputs(evaluated, configuration).Select(entry => $"framework:{targetFramework}:{entry}"));
+        }
 
         foreach (var editorConfigEntry in EditorConfigEntries(Path.GetDirectoryName(fullPath)!))
             ownHashInputs.Add(editorConfigEntry);
@@ -103,13 +101,54 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
             Properties: new Dictionary<string, string>
             {
                 [DotNetToolchain.RunCommandProperty] = project.GetPropertyValue("RunCommand"),
-                [DotNetToolchain.TargetFrameworksProperty] = project.GetPropertyValue("TargetFrameworks"),
+                [DotNetToolchain.TargetFrameworksProperty] = declaredFrameworks,
                 [DotNetToolchain.OutputTypeProperty] = project.GetPropertyValue("OutputType"),
                 [DotNetToolchain.IsPackableProperty] = project.GetPropertyValue("IsPackable"),
                 [DotNetToolchain.PackAsToolProperty] = project.GetPropertyValue("PackAsTool"),
                 [DotNetToolchain.IsPublishableProperty] = project.GetPropertyValue("IsPublishable"),
             },
             OwnHashInputs: ownHashInputs);
+    }
+
+    private Project Load(string fullPath, string configuration, string? targetFramework)
+    {
+        var globalProperties = new Dictionary<string, string> { ["Configuration"] = configuration };
+        if (targetFramework is not null)
+            globalProperties["TargetFramework"] = targetFramework;
+
+        return new Project(fullPath, globalProperties, toolsVersion: null, _collection);
+    }
+
+    // What one evaluation of the project contributes: for a project with one target framework this
+    // is all of it, for one with several it is that framework's share.
+    private List<string> BuildInputs(Project project, string configuration)
+    {
+        var inputs = new List<string>
+        {
+            $"property:Configuration={configuration}",
+            $"property:TargetFramework={project.GetPropertyValue("TargetFramework")}",
+            $"property:LangVersion={project.GetPropertyValue("LangVersion")}",
+            $"property:Nullable={project.GetPropertyValue("Nullable")}",
+            $"property:TreatWarningsAsErrors={project.GetPropertyValue("TreatWarningsAsErrors")}",
+            $"property:Optimize={project.GetPropertyValue("Optimize")}",
+            $"property:DefineConstants={project.GetPropertyValue("DefineConstants")}",
+            $"property:Deterministic={project.GetPropertyValue("Deterministic")}",
+            $"property:ContinuousIntegrationBuild={project.GetPropertyValue("ContinuousIntegrationBuild")}",
+            $"property:NETCoreSdkVersion={project.GetPropertyValue("NETCoreSdkVersion")}",
+        };
+
+        AddFileContentEntries(project, "Compile", inputs);
+        AddFileContentEntries(project, "Content", inputs);
+        AddFileContentEntries(project, "None", inputs);
+        AddFileContentEntries(project, "EmbeddedResource", inputs);
+        AddFileContentEntries(project, "AdditionalFiles", inputs);
+
+        foreach (var item in project.GetItems("RemoteBuildToolHashInput"))
+            inputs.Add($"declared:{item.EvaluatedInclude}");
+
+        inputs.AddRange(RepositoryContributions.Entries(project, _repositoryRoot));
+
+        return inputs;
     }
 
     private void AddFileContentEntries(Project project, string itemType, List<string> destination)
