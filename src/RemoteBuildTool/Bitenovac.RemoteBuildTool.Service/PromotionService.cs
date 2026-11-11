@@ -20,7 +20,7 @@ internal sealed class PromotionService(
     PullRequestPromoter promoter,
     ServiceWake wake,
     TimeProvider time,
-    ILogger<PromotionService> logger) : ServiceWork(time, logger)
+    ILogger<PromotionService> logger) : RemoteBuildToolWork(time, logger)
 {
     /// <inheritdoc/>
     protected override string Name => "promotion";

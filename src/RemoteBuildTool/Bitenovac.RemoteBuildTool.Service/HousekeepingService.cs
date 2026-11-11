@@ -16,7 +16,7 @@ internal sealed class HousekeepingService(
     RepositorySettingsSource settings,
     ServiceStateStore state,
     TimeProvider time,
-    ILogger<HousekeepingService> logger) : ServiceWork(time, logger)
+    ILogger<HousekeepingService> logger) : RemoteBuildToolWork(time, logger)
 {
     /// <inheritdoc/>
     protected override string Name => "housekeeping";

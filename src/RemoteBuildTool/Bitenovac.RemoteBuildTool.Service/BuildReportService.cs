@@ -15,7 +15,7 @@ internal sealed class BuildReportService(
     ServiceStateStore state,
     BuildReporter reporter,
     TimeProvider time,
-    ILogger<BuildReportService> logger) : ServiceWork(time, logger)
+    ILogger<BuildReportService> logger) : RemoteBuildToolWork(time, logger)
 {
     /// <inheritdoc/>
     protected override string Name => "build records";
