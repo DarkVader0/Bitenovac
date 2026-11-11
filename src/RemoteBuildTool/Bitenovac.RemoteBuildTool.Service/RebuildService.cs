@@ -22,7 +22,7 @@ namespace Bitenovac.RemoteBuildTool.Service;
 internal sealed class RebuildService(
     HostSettings host,
     RepositorySettingsSource settings,
-    ServiceStateStore state,
+    JsonStateStore<ServiceState> state,
     GitHubClient github,
     ServiceBuild builds,
     MainStoreWriter writer,

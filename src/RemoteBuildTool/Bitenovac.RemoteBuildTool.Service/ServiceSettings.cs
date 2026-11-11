@@ -96,26 +96,13 @@ internal sealed record HostSettings
         if (!File.Exists(path))
             throw new InvalidOperationException($"No service settings at {path}. runner/setup-runner.sh writes them.");
 
-        var settings = Deserialize(File.ReadAllText(path), path, ServiceJsonContext.Default.HostSettings);
+        var settings = JsonFile.Deserialize(File.ReadAllText(path), path, ServiceJsonContext.Default.HostSettings);
         if (!settings.Repository.Contains('/', StringComparison.Ordinal))
             throw new InvalidOperationException($"{path}: 'repository' must be owner/name, got '{settings.Repository}'.");
         if (settings.GitHubToken.Length == 0)
             throw new InvalidOperationException($"{path}: 'gitHubToken' is required; the service reads queue and job times from GitHub.");
 
         return settings;
-    }
-
-    internal static T Deserialize<T>(string text, string source, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo)
-    {
-        try
-        {
-            return JsonSerializer.Deserialize(text, typeInfo)
-                ?? throw new InvalidOperationException($"{source} is empty.");
-        }
-        catch (JsonException exception)
-        {
-            throw new InvalidOperationException($"{source} is not valid: {exception.Message}");
-        }
     }
 }
 
@@ -199,7 +186,7 @@ internal sealed record RepositorySettings
         if (text is null)
             return new RepositorySettings();
 
-        var settings = HostSettings.Deserialize(text, source, ServiceJsonContext.Default.RepositorySettings);
+        var settings = JsonFile.Deserialize(text, source, ServiceJsonContext.Default.RepositorySettings);
         if (settings.PollSeconds < 10 || settings.BuildReportSeconds < 10)
             throw new InvalidOperationException($"{source}: 'pollSeconds' and 'buildReportSeconds' must be at least 10.");
         if (settings.Branch is { Length: 0 })

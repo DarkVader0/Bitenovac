@@ -16,7 +16,7 @@ namespace Bitenovac.RemoteBuildTool.Service;
 internal sealed class PromotionService(
     HostSettings host,
     RepositorySettingsSource settings,
-    ServiceStateStore state,
+    JsonStateStore<ServiceState> state,
     PullRequestPromoter promoter,
     ServiceWake wake,
     TimeProvider time,
