@@ -1,9 +1,11 @@
-using Bitenovac.RemoteBuildTool.Telemetry;
+using System.Text.Json.Serialization;
 
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteTools.Common.Unit.Tests;
 
 public sealed class TelemetryWriterTests
 {
+    private const string TestTable = "test";
+
     private static readonly DateTimeOffset Day = new(2026, 10, 14, 23, 30, 0, TimeSpan.FromHours(-2));
 
     [Fact]
@@ -11,14 +13,14 @@ public sealed class TelemetryWriterTests
     {
         // Arrange
         using var directory = TestFactory.Directory();
-        TestInfo[] tests =
+        TelemetryRecord[] tests =
         [
-            new() { Project = "tests/A/A.csproj", TestName = "A.First", Outcome = "Passed" },
-            new() { Project = "tests/A/A.csproj", TestName = "A.Second", Outcome = "Failed" },
+            new("A.First"),
+            new("A.Second"),
         ];
 
         // Act
-        var path = TelemetryWriter.Write(directory.Path, TelemetryWriter.TestTable, "100-1.test-Debug.host-1", Day, tests, TelemetryJsonContext.Default.TestInfo);
+        var path = TelemetryWriter.Write(directory.Path, TestTable, "100-1.test-Debug.host-1", Day, tests, TelemetryRecordJsonContext.Default.TelemetryRecord);
 
         // Assert
         Assert.NotNull(path);
@@ -36,7 +38,7 @@ public sealed class TelemetryWriterTests
         using var directory = TestFactory.Directory();
 
         // Act
-        var path = TelemetryWriter.Write(directory.Path, TelemetryWriter.TestTable, "100-1", Day, [], TelemetryJsonContext.Default.TestInfo);
+        var path = TelemetryWriter.Write(directory.Path, TestTable, "100-1", Day, [], TelemetryRecordJsonContext.Default.TelemetryRecord);
 
         // Assert
         Assert.Null(path);
@@ -48,10 +50,10 @@ public sealed class TelemetryWriterTests
     {
         // Arrange
         using var directory = TestFactory.Directory();
-        TestInfo[] tests = [new() { Project = "p", TestName = "t", Outcome = "Passed" }];
+        TelemetryRecord[] tests = [new("t")];
 
         // Act
-        var path = TelemetryWriter.Write(directory.Path, TelemetryWriter.TestTable, "../x/y*z", Day, tests, TelemetryJsonContext.Default.TestInfo);
+        var path = TelemetryWriter.Write(directory.Path, TestTable, "../x/y*z", Day, tests, TelemetryRecordJsonContext.Default.TelemetryRecord);
 
         // Assert
         Assert.StartsWith(".._x_y_z.", Path.GetFileName(path), StringComparison.Ordinal);
@@ -63,16 +65,16 @@ public sealed class TelemetryWriterTests
     {
         // Arrange
         using var directory = TestFactory.Directory();
-        TelemetryWriter.Write(directory.Path, TelemetryWriter.TestTable, "100-1.test-Debug.host-1", Day,
-            [new TestInfo { Project = "p", TestName = "Mine", Outcome = "Passed" }], TelemetryJsonContext.Default.TestInfo);
-        TelemetryWriter.Write(directory.Path, TelemetryWriter.TestTable, "100-1.test-Release.host-2", Day.AddDays(1),
-            [new TestInfo { Project = "p", TestName = "AlsoMine", Outcome = "Passed" }], TelemetryJsonContext.Default.TestInfo);
-        TelemetryWriter.Write(directory.Path, TelemetryWriter.TestTable, "1000-1.test-Debug.host-1", Day,
-            [new TestInfo { Project = "p", TestName = "NotMine", Outcome = "Passed" }], TelemetryJsonContext.Default.TestInfo);
+        TelemetryWriter.Write(directory.Path, TestTable, "100-1.test-Debug.host-1", Day,
+            [new TelemetryRecord("Mine")], TelemetryRecordJsonContext.Default.TelemetryRecord);
+        TelemetryWriter.Write(directory.Path, TestTable, "100-1.test-Release.host-2", Day.AddDays(1),
+            [new TelemetryRecord("AlsoMine")], TelemetryRecordJsonContext.Default.TelemetryRecord);
+        TelemetryWriter.Write(directory.Path, TestTable, "1000-1.test-Debug.host-1", Day,
+            [new TelemetryRecord("NotMine")], TelemetryRecordJsonContext.Default.TelemetryRecord);
 
         // Act
-        var names = TelemetryWriter.Read(directory.Path, TelemetryWriter.TestTable, "100-1.", TelemetryJsonContext.Default.TestInfo)
-            .Select(test => test.TestName)
+        var names = TelemetryWriter.Read(directory.Path, TestTable, "100-1.", TelemetryRecordJsonContext.Default.TelemetryRecord)
+            .Select(test => test.Name)
             .Order(StringComparer.Ordinal);
 
         // Assert
@@ -86,7 +88,7 @@ public sealed class TelemetryWriterTests
         using var directory = TestFactory.Directory();
 
         // Act
-        var records = TelemetryWriter.Read(directory.Path, TelemetryWriter.StageTable, "100-1.", TelemetryJsonContext.Default.StageInfo);
+        var records = TelemetryWriter.Read(directory.Path, "stage", "100-1.", TelemetryRecordJsonContext.Default.TelemetryRecord);
 
         // Assert
         Assert.Empty(records);
@@ -101,9 +103,14 @@ public sealed class TelemetryWriterTests
             "{\"Project\":\"p\",\"TestName\":\"t\",\"Outcome\":\"Passed\"}\n\n");
 
         // Act
-        var records = TelemetryWriter.Read(directory.Path, TelemetryWriter.TestTable, "100-1.", TelemetryJsonContext.Default.TestInfo);
+        var records = TelemetryWriter.Read(directory.Path, TestTable, "100-1.", TelemetryRecordJsonContext.Default.TelemetryRecord);
 
         // Assert
         Assert.Single(records);
     }
 }
+
+internal sealed record TelemetryRecord(string Name);
+
+[JsonSerializable(typeof(TelemetryRecord))]
+internal sealed partial class TelemetryRecordJsonContext : JsonSerializerContext;

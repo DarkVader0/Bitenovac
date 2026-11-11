@@ -6,6 +6,16 @@ namespace Bitenovac.RemoteTools.Common.Unit.Tests;
 internal static class TestFactory
 {
     public static TemporaryDirectory Directory() => new();
+
+    /// <summary>
+    /// Writes <paramref name="content"/> to <paramref name="path"/>, creating its directory.
+    /// </summary>
+    public static string WriteFile(string path, string content)
+    {
+        System.IO.Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, content);
+        return path;
+    }
 }
 
 /// <summary>

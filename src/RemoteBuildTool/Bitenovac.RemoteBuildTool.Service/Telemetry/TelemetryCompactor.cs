@@ -32,12 +32,12 @@ internal static class TelemetryCompactor
 
     private static readonly string[] Tables =
     [
-        TelemetryWriter.BuildTable,
-        TelemetryWriter.StageTable,
-        TelemetryWriter.TargetTable,
-        TelemetryWriter.TestTable,
-        TelemetryWriter.MachineTable,
-        TelemetryWriter.CacheComparisonTable,
+        TelemetryTables.Build,
+        TelemetryTables.Stage,
+        TelemetryTables.Target,
+        TelemetryTables.Test,
+        TelemetryTables.Machine,
+        TelemetryTables.CacheComparison,
     ];
 
     /// <summary>

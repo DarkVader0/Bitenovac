@@ -80,7 +80,7 @@ internal static class SwitchCommand
         stage.Add(StagePhase.Store, Stopwatch.GetElapsedTime(started));
         if (options.TelemetryRoot is { } root)
         {
-            TelemetryWriter.Write(root, TelemetryWriter.CacheComparisonTable, $"{identity.BuildId}.switch.{identity.Machine}",
+            TelemetryWriter.Write(root, TelemetryTables.CacheComparison, $"{identity.BuildId}.switch.{identity.Machine}",
                 DateTimeOffset.UtcNow, comparisons, TelemetryJsonContext.Default.CacheComparisonInfo);
         }
 

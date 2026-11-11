@@ -28,13 +28,13 @@ public sealed class BuildSummarizerTests
             ExitCode = 1,
             FirstError = "Lib.Tests (exit 2) has failing tests.",
         });
-        TelemetryWriter.Write(root, TelemetryWriter.TargetTable, "100-1.test-Debug.host-1", Created,
+        TelemetryWriter.Write(root, TelemetryTables.Target, "100-1.test-Debug.host-1", Created,
             [
                 new TargetInfo { Project = "a", Toolchain = "dotnet", Kind = "test", CacheOutcome = "miss", TestsFailed = 2 },
                 new TargetInfo { Project = "b", Toolchain = "dotnet", Kind = "build", CacheOutcome = "miss", TestsFailed = 9 },
             ],
             TelemetryJsonContext.Default.TargetInfo);
-        TelemetryWriter.Write(root, TelemetryWriter.MachineTable, "100-1.plan.host-1", Created,
+        TelemetryWriter.Write(root, TelemetryTables.Machine, "100-1.plan.host-1", Created,
             [
                 new MachineSample { BuildId = "100-1", Queue = "PR", Pool = "docker", Machine = "host-1", Stage = "plan", Time = Created, HostCpuUtilization = 0.2, HostMemoryUtilization = 0.5 },
                 new MachineSample { BuildId = "100-1", Queue = "PR", Pool = "docker", Machine = "host-1", Stage = "plan", Time = Created, HostCpuUtilization = 0.6, HostMemoryUtilization = 0.7 },
@@ -56,7 +56,7 @@ public sealed class BuildSummarizerTests
         BuildSummarizer.Write(root, options.Identity!, "failure", now, BuildTimeline.FromJobs(WorkflowJob.Parse(File.ReadAllText(jobs)), now), "service");
 
         // Assert
-        var build = Assert.Single(TelemetryWriter.Read(root, TelemetryWriter.BuildTable, "100-1.", TelemetryJsonContext.Default.BuildInfo));
+        var build = Assert.Single(TelemetryWriter.Read(root, TelemetryTables.Build, "100-1.", TelemetryJsonContext.Default.BuildInfo));
         Assert.Equal("100-1", build.BuildId);
         Assert.Equal("PR", build.Queue);
         Assert.Equal("docker", build.Pool);
@@ -100,7 +100,7 @@ public sealed class BuildSummarizerTests
         BuildSummarizer.Write(options.TelemetryRoot!, options.Identity!, "success", Created.AddSeconds(5), BuildTimeline.Unknown, "service");
 
         // Assert
-        var build = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.BuildTable, "100-1.", TelemetryJsonContext.Default.BuildInfo));
+        var build = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryTables.Build, "100-1.", TelemetryJsonContext.Default.BuildInfo));
         Assert.Equal(Created, build.CreatedTime);
         Assert.Equal(Created, build.StartTime);
         Assert.Equal(5_000, build.E2ETimeMS);
@@ -123,7 +123,7 @@ public sealed class BuildSummarizerTests
         BuildSummarizer.Write(options.TelemetryRoot!, options.Identity!, "cancelled", DateTimeOffset.UtcNow, BuildTimeline.Unknown, "service");
 
         // Assert
-        var build = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.BuildTable, "100-1.", TelemetryJsonContext.Default.BuildInfo));
+        var build = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryTables.Build, "100-1.", TelemetryJsonContext.Default.BuildInfo));
         Assert.Equal(0, build.Stages);
         Assert.Null(build.CpuTimeMS);
         Assert.Null(build.CpuUtilization);
@@ -143,7 +143,7 @@ public sealed class BuildSummarizerTests
         BuildSummarizer.Write(options.TelemetryRoot!, options.Identity! with { LogsPath = null }, "success", Created.AddSeconds(5), BuildTimeline.Unknown, "service");
 
         // Assert
-        var build = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.BuildTable, "100-1.", TelemetryJsonContext.Default.BuildInfo));
+        var build = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryTables.Build, "100-1.", TelemetryJsonContext.Default.BuildInfo));
         Assert.Equal("PR_7/100-1", build.LogsPath);
     }
 
@@ -165,5 +165,5 @@ public sealed class BuildSummarizerTests
     };
 
     private static void WriteStage(string root, StageInfo stage) =>
-        TelemetryWriter.Write(root, TelemetryWriter.StageTable, $"100-1.{stage.Stage}.{stage.Machine}", stage.StartTime, [stage], TelemetryJsonContext.Default.StageInfo);
+        TelemetryWriter.Write(root, TelemetryTables.Stage, $"100-1.{stage.Stage}.{stage.Machine}", stage.StartTime, [stage], TelemetryJsonContext.Default.StageInfo);
 }

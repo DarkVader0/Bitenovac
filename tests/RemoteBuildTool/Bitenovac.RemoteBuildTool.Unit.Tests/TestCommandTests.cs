@@ -215,10 +215,10 @@ public sealed class TestCommandTests
         Assert.Equal(0, exitCode);
         Assert.False(File.Exists(Path.Combine(options.CoverageDirectory("Debug"), "stale.cobertura.xml")));
         Assert.Contains("A.Tests: passed in 2.0 s", output.Out, StringComparison.Ordinal);
-        var target = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.TargetTable, "100-1.", TelemetryJsonContext.Default.TargetInfo));
+        var target = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryTables.Target, "100-1.", TelemetryJsonContext.Default.TargetInfo));
         Assert.Equal((2, 1, 0, 1), (target.TestsTotal, target.TestsPassed, target.TestsFailed, target.TestsSkipped));
         Assert.Equal((2000L, 500L, 1024L), (target.DurationMS, target.CpuTimeMS, target.PeakMemoryBytes));
-        var tests = TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.TestTable, "100-1.", TelemetryJsonContext.Default.TestInfo);
+        var tests = TelemetryWriter.Read(options.TelemetryRoot!, TelemetryTables.Test, "100-1.", TelemetryJsonContext.Default.TestInfo);
         Assert.Equal([("A.Passes", 250L), ("A.Skips", null)], tests.Select(test => (test.TestName, test.DurationMS)).Order());
     }
 
@@ -243,7 +243,7 @@ public sealed class TestCommandTests
         Assert.Equal(0, exitCode);
         Assert.Contains("A.Tests: ran no tests in 1.0 s", output.Out, StringComparison.Ordinal);
         Assert.Contains("warning: test projects that ran no tests: A.Tests", output.Out, StringComparison.Ordinal);
-        var target = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.TargetTable, "100-1.", TelemetryJsonContext.Default.TargetInfo));
+        var target = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryTables.Target, "100-1.", TelemetryJsonContext.Default.TargetInfo));
         Assert.Equal((null, null, null, null), (target.TestsTotal, target.TestsPassed, target.TestsFailed, target.TestsSkipped));
         Assert.Equal((1000L, null, null), (target.DurationMS, target.CpuTimeMS, target.PeakMemoryBytes));
     }

@@ -182,10 +182,10 @@ internal sealed class StageRecorder : IDisposable
         if (_options.TelemetryRoot is { } root)
         {
             var name = $"{_identity.BuildId}.{Name}.{_identity.Machine}";
-            TelemetryWriter.Write(root, TelemetryWriter.StageTable, name, _startTime, [stage], TelemetryJsonContext.Default.StageInfo);
-            TelemetryWriter.Write(root, TelemetryWriter.TargetTable, name, _startTime, _targets, TelemetryJsonContext.Default.TargetInfo);
-            TelemetryWriter.Write(root, TelemetryWriter.TestTable, name, _startTime, _tests, TelemetryJsonContext.Default.TestInfo);
-            TelemetryWriter.Write(root, TelemetryWriter.MachineTable, name, _startTime, samples, TelemetryJsonContext.Default.MachineSample);
+            TelemetryWriter.Write(root, TelemetryTables.Stage, name, _startTime, [stage], TelemetryJsonContext.Default.StageInfo);
+            TelemetryWriter.Write(root, TelemetryTables.Target, name, _startTime, _targets, TelemetryJsonContext.Default.TargetInfo);
+            TelemetryWriter.Write(root, TelemetryTables.Test, name, _startTime, _tests, TelemetryJsonContext.Default.TestInfo);
+            TelemetryWriter.Write(root, TelemetryTables.Machine, name, _startTime, samples, TelemetryJsonContext.Default.MachineSample);
         }
 
         return exitCode;

@@ -194,5 +194,5 @@ public sealed class SwitchCommandTests
     }
 
     private static List<CacheComparisonInfo> Comparisons(PipelineOptions options) =>
-        [.. TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.CacheComparisonTable, "100-1.", TelemetryJsonContext.Default.CacheComparisonInfo)];
+        [.. TelemetryWriter.Read(options.TelemetryRoot!, TelemetryTables.CacheComparison, "100-1.", TelemetryJsonContext.Default.CacheComparisonInfo)];
 }
