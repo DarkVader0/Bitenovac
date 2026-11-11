@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Bitenovac.RemoteBuildTool.Service;
 
@@ -36,7 +37,11 @@ internal static class ServiceComposition
         services.AddHostedService<BuildReportService>();
         services.AddHostedService<HousekeepingService>();
         services.AddHostedService<RebuildService>();
-        services.AddHostedService<WakeListener>();
+        services.AddHostedService(provider => new WakeListener(
+            ServiceWake.SocketPath(host.WorkRoot),
+            "woken: a pull request was merged",
+            provider.GetRequiredService<ServiceWake>(),
+            provider.GetRequiredService<ILogger<WakeListener>>()));
         return services;
     }
 }
