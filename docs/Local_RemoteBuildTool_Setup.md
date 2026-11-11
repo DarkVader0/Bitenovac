@@ -217,10 +217,10 @@ reaches a machine as a new bundle:
 A Dockerfile or `global.json` change travels the same way, since the bundle carries both. Bump the
 version for it too: a version is released once.
 
-`build-image.sh` restarts the service on the new image. Every fingerprint includes the RemoteBuildTool
-version, so a new release starts from an empty cache rather than trusting what an older one built;
-so does a `global.json` or Dockerfile change. Until the nightly rebuild, pull requests build
-everything they touch. To refill the cache now instead (Ubuntu):
+`build-image.sh` restarts the service on the new image. Every fingerprint includes the
+RemoteBuildTool version, so a new release starts from an empty cache rather than trusting what an
+older one built; so does a `global.json` or Dockerfile change. Until the nightly rebuild, pull
+requests build everything they touch. To refill the cache now instead (Ubuntu):
 
 ```bash
 sudo bash runner/service.sh rebuild
