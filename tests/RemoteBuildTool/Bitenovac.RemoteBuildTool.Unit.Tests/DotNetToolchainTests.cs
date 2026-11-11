@@ -193,6 +193,47 @@ public sealed class DotNetToolchainTests
     }
 
     [Fact]
+    public void TestVariants_ShouldReturnTheProjectItself_WhenItHasOneTargetFramework()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        using var toolchain = new DotNetToolchain(directory.Path, new FakeMsBuild());
+        var entry = Entry(directory, "tests/A/A.Tests.csproj", new() { ["RunCommand"] = "/repo/tests/A/bin/A.Tests" });
+
+        // Act
+        var variants = toolchain.TestVariants(entry);
+
+        // Assert
+        var variant = Assert.Single(variants);
+        Assert.Equal("", variant.Suffix);
+        Assert.Same(entry, variant.Entry);
+    }
+
+    [Fact]
+    public void TestVariants_ShouldReturnOneRunPerTargetFramework_WhenTheProjectHasSeveral()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        using var toolchain = new DotNetToolchain(directory.Path, new FakeMsBuild());
+        var entry = Entry(directory, "tests/A/A.Tests.csproj", new()
+        {
+            ["RunCommand"] = "",
+            ["TargetFrameworks"] = "net11.0; net10.0",
+            ["RunCommand:net11.0"] = "/repo/tests/A/bin/net11.0/A.Tests",
+            ["RunCommand:net10.0"] = "/repo/tests/A/bin/net10.0/A.Tests",
+        });
+
+        // Act
+        var variants = toolchain.TestVariants(entry);
+
+        // Assert
+        Assert.Equal(["net11.0", "net10.0"], variants.Select(variant => variant.Suffix));
+        Assert.Equal(
+            ["/repo/tests/A/bin/net11.0/A.Tests", "/repo/tests/A/bin/net10.0/A.Tests"],
+            variants.Select(variant => variant.Entry.Properties["RunCommand"]));
+    }
+
+    [Fact]
     public void RunTests_ShouldThrow_WhenTheTestExecutableWasNeverBuilt()
     {
         // Arrange

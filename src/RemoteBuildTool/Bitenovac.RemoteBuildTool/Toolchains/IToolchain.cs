@@ -122,8 +122,23 @@ internal interface IToolchain : IDisposable
     int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output, StageRecorder stage);
 
     /// <summary>
+    /// Returns the runs one test project needs: one, unless the project is built in several
+    /// variants that each have tests to run, such as one per target framework.
+    /// </summary>
+    /// <param name="entry">The test project.</param>
+    /// <returns>The entry to hand to <see cref="RunTests"/> for each run, with what tells the runs apart.</returns>
+    IReadOnlyList<TestVariant> TestVariants(PlanEntry entry) => [new TestVariant("", entry)];
+
+    /// <summary>
     /// Runs one built test project, collecting coverage into <paramref name="resultsDirectory"/>.
     /// </summary>
     /// <exception cref="InvalidOperationException">The project's test executable has not been built.</exception>
     TestRunResult RunTests(PlanEntry entry, string configuration, string resultsFilePrefix, string resultsDirectory);
 }
+
+/// <summary>
+/// Represents one of the runs a test project needs.
+/// </summary>
+/// <param name="Suffix">What tells this run from the project's others, such as <c>net10.0</c>; empty when it is the only one.</param>
+/// <param name="Entry">The project as this run sees it.</param>
+internal sealed record TestVariant(string Suffix, PlanEntry Entry);

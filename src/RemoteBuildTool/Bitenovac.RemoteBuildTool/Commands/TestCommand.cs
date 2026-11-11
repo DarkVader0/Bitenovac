@@ -97,7 +97,12 @@ internal static class TestCommand
                 toRun.Add((entry, name));
             }
 
-            var jobs = toRun
+            // A project built in several variants, such as one per target framework, runs once for each.
+            var runs = toRun
+                .SelectMany((run, project) => toolchains.For(run.Entry.Toolchain).TestVariants(run.Entry)
+                    .Select(variant => (Project: project, Name: variant.Suffix.Length == 0 ? run.Name : $"{run.Name}.{variant.Suffix}", variant.Entry)))
+                .ToList();
+            var jobs = runs
                 .Select(run => new TestJob(run.Name, () => toolchains.For(run.Entry.Toolchain).RunTests(run.Entry, configuration, run.Name, coverageDirectory)))
                 .ToList();
             IReadOnlyList<TestRunResult> results;
@@ -110,27 +115,34 @@ internal static class TestCommand
                 });
             }
 
-            for (var index = 0; index < toRun.Count; index++)
+            var passed = Enumerable.Repeat(true, toRun.Count).ToArray();
+            for (var index = 0; index < runs.Count; index++)
             {
-                var (entry, name) = toRun[index];
+                var (project, name, _) = runs[index];
                 var result = results[index];
-                Record(stage, entry, name, result);
+                Record(stage, toRun[project].Entry, toRun[project].Name, result);
 
                 switch (result.Outcome)
                 {
-                    case TestRunOutcome.Passed:
-                        if (entry.CacheTestResults)
-                        {
-                            using (stage.Measure(StagePhase.Store))
-                                StageTestResult(new ProjectId(entry.ProjectPath), configuration, name, coverageDirectory, entry, prStore);
-                        }
-                        break;
                     case TestRunOutcome.NoTestsRan:
+                        passed[project] = false;
                         noTestsRan.Add(name);
                         break;
                     case TestRunOutcome.Failed:
+                        passed[project] = false;
                         failed.Add($"{name} (exit {result.ExitCode})");
                         break;
+                }
+            }
+
+            // A project's result is reused whole, so it is staged only once every run of it passed.
+            for (var project = 0; project < toRun.Count; project++)
+            {
+                var (entry, name) = toRun[project];
+                if (passed[project] && entry.CacheTestResults)
+                {
+                    using (stage.Measure(StagePhase.Store))
+                        StageTestResult(new ProjectId(entry.ProjectPath), configuration, name, coverageDirectory, entry, prStore);
                 }
             }
         }

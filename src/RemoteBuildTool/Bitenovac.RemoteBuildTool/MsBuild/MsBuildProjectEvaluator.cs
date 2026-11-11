@@ -86,6 +86,18 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
 
         ownHashInputs.AddRange(PackageClosureReader.Read(fullPath));
 
+        var properties = new Dictionary<string, string>
+        {
+            [DotNetToolchain.RunCommandProperty] = project.GetPropertyValue("RunCommand"),
+            [DotNetToolchain.TargetFrameworksProperty] = declaredFrameworks,
+            [DotNetToolchain.OutputTypeProperty] = project.GetPropertyValue("OutputType"),
+            [DotNetToolchain.IsPackableProperty] = project.GetPropertyValue("IsPackable"),
+            [DotNetToolchain.PackAsToolProperty] = project.GetPropertyValue("PackAsTool"),
+            [DotNetToolchain.IsPublishableProperty] = project.GetPropertyValue("IsPublishable"),
+        };
+        foreach (var (targetFramework, evaluated) in perFramework)
+            properties[DotNetToolchain.RunCommandOf(targetFramework)] = evaluated.GetPropertyValue("RunCommand");
+
         return new EvaluatedProject(
             Id: id,
             FullPath: fullPath,
@@ -98,15 +110,7 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
             CacheTestResults: !string.Equals(project.GetPropertyValue("CacheTestResults"), "false", StringComparison.OrdinalIgnoreCase),
             Skip: IsTrue(project.GetPropertyValue(ProjectSelection.SkipProperty)),
             CoverageName: project.GetPropertyValue("AssemblyName"),
-            Properties: new Dictionary<string, string>
-            {
-                [DotNetToolchain.RunCommandProperty] = project.GetPropertyValue("RunCommand"),
-                [DotNetToolchain.TargetFrameworksProperty] = declaredFrameworks,
-                [DotNetToolchain.OutputTypeProperty] = project.GetPropertyValue("OutputType"),
-                [DotNetToolchain.IsPackableProperty] = project.GetPropertyValue("IsPackable"),
-                [DotNetToolchain.PackAsToolProperty] = project.GetPropertyValue("PackAsTool"),
-                [DotNetToolchain.IsPublishableProperty] = project.GetPropertyValue("IsPublishable"),
-            },
+            Properties: properties,
             OwnHashInputs: ownHashInputs);
     }
 

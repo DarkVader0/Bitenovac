@@ -109,19 +109,17 @@ public sealed class PlanCommandIntegrationTests
         Assert.Equal("src/Lib/Lib.csproj: MinimumLineCoverage must be a percentage from 0 to 100, such as 95.5; it is '95,5'.", exception.Message);
     }
 
-    [Theory]
-    [InlineData(FixtureRepository.TestProject, "")]
-    [InlineData(FixtureRepository.LibraryProject, "<OutputType>Exe</OutputType>")]
-    public void Run_ShouldFailBeforeRestoring_WhenATestProjectOrAnExecutableDeclaresTargetFrameworks(string project, string outputType)
+    [Fact]
+    public void Run_ShouldFailBeforeRestoring_WhenAnExecutableDeclaresTargetFrameworks()
     {
         // Arrange
         using var fixture = FixtureRepository.Create();
-        fixture.Write(project, $"""
+        fixture.Write(FixtureRepository.LibraryProject, $"""
             <Project Sdk="Microsoft.NET.Sdk">
                 <PropertyGroup>
                     <TargetFramework></TargetFramework>
                     <TargetFrameworks>{FixtureRepository.TargetFramework};netstandard2.0</TargetFrameworks>
-                    {outputType}
+                    <OutputType>Exe</OutputType>
                 </PropertyGroup>
             </Project>
             """);
