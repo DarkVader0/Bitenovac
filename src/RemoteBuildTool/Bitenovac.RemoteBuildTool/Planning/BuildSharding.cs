@@ -39,7 +39,9 @@ internal static class BuildSharding
             .Where(projects.Contains)
             .Select(reference => new ProjectEdge(new ProjectId(entry.ProjectPath), reference)));
 
-        var units = BuildUnitPlanner.Plan(new ProjectGraph(projects, edges), projects, durations, expected);
+        // With more than one slot allowed, a group that several projects sit on top of is split
+        // at what they share, into as many units as there may be slots.
+        var units = BuildUnitPlanner.Plan(new ProjectGraph(projects, edges), projects, durations, expected, splitInto: limits.Maximum);
         return BuildScheduler.Best(units, limits.Minimum, limits.Maximum, cores);
     }
 
@@ -67,7 +69,12 @@ internal static class BuildSharding
     /// </summary>
     /// <param name="schedule">The schedule.</param>
     /// <returns>The lines.</returns>
-    public static string Describe(BuildSchedule schedule) =>
-        string.Concat(schedule.Units.Select((unit, index) =>
-            $"  unit {index + 1} (slot {unit.Slot + 1}): {unit.Unit.Projects.Count} project(s), from {unit.Unit.Projects[0].Value}{Environment.NewLine}"));
+    public static string Describe(BuildSchedule schedule)
+    {
+        var number = schedule.Units.Select((unit, index) => (unit.Unit, Number: index + 1)).ToDictionary(unit => unit.Unit, unit => unit.Number);
+        return string.Concat(schedule.Units.Select(unit =>
+            $"  unit {number[unit.Unit]} (slot {unit.Slot + 1}): {unit.Unit.Projects.Count} project(s), from {unit.Unit.Projects[0].Value}"
+            + string.Concat(unit.Unit.Dependencies.Select(dependency => $", after unit {number[dependency]}"))
+            + Environment.NewLine));
+    }
 }

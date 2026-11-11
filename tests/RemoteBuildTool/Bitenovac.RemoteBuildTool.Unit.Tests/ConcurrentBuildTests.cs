@@ -57,6 +57,52 @@ public sealed class ConcurrentBuildTests
     }
 
     [Fact]
+    public void Run_ShouldBuildAUnitOnlyAfterTheUnitItDependsOn_WhenAGroupWasSplit()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        var entries = SharedLibrary();
+        var schedule = BuildSharding.Schedule(entries, new SlotLimits(2, 2), cores: 2);
+        using var toolchain = new FakeToolchain();
+        var output = new CapturedOutput();
+        using var stage = StageRecorder.Start(options, output.Pipeline, "build", "Debug");
+
+        // Act
+        var exitCode = ConcurrentBuild.Run(toolchain, options, entries, schedule, "Debug", output.Pipeline, stage);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal(["src/Lib/Lib.csproj"], toolchain.Builds[0]);
+        Assert.Equal(
+            [["src/App1/App1.csproj"], ["src/App2/App2.csproj"]],
+            toolchain.Builds.Skip(1).OrderBy(build => build[0], StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void Run_ShouldSkipTheUnitsBehindIt_WhenTheUnitTheyDependOnFails()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        var entries = SharedLibrary();
+        var schedule = BuildSharding.Schedule(entries, new SlotLimits(2, 2), cores: 2);
+        using var toolchain = new FakeToolchain { BuildResult = _ => 5 };
+        var output = new CapturedOutput();
+        using var stage = StageRecorder.Start(options, output.Pipeline, "build", "Debug");
+
+        // Act
+        var exitCode = ConcurrentBuild.Run(toolchain, options, entries, schedule, "Debug", output.Pipeline, stage);
+
+        // Assert
+        Assert.Equal(5, exitCode);
+        Assert.Equal(["src/Lib/Lib.csproj"], toolchain.Built);
+        Assert.Contains("--- unit 1: failed 1 project(s) in ", output.Out, StringComparison.Ordinal);
+        Assert.Contains("--- unit 2: skipped 1 project(s), as a unit it depends on did not build", output.Out, StringComparison.Ordinal);
+        Assert.Contains("--- unit 3: skipped 1 project(s), as a unit it depends on did not build", output.Out, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Run_ShouldRecordEachUnitWithWhatWasExpectedOfIt_WhenTheStageKeepsTelemetry()
     {
         // Arrange
@@ -84,6 +130,13 @@ public sealed class ConcurrentBuildTests
             [(1, 1, 1, 2, "src/Lib/Lib.csproj", 2000L, 2000L, true, 0), (2, 1, 1, 1, "src/Other/Other.csproj", 1000L, 1000L, false, 4)],
             units);
     }
+
+    private static PlanEntry[] SharedLibrary() =>
+    [
+        TestFactory.Entry("src/App1/App1.csproj", references: ["src/Lib/Lib.csproj"]),
+        TestFactory.Entry("src/App2/App2.csproj", references: ["src/Lib/Lib.csproj"]),
+        TestFactory.Entry("src/Lib/Lib.csproj"),
+    ];
 
     private static PlanEntry[] Entries() =>
     [

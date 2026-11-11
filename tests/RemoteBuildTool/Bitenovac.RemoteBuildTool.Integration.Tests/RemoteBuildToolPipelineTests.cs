@@ -140,6 +140,41 @@ public sealed class RemoteBuildToolPipelineTests
     }
 
     [Fact]
+    public void Pipeline_ShouldBuildASharedLibraryFirstAndWhatUsesItSideBySide_WhenTheRepositoryAllowsSeveralAtOnce()
+    {
+        // Arrange
+        using var fixture = FixtureRepository.Create();
+        fixture.Write("remotebuildtool.json", """{ "sharding": { "build": { "min": 2, "max": 2 } } }""");
+        fixture.Write("src/Uses/Uses.csproj", """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <ExcludeFromCoverage>true</ExcludeFromCoverage>
+                </PropertyGroup>
+                <ItemGroup>
+                    <ProjectReference Include="..\Lib\Lib.csproj"/>
+                </ItemGroup>
+            </Project>
+            """);
+        fixture.Write("src/Uses/Thing.cs", "namespace Uses; public static class Thing { public static int Three() => Lib.Calculator.Add(1, 2); }");
+
+        // Act
+        var planExitCode = PlanCommand.Run(fixture.Options, _output.Pipeline);
+        var buildExitCode = BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline);
+        var testExitCode = TestCommand.Run(fixture.Options, "Debug", _output.Pipeline);
+
+        // Assert
+        // Lib is needed by its tests and by Uses, so it is built first and the two after it.
+        Assert.Equal(0, planExitCode);
+        Assert.Equal(0, buildExitCode);
+        Assert.Equal(0, testExitCode);
+        Assert.Contains("Debug: 3 unit(s) of dotnet project(s), built 2 at a time", _output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("  unit 1 (slot 1): 1 project(s), from src/Lib/Lib.csproj", _output.ToString(), StringComparison.Ordinal);
+        Assert.Contains(", after unit 1", _output.ToString(), StringComparison.Ordinal);
+        Assert.True(File.Exists(fixture.Combine($"src/Uses/bin/Debug/{FixtureRepository.TargetFramework}/Uses.dll")));
+        Assert.True(File.Exists(fixture.Options.SyntheticSolutionPath("build-Debug-unit-3")));
+    }
+
+    [Fact]
     public void Pipeline_ShouldMaterialiseAndReuse_WhenASecondCheckoutFindsMainWarm()
     {
         // Arrange
