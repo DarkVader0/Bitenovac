@@ -1,6 +1,4 @@
-using Bitenovac.RemoteBuildTool.Service;
-
-namespace Bitenovac.RemoteBuildTool.Service.Unit.Tests;
+namespace Bitenovac.RemoteTools.Hosting.Unit.Tests;
 
 public sealed class ServiceWakeTests
 {
@@ -8,7 +6,7 @@ public sealed class ServiceWakeTests
     public void Request_ShouldCountAsOne_WhenAskedAgainBeforeTheWorkWaits()
     {
         // Arrange
-        var wake = new ServiceWake();
+        using var wake = new ServiceWake();
         wake.Request();
 
         // Act

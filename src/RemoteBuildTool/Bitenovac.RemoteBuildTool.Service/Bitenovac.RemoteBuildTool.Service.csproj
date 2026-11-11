@@ -32,6 +32,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Bitenovac.RemoteBuildTool\Bitenovac.RemoteBuildTool.csproj"/>
+        <ProjectReference Include="..\..\RemoteTools\Bitenovac.RemoteTools.Hosting\Bitenovac.RemoteTools.Hosting.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -52,6 +53,7 @@
 
     <ItemGroup>
         <Using Include="Bitenovac.RemoteTools"/>
+        <Using Include="Bitenovac.RemoteTools.Hosting"/>
     </ItemGroup>
 
 </Project>

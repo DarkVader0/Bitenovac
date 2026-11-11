@@ -28,8 +28,8 @@ public sealed class WakeCommandTests
         // Arrange
         using var directory = TestFactory.Directory();
         var settings = Settings(directory);
-        var wake = new ServiceWake();
-        using var listener = new WakeListener(HostSettings.Load(settings), wake, NullLogger<WakeListener>.Instance);
+        using var wake = new ServiceWake();
+        using var listener = new WakeListener(ServiceWake.SocketPath(HostSettings.Load(settings).WorkRoot), "woken: a pull request was merged", wake, NullLogger<WakeListener>.Instance);
         await listener.StartAsync(TestContext.Current.CancellationToken);
         var output = new CapturedOutput();
 

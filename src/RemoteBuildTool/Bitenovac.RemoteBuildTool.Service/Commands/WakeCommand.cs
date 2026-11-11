@@ -22,7 +22,7 @@ internal static class WakeCommand
     /// <exception cref="InvalidOperationException">The host settings are missing or invalid.</exception>
     public static int Run(PipelineOutput output, string settingsPath)
     {
-        var path = ServiceWake.SocketPath(HostSettings.Load(settingsPath));
+        var path = ServiceWake.SocketPath(HostSettings.Load(settingsPath).WorkRoot);
         using var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         try
         {

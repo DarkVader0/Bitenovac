@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>Bitenovac.RemoteTools.Hosting</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Bitenovac.RemoteTools.Common\Bitenovac.RemoteTools.Common.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Hosting"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Service"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Service.Unit.Tests"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Integration.Tests"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteTools.Hosting.Unit.Tests"/>
+    </ItemGroup>
+
+</Project>
