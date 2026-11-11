@@ -43,10 +43,12 @@ RUN test -n "${REMOTEBUILDTOOL_VERSION}" || { echo "error: pass --build-arg REMO
         --version "${REMOTEBUILDTOOL_VERSION}" \
         --tool-path /opt/remotebuildtool \
         --add-source "${REMOTEBUILDTOOL_SOURCE}" \
+        --allow-roll-forward \
     && dotnet tool install Bitenovac.RemoteBuildTool.Service \
         --version "${REMOTEBUILDTOOL_VERSION}" \
         --tool-path /opt/remotebuildtool \
-        --add-source "${REMOTEBUILDTOOL_SOURCE}"
+        --add-source "${REMOTEBUILDTOOL_SOURCE}" \
+        --allow-roll-forward
 
 ENV PATH="/opt/remotebuildtool:${PATH}"
 
