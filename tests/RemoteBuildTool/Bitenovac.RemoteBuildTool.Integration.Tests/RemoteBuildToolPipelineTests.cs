@@ -44,6 +44,33 @@ public sealed class RemoteBuildToolPipelineTests
     }
 
     [Fact]
+    public void Pipeline_ShouldBuildEveryTargetFramework_WhenALibraryDeclaresSeveral()
+    {
+        // Arrange
+        using var fixture = FixtureRepository.Create();
+        fixture.Write(FixtureRepository.LibraryProject, $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <TargetFramework></TargetFramework>
+                    <TargetFrameworks>{FixtureRepository.TargetFramework};netstandard2.0</TargetFrameworks>
+                </PropertyGroup>
+            </Project>
+            """);
+
+        // Act
+        var planExitCode = PlanCommand.Run(fixture.Options, _output.Pipeline);
+        var buildExitCode = BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline);
+        var testExitCode = TestCommand.Run(fixture.Options, "Debug", _output.Pipeline);
+
+        // Assert
+        Assert.Equal(0, planExitCode);
+        Assert.Equal(0, buildExitCode);
+        Assert.Equal(0, testExitCode);
+        Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
+        Assert.True(File.Exists(fixture.Combine("src/Lib/bin/Debug/netstandard2.0/Lib.dll")));
+    }
+
+    [Fact]
     public void Pipeline_ShouldMaterialiseAndReuse_WhenASecondCheckoutFindsMainWarm()
     {
         // Arrange

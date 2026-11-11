@@ -269,9 +269,7 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
 
     private static Deployment DeploymentOf(PlanEntry entry)
     {
-        var outputType = entry.Properties.GetValueOrDefault(OutputTypeProperty, "");
-        var isExecutable = outputType.Equals("Exe", StringComparison.OrdinalIgnoreCase)
-            || outputType.Equals("WinExe", StringComparison.OrdinalIgnoreCase);
+        var isExecutable = IsExecutable(entry.Properties);
 
         var isTool = IsTrue(entry.Properties.GetValueOrDefault(PackAsToolProperty));
 
@@ -286,6 +284,13 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
         };
     }
 
+    private static bool IsExecutable(IReadOnlyDictionary<string, string> properties)
+    {
+        var outputType = properties.GetValueOrDefault(OutputTypeProperty, "");
+        return outputType.Equals("Exe", StringComparison.OrdinalIgnoreCase)
+            || outputType.Equals("WinExe", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsFalse(string? value) => string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsTrue(string? value) => string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
@@ -296,17 +301,18 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
 
         var offenders = projects
             .Where(project => !string.IsNullOrEmpty(project.Properties.GetValueOrDefault(TargetFrameworksProperty)))
+            .Where(project => project.IsTestProject || IsExecutable(project.Properties))
             .ToList();
 
         if (offenders.Count > 0)
         {
-            output.WriteFailure("these projects declare <TargetFrameworks>; RemoteBuildTool builds one target framework per project. Set a single <TargetFramework> instead.");
+            output.WriteFailure("these test projects and executables declare <TargetFrameworks>; RemoteBuildTool builds several target frameworks for libraries only. Set a single <TargetFramework> instead.");
             foreach (var project in offenders)
                 output.WriteError($"  {project.Id}");
             return 1;
         }
 
-        output.WriteLine("OK: every project targets a single framework.");
+        output.WriteLine("OK: every test project and executable targets a single framework.");
         return 0;
     }
 
