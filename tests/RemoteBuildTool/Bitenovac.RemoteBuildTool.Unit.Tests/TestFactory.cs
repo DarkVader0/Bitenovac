@@ -214,6 +214,11 @@ internal sealed class FakeToolchain : IToolchain
     /// </summary>
     public Func<IReadOnlyList<PlanEntry>, int>? BuildResult { get; init; }
 
+    /// <summary>
+    /// Gets how long building a project is recorded to have taken; nothing is recorded when unset.
+    /// </summary>
+    public Func<PlanEntry, long>? BuildMilliseconds { get; init; }
+
     public List<string> Built { get; } = [];
 
     /// <summary>
@@ -244,6 +249,22 @@ internal sealed class FakeToolchain : IToolchain
         {
             Built.AddRange(entries.Select(entry => entry.ProjectPath));
             Builds.Add([.. entries.Select(entry => entry.ProjectPath)]);
+        }
+
+        if (BuildMilliseconds is { } milliseconds)
+        {
+            foreach (var entry in entries)
+            {
+                stage.AddTarget(new TargetInfo
+                {
+                    Project = entry.ProjectPath,
+                    Toolchain = Name,
+                    Kind = "build",
+                    CacheOutcome = "miss",
+                    DurationMS = milliseconds(entry),
+                    Succeeded = true,
+                });
+            }
         }
 
         return BuildResult?.Invoke(entries) ?? BuildExitCode;

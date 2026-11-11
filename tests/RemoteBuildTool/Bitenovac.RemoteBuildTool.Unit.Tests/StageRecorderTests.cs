@@ -134,6 +134,25 @@ public sealed class StageRecorderTests
     }
 
     [Fact]
+    public void BuildDurations_ShouldReturnTheTimeOfEachProjectThatWasBuilt_WhenOthersWereRestoredOrTested()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        using var stage = StageRecorder.Start(TestFactory.TelemetryOptions(directory), TestFactory.Silence(), "build", "Debug");
+        stage.AddTarget(new TargetInfo { Project = "src/Built/Built.csproj", Toolchain = "dotnet", Kind = "build", CacheOutcome = "miss", DurationMS = 1200 });
+        stage.AddTarget(new TargetInfo { Project = "src/Restored/Restored.csproj", Toolchain = "dotnet", Kind = "build", CacheOutcome = "hit", DurationMS = 3 });
+        stage.AddTarget(new TargetInfo { Project = "src/Untimed/Untimed.csproj", Toolchain = "dotnet", Kind = "build", CacheOutcome = "miss" });
+        stage.AddTarget(new TargetInfo { Project = "tests/A/A.Tests.csproj", Toolchain = "dotnet", Kind = "test", CacheOutcome = "miss", DurationMS = 900 });
+
+        // Act
+        var durations = stage.BuildDurations();
+
+        // Assert
+        var built = Assert.Single(durations);
+        Assert.Equal(("src/Built/Built.csproj", TimeSpan.FromMilliseconds(1200)), (built.Key, built.Value));
+    }
+
+    [Fact]
     public void AddTests_ShouldStampTheBuildAndStage_WhenTheStageCompletes()
     {
         // Arrange

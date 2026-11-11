@@ -134,8 +134,9 @@ at the repository root:
 ```
 
 `build` groups the projects it has to build into units that do not depend on each other, and builds
-up to `max` of them at once, the unit with the longest chain of projects first, each with an equal
-share of the cores. It picks the number within the limits that it expects to finish soonest. A unit
+up to `max` of them at once, the unit whose longest chain of projects takes longest first, each with
+an equal share of the cores. It goes by how long each project took the last time it was built,
+which is kept in the cache with the project. It picks the number within the limits that it expects to finish soonest. A unit
 that fails does not stop the others. Without the setting, `build` builds everything in one MSBuild
 run.
 

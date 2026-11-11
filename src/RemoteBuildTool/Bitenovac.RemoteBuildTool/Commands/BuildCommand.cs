@@ -70,7 +70,8 @@ internal static class BuildCommand
             if (batch.Count == 0)
                 continue;
 
-            var schedule = BuildSharding.Schedule(batch, sharding.Build, PipelineOptions.MaxParallelism());
+            var schedule = BuildSharding.Schedule(
+                batch, sharding.Build, PipelineOptions.MaxParallelism(), BuildSharding.Durations(batch, mainStore, configuration));
             output.WriteGroup(
                 $"{configuration}: {schedule.Units.Count} unit(s) of {name} project(s), built {schedule.Slots} at a time",
                 BuildSharding.Describe(schedule));
@@ -89,7 +90,7 @@ internal static class BuildCommand
         int staged;
         using (output.Section($"Staging rebuilt projects ({configuration})"))
         using (stage.Measure(StagePhase.Store))
-            staged = StageRebuilt(toBuild, configuration, prStore, toolchains);
+            staged = StageRebuilt(toBuild, configuration, prStore, toolchains, stage.BuildDurations());
 
         foreach (var entry in entries)
             MaterialisedMarker.Write(options.RepositoryRoot, new ProjectId(entry.ProjectPath), configuration, entry.FullHash);
@@ -162,7 +163,12 @@ internal static class BuildCommand
     /// after the plan is rebuilt, so it is staged like a miss, and later stages and promotion take
     /// it from here.
     /// </remarks>
-    private static int StageRebuilt(IReadOnlyList<PlanEntry> entries, string configuration, LocalVolumeArtifactStore prStore, ToolchainRegistry toolchains)
+    private static int StageRebuilt(
+        IReadOnlyList<PlanEntry> entries,
+        string configuration,
+        LocalVolumeArtifactStore prStore,
+        ToolchainRegistry toolchains,
+        IReadOnlyDictionary<string, TimeSpan> durations)
     {
         var staged = 0;
         var inputsDirectory = Directory.CreateTempSubdirectory("bitenovac-remotebuildtool-inputs-").FullName;
@@ -178,6 +184,14 @@ internal static class BuildCommand
                 var files = toolchains.For(entry.Toolchain).OutputDirectories
                     .SelectMany(directory => LocalVolumeArtifactStore.EnumerateAsSources(Path.Combine(projectDirectory, directory), directory + "/"))
                     .Append((WhyCacheMiss.InputsPath, inputsFile));
+
+                // How long the project took goes with it, for the next build to schedule by.
+                if (durations.TryGetValue(entry.ProjectPath, out var duration))
+                {
+                    var durationFile = Path.Combine(inputsDirectory, $"{staged}.duration.txt");
+                    File.WriteAllText(durationFile, BuildDuration.Format(duration));
+                    files = files.Append((BuildDuration.Path, durationFile));
+                }
 
                 prStore.Put(
                     new ProjectId(entry.ProjectPath),

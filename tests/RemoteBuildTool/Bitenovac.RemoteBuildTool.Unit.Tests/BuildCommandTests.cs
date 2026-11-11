@@ -150,6 +150,59 @@ public sealed class BuildCommandTests
         Assert.Contains("Debug: build complete, staged 3 rebuilt project(s).", output.Out, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Run_ShouldStageHowLongEachProjectTook_WhenTheToolchainRecordsIt()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        TestFactory.Plan("Debug", TestFactory.Entry("src/A/A.csproj", fullPath: directory.Combine("src/A/A.csproj"))).Save(options.PlanFile);
+        var toolchain = new FakeToolchain { BuildMilliseconds = _ => 2500 };
+        using var registry = toolchain.Registry();
+
+        // Act
+        var exitCode = BuildCommand.Run(options, "Debug", TestFactory.Silence(), registry);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        var staged = new LocalVolumeArtifactStore(options.PrStoreRoot);
+        Assert.Equal(TimeSpan.FromSeconds(2.5), BuildDuration.Read(staged, TestFactory.Id("src/A/A.csproj"), "Debug"));
+    }
+
+    [Fact]
+    public void Run_ShouldStartWithTheProjectThatTookLongest_WhenMainKnowsHowLongEachTook()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        var main = new LocalVolumeArtifactStore(options.MainStoreRoot);
+        foreach (var (project, milliseconds) in new[] { ("src/Quick/Quick.csproj", "100"), ("src/Slow/Slow.csproj", "9000") })
+        {
+            TestFactory.WriteFile(directory.Combine("built"), BuildDuration.Path, milliseconds);
+            main.Put(TestFactory.Id(project), "Debug", directory.Combine("built"), new StoredTargetHash("own", "an earlier build"));
+        }
+
+        TestFactory.Plan(
+            "Debug",
+            TestFactory.Entry("src/Quick/Quick.csproj", fullPath: directory.Combine("src/Quick/Quick.csproj")),
+            TestFactory.Entry("src/Slow/Slow.csproj", fullPath: directory.Combine("src/Slow/Slow.csproj"))).Save(options.PlanFile);
+        var toolchain = new FakeToolchain();
+        using var registry = toolchain.Registry();
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = BuildCommand.Run(options, "Debug", output.Pipeline, registry);
+
+        // Assert
+        // By path Quick would lead; Slow took 9 s against 0.1 s, so its unit goes first.
+        Assert.Equal(0, exitCode);
+        Assert.Contains(
+            $"  unit 1 (slot 1): 1 project(s), from src/Slow/Slow.csproj{Environment.NewLine}"
+            + $"  unit 2 (slot 1): 1 project(s), from src/Quick/Quick.csproj{Environment.NewLine}",
+            output.Out,
+            StringComparison.Ordinal);
+    }
+
     private static PipelineOptions WarmMain(TemporaryDirectory directory)
     {
         var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
