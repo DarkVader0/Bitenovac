@@ -28,7 +28,8 @@ internal static class ServiceComposition
         services.AddSingleton(_ => GitHubClient.CreateHttpClient(
             host.GitHubApiUrl, host.GitHubToken, new ProductInfoHeaderValue("Bitenovac.RemoteBuildTool", ToolVersion.Value), handler));
         services.AddSingleton(provider => new GitHubClient(provider.GetRequiredService<HttpClient>(), host.Repository));
-        services.AddSingleton(_ => new ServiceStateStore(Path.Combine(host.WorkRoot, "state", "service.json")));
+        services.AddSingleton(_ => new JsonStateStore<ServiceState>(
+            Path.Combine(host.WorkRoot, "state", "service.json"), ServiceJsonContext.Default.ServiceState));
         services.AddSingleton<RepositorySettingsSource>();
         services.AddSingleton<MainStoreWriter>();
         services.AddSingleton<PullRequestPromoter>();

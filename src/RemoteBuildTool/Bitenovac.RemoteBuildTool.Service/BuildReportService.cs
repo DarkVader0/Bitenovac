@@ -12,7 +12,7 @@ namespace Bitenovac.RemoteBuildTool.Service;
 /// <param name="logger">Where the work reports.</param>
 internal sealed class BuildReportService(
     RepositorySettingsSource settings,
-    ServiceStateStore state,
+    JsonStateStore<ServiceState> state,
     BuildReporter reporter,
     TimeProvider time,
     ILogger<BuildReportService> logger) : RemoteBuildToolWork(time, logger)
