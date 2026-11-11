@@ -26,7 +26,7 @@ public sealed class TelemetryIntegrationTests
         Assert.Equal([0, 0, 0], [planExitCode, buildExitCode, testExitCode]);
         var prefix = identity.BuildId + ".";
 
-        var stages = TelemetryWriter.Read(telemetry, TelemetryWriter.StageTable, prefix, TelemetryJsonContext.Default.StageInfo)
+        var stages = TelemetryWriter.Read(telemetry, TelemetryTables.Stage, prefix, TelemetryJsonContext.Default.StageInfo)
             .ToDictionary(stage => stage.Stage);
         Assert.Equal(["build-Debug", "plan", "test-Debug"], stages.Keys.Order(StringComparer.Ordinal));
         Assert.All(stages.Values, stage => Assert.True(stage.Succeeded));
@@ -38,7 +38,7 @@ public sealed class TelemetryIntegrationTests
         Assert.NotNull(stages["test-Debug"].TestMS);
         Assert.NotNull(stages["test-Debug"].CoverageMS);
 
-        var targets = TelemetryWriter.Read(telemetry, TelemetryWriter.TargetTable, prefix, TelemetryJsonContext.Default.TargetInfo).ToList();
+        var targets = TelemetryWriter.Read(telemetry, TelemetryTables.Target, prefix, TelemetryJsonContext.Default.TargetInfo).ToList();
         var built = targets.Where(target => target.Kind == "build").ToList();
         Assert.Equal(
             [FixtureRepository.LibraryProject, FixtureRepository.TestProject],
@@ -57,11 +57,11 @@ public sealed class TelemetryIntegrationTests
         Assert.Equal(tested.TestsTotal, tested.TestsPassed);
         Assert.Equal(0, tested.TestsFailed);
 
-        var tests = TelemetryWriter.Read(telemetry, TelemetryWriter.TestTable, prefix, TelemetryJsonContext.Default.TestInfo).ToList();
+        var tests = TelemetryWriter.Read(telemetry, TelemetryTables.Test, prefix, TelemetryJsonContext.Default.TestInfo).ToList();
         Assert.Equal(tested.TestsTotal, tests.Count);
         Assert.All(tests, test => Assert.Equal("Passed", test.Outcome));
 
-        Assert.NotEmpty(TelemetryWriter.Read(telemetry, TelemetryWriter.MachineTable, prefix, TelemetryJsonContext.Default.MachineSample));
-        Assert.Single(TelemetryWriter.Read(telemetry, TelemetryWriter.BuildTable, prefix, TelemetryJsonContext.Default.BuildInfo));
+        Assert.NotEmpty(TelemetryWriter.Read(telemetry, TelemetryTables.Machine, prefix, TelemetryJsonContext.Default.MachineSample));
+        Assert.Single(TelemetryWriter.Read(telemetry, TelemetryTables.Build, prefix, TelemetryJsonContext.Default.BuildInfo));
     }
 }

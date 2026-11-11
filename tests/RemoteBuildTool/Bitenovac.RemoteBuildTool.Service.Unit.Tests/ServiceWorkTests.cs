@@ -99,7 +99,7 @@ public sealed class ServiceWorkTests
         var oldLogs = directory.Combine("logs/PR_1/1-1");
         TestFactory.WriteFile(Path.Combine(oldLogs, "plan.log"), "log");
         Directory.SetLastWriteTimeUtc(oldLogs, Morning.UtcDateTime.AddDays(-40));
-        TelemetryWriter.Write(directory.Combine("telemetry"), TelemetryWriter.TargetTable, "1-1.build.host-1", Morning.AddDays(-1),
+        TelemetryWriter.Write(directory.Combine("telemetry"), TelemetryTables.Target, "1-1.build.host-1", Morning.AddDays(-1),
             [new TargetInfo { Project = "a", Toolchain = "dotnet", Kind = "build", CacheOutcome = "miss" }],
             TelemetryJsonContext.Default.TargetInfo);
 
@@ -133,7 +133,7 @@ public sealed class ServiceWorkTests
         // Assert
         Assert.Equal(DateOnly.FromDateTime(Morning.UtcDateTime), ServiceState.Load(directory.Combine("work/state/service.json")).RebuiltOn);
         Assert.Single(service.Messages, message => message.StartsWith("rebuild of abc: failure", StringComparison.Ordinal));
-        var build = Assert.Single(TelemetryWriter.Read(directory.Combine("telemetry"), TelemetryWriter.BuildTable, "rebuild-abc-", TelemetryJsonContext.Default.BuildInfo));
+        var build = Assert.Single(TelemetryWriter.Read(directory.Combine("telemetry"), TelemetryTables.Build, "rebuild-abc-", TelemetryJsonContext.Default.BuildInfo));
         Assert.Equal("Rebuild", build.Queue);
     }
 

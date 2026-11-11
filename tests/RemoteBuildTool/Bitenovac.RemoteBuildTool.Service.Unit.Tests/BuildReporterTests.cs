@@ -37,7 +37,7 @@ public sealed class BuildReporterTests
 
         // Assert
         Assert.Equal(["6-1", "7-1", "8-1"], reported);
-        var build = Assert.Single(TelemetryWriter.Read(host.TelemetryRoot, TelemetryWriter.BuildTable, "", TelemetryJsonContext.Default.BuildInfo));
+        var build = Assert.Single(TelemetryWriter.Read(host.TelemetryRoot, TelemetryTables.Build, "", TelemetryJsonContext.Default.BuildInfo));
         Assert.Equal("7-1", build.BuildId);
         Assert.Equal("PR", build.Queue);
         Assert.Equal("failure", build.Result);
@@ -69,7 +69,7 @@ public sealed class BuildReporterTests
         await reporter.ReportAsync([], Now, TestContext.Current.CancellationToken);
 
         // Assert
-        var build = Assert.Single(TelemetryWriter.Read(host.TelemetryRoot, TelemetryWriter.BuildTable, "", TelemetryJsonContext.Default.BuildInfo));
+        var build = Assert.Single(TelemetryWriter.Read(host.TelemetryRoot, TelemetryTables.Build, "", TelemetryJsonContext.Default.BuildInfo));
         Assert.Equal(("refs/pull/62/merge", "merge", 62), (build.Ref, build.Sha, build.PullRequest));
     }
 
@@ -103,7 +103,7 @@ public sealed class BuildReporterTests
     };
 
     private static void WriteStage(string root, string buildId, string? reference = null, string? sha = null, int? pullRequest = null) =>
-        TelemetryWriter.Write(root, TelemetryWriter.StageTable, $"{buildId}.plan.host-1", Now,
+        TelemetryWriter.Write(root, TelemetryTables.Stage, $"{buildId}.plan.host-1", Now,
             [
                 new StageInfo
                 {

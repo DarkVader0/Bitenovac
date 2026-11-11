@@ -69,11 +69,11 @@ internal static class BuildSummarizer
             result,
             end,
             timeline,
-            [.. TelemetryWriter.Read(root, TelemetryWriter.StageTable, prefix, TelemetryJsonContext.Default.StageInfo)],
-            [.. TelemetryWriter.Read(root, TelemetryWriter.MachineTable, prefix, TelemetryJsonContext.Default.MachineSample)],
-            [.. TelemetryWriter.Read(root, TelemetryWriter.TargetTable, prefix, TelemetryJsonContext.Default.TargetInfo).Where(target => target.Kind == "test")]);
+            [.. TelemetryWriter.Read(root, TelemetryTables.Stage, prefix, TelemetryJsonContext.Default.StageInfo)],
+            [.. TelemetryWriter.Read(root, TelemetryTables.Machine, prefix, TelemetryJsonContext.Default.MachineSample)],
+            [.. TelemetryWriter.Read(root, TelemetryTables.Target, prefix, TelemetryJsonContext.Default.TargetInfo).Where(target => target.Kind == "test")]);
 
-        TelemetryWriter.Write(root, TelemetryWriter.BuildTable, $"{identity.BuildId}.build.{writer}", end, [build], TelemetryJsonContext.Default.BuildInfo);
+        TelemetryWriter.Write(root, TelemetryTables.Build, $"{identity.BuildId}.build.{writer}", end, [build], TelemetryJsonContext.Default.BuildInfo);
         return build;
     }
 

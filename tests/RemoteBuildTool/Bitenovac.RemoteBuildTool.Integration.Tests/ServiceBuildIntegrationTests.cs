@@ -43,7 +43,7 @@ public sealed class ServiceBuildIntegrationTests
         Assert.Contains("Main switched: 0 match, 0 mismatch, 0 changed, 4 new.", File.ReadAllText(Path.Combine(host.LogsRoot, build.LogsPath!, "switch.log")), StringComparison.Ordinal);
         Assert.Equal(
             [FixtureRepository.LibraryProject, FixtureRepository.LibraryProject, FixtureRepository.TestProject, FixtureRepository.TestProject],
-            TelemetryWriter.Read(host.TelemetryRoot, TelemetryWriter.CacheComparisonTable, build.BuildId + ".", TelemetryJsonContext.Default.CacheComparisonInfo)
+            TelemetryWriter.Read(host.TelemetryRoot, TelemetryTables.CacheComparison, build.BuildId + ".", TelemetryJsonContext.Default.CacheComparisonInfo)
                 .Select(comparison => comparison.Project)
                 .Order(StringComparer.Ordinal));
     }

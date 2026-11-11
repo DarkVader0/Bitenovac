@@ -30,7 +30,7 @@ public sealed class StageRecorderTests
 
         // Assert
         Assert.Equal(1, exitCode);
-        var info = Assert.Single(Read(directory, TelemetryWriter.StageTable, TelemetryJsonContext.Default.StageInfo));
+        var info = Assert.Single(Read(directory, TelemetryTables.Stage, TelemetryJsonContext.Default.StageInfo));
         Assert.Equal("100-1", info.BuildId);
         Assert.Equal("PR", info.Queue);
         Assert.Equal("docker", info.Pool);
@@ -68,7 +68,7 @@ public sealed class StageRecorderTests
         stage.Complete(0);
 
         // Assert
-        var info = Assert.Single(Read(directory, TelemetryWriter.StageTable, TelemetryJsonContext.Default.StageInfo));
+        var info = Assert.Single(Read(directory, TelemetryTables.Stage, TelemetryJsonContext.Default.StageInfo));
         Assert.Equal("plan", info.Stage);
         Assert.True(info.Succeeded);
         Assert.Null(info.FirstError);
@@ -92,7 +92,7 @@ public sealed class StageRecorderTests
         stage.Complete(0);
 
         // Assert
-        var info = Assert.Single(Read(directory, TelemetryWriter.StageTable, TelemetryJsonContext.Default.StageInfo));
+        var info = Assert.Single(Read(directory, TelemetryTables.Stage, TelemetryJsonContext.Default.StageInfo));
         Assert.True(info.CpuTimeMS >= 3000);
         Assert.Equal(Environment.ProcessorCount, info.AllocatedCpus!.Value, Precision);
         Assert.True(info.PeakMemoryBytes >= 6L << 30);
@@ -111,7 +111,7 @@ public sealed class StageRecorderTests
         stage.Complete(0);
 
         // Assert
-        var target = Assert.Single(Read(directory, TelemetryWriter.TargetTable, TelemetryJsonContext.Default.TargetInfo));
+        var target = Assert.Single(Read(directory, TelemetryTables.Target, TelemetryJsonContext.Default.TargetInfo));
         Assert.Equal(
             new TargetInfo
             {
@@ -145,7 +145,7 @@ public sealed class StageRecorderTests
         stage.Complete(0);
 
         // Assert
-        var test = Assert.Single(Read(directory, TelemetryWriter.TestTable, TelemetryJsonContext.Default.TestInfo));
+        var test = Assert.Single(Read(directory, TelemetryTables.Test, TelemetryJsonContext.Default.TestInfo));
         Assert.Equal("100-1", test.BuildId);
         Assert.Equal("test-Debug", test.Stage);
         Assert.Equal("host-1", test.Machine);
@@ -169,7 +169,7 @@ public sealed class StageRecorderTests
         stage.Complete(0);
 
         // Assert
-        var samples = Read(directory, TelemetryWriter.MachineTable, TelemetryJsonContext.Default.MachineSample).OrderBy(sample => sample.Time).ToList();
+        var samples = Read(directory, TelemetryTables.Machine, TelemetryJsonContext.Default.MachineSample).OrderBy(sample => sample.Time).ToList();
         Assert.Equal(2, samples.Count);
         Assert.Null(samples[0].HostCpuUtilization);
         Assert.Equal((350.0 - 100) / (2000 - 1000), samples[1].HostCpuUtilization!.Value, Precision);
@@ -195,7 +195,7 @@ public sealed class StageRecorderTests
         stage.Complete(0);
 
         // Assert
-        Assert.True(Read(directory, TelemetryWriter.MachineTable, TelemetryJsonContext.Default.MachineSample).Count() >= 4);
+        Assert.True(Read(directory, TelemetryTables.Machine, TelemetryJsonContext.Default.MachineSample).Count() >= 4);
     }
 
     [Fact]
@@ -210,7 +210,7 @@ public sealed class StageRecorderTests
         stage.Dispose();
 
         // Assert
-        var info = Assert.Single(Read(directory, TelemetryWriter.StageTable, TelemetryJsonContext.Default.StageInfo));
+        var info = Assert.Single(Read(directory, TelemetryTables.Stage, TelemetryJsonContext.Default.StageInfo));
         Assert.Equal(1, info.ExitCode);
     }
 
@@ -228,7 +228,7 @@ public sealed class StageRecorderTests
         stage.Complete(0);
 
         // Assert
-        var info = Assert.Single(Read(directory, TelemetryWriter.StageTable, TelemetryJsonContext.Default.StageInfo));
+        var info = Assert.Single(Read(directory, TelemetryTables.Stage, TelemetryJsonContext.Default.StageInfo));
         Assert.Equal(containerLimit, info.MemoryLimitBytes);
         Assert.Null(info.MemoryUtilization);
     }
@@ -245,7 +245,7 @@ public sealed class StageRecorderTests
         stage.Complete(0);
 
         // Assert
-        var info = Assert.Single(Read(directory, TelemetryWriter.StageTable, TelemetryJsonContext.Default.StageInfo));
+        var info = Assert.Single(Read(directory, TelemetryTables.Stage, TelemetryJsonContext.Default.StageInfo));
         Assert.Equal("2026.10.14.001", info.DropVersion);
     }
 

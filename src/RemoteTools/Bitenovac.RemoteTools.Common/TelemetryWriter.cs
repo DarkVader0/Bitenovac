@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
-namespace Bitenovac.RemoteBuildTool.Telemetry;
+namespace Bitenovac.RemoteTools;
 
 /// <summary>
 /// Provides methods for writing telemetry records as JSON lines into the telemetry share.
@@ -21,19 +21,12 @@ namespace Bitenovac.RemoteBuildTool.Telemetry;
 /// </remarks>
 internal static class TelemetryWriter
 {
-    public const string BuildTable = "build";
-    public const string StageTable = "stage";
-    public const string TargetTable = "target";
-    public const string TestTable = "test";
-    public const string MachineTable = "machine";
-    public const string CacheComparisonTable = "cache_comparison";
-
     /// <summary>
     /// Writes <paramref name="records"/> as one file of the table, if there are any.
     /// </summary>
     /// <typeparam name="T">The record type.</typeparam>
     /// <param name="root">The telemetry share.</param>
-    /// <param name="table">The table, one of the constants of this class.</param>
+    /// <param name="table">The table, which names the folder the file goes under.</param>
     /// <param name="name">What names the file, such as <c>16473829-1.build-Debug.host-1</c>.</param>
     /// <param name="date">The day the file belongs to.</param>
     /// <param name="records">The records.</param>

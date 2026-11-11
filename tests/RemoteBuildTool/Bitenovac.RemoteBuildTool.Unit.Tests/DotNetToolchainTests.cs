@@ -280,7 +280,7 @@ public sealed class DotNetToolchainTests
         TestFactory.Entry(relativePath, fullPath: directory.Combine(relativePath), properties: properties, isTestProject: isTestProject);
 
     private static IEnumerable<TargetInfo> Targets(PipelineOptions options) =>
-        TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.TargetTable, "100-1.", TelemetryJsonContext.Default.TargetInfo);
+        TelemetryWriter.Read(options.TelemetryRoot!, TelemetryTables.Target, "100-1.", TelemetryJsonContext.Default.TargetInfo);
 
     private sealed class FakeMsBuild : IMsBuildRunner
     {

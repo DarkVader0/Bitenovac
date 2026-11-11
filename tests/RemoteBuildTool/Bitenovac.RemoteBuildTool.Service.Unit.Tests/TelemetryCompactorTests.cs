@@ -101,7 +101,7 @@ public sealed class TelemetryCompactorTests
     }
 
     private static void WriteStage(string root, string buildId, DateTimeOffset start) =>
-        TelemetryWriter.Write(root, TelemetryWriter.StageTable, $"{buildId}.plan.host-1", start,
+        TelemetryWriter.Write(root, TelemetryTables.Stage, $"{buildId}.plan.host-1", start,
             [
                 new StageInfo
                 {

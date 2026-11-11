@@ -110,7 +110,7 @@ public sealed class ReleaseCommandTests
 
         // Assert
         Assert.Equal(0, exitCode);
-        var stage = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryWriter.StageTable, "100-1.", TelemetryJsonContext.Default.StageInfo));
+        var stage = Assert.Single(TelemetryWriter.Read(options.TelemetryRoot!, TelemetryTables.Stage, "100-1.", TelemetryJsonContext.Default.StageInfo));
         Assert.Equal("2026.10.14.001", stage.DropVersion);
     }
 

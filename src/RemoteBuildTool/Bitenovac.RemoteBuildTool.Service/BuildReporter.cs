@@ -35,7 +35,7 @@ internal sealed class BuildReporter(GitHubClient github, HostSettings host)
             if (!known.Add(run.BuildId))
                 continue;
 
-            var stage = TelemetryWriter.Read(host.TelemetryRoot, TelemetryWriter.StageTable, run.BuildId + ".", TelemetryJsonContext.Default.StageInfo)
+            var stage = TelemetryWriter.Read(host.TelemetryRoot, TelemetryTables.Stage, run.BuildId + ".", TelemetryJsonContext.Default.StageInfo)
                 .FirstOrDefault();
             if (stage is not null)
             {
