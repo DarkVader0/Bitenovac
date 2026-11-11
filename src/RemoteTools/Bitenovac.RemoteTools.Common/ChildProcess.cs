@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace Bitenovac.RemoteBuildTool.Service;
+namespace Bitenovac.RemoteTools;
 
 /// <summary>
 /// Provides methods for running a program the service starts: git, or a RemoteBuildTool command of
