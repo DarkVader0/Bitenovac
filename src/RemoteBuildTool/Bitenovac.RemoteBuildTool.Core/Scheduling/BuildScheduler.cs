@@ -14,8 +14,10 @@ public static class BuildScheduler
     /// <param name="coresPerSlot">How many cores each slot builds with.</param>
     /// <returns>
     /// <para>
-    /// The schedule in which each unit, in order, goes to the slot that is free first, the lowest
-    /// numbered one among equals.
+    /// The schedule in which the slot that is free first, the lowest numbered one among equals,
+    /// takes the unit that can start there soonest, the first in order among equals. A unit can
+    /// start once every unit among its <see cref="BuildUnit.Dependencies"/> has ended, so a slot
+    /// may stand idle until then.
     /// </para>
     /// <para>
     /// A unit is expected to take the longer of its <see cref="BuildUnit.CriticalPath"/> and its
@@ -24,6 +26,7 @@ public static class BuildScheduler
     /// </para>
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="units"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">A unit depends on a unit that is not among <paramref name="units"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="slots"/> or <paramref name="coresPerSlot"/> is less than one.</exception>
     public static BuildSchedule Schedule(IReadOnlyList<BuildUnit> units, int slots, int coresPerSlot)
     {
@@ -32,13 +35,28 @@ public static class BuildScheduler
         ArgumentOutOfRangeException.ThrowIfLessThan(coresPerSlot, 1);
 
         var free = new TimeSpan[slots];
+        var ends = new Dictionary<BuildUnit, TimeSpan>();
+        var waiting = units.ToList();
         var scheduled = new List<ScheduledUnit>(units.Count);
-        foreach (var unit in units)
+        while (waiting.Count > 0)
         {
             var slot = Array.IndexOf(free, free.Min());
+
+            // Only a unit whose dependencies all have a slot has a time it can start at.
+            var startable = waiting
+                .Where(candidate => candidate.Dependencies.All(ends.ContainsKey))
+                .Select(candidate => (Unit: candidate, Ready: candidate.Dependencies.Select(dependency => ends[dependency]).DefaultIfEmpty(TimeSpan.Zero).Max()))
+                .Select(candidate => (candidate.Unit, Start: candidate.Ready > free[slot] ? candidate.Ready : free[slot]))
+                .ToList();
+            if (startable.Count == 0)
+                throw new ArgumentException("A unit depends on a unit that is not among those to schedule.", nameof(units));
+
+            var (unit, start) = startable.MinBy(candidate => candidate.Start);
             var shared = unit.Work / coresPerSlot;
-            var end = free[slot] + (unit.CriticalPath > shared ? unit.CriticalPath : shared);
-            scheduled.Add(new ScheduledUnit(unit, slot, free[slot], end));
+            var end = start + (unit.CriticalPath > shared ? unit.CriticalPath : shared);
+            scheduled.Add(new ScheduledUnit(unit, slot, start, end));
+            waiting.Remove(unit);
+            ends[unit] = end;
             free[slot] = end;
         }
 
