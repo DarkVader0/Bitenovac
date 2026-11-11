@@ -42,6 +42,7 @@ public sealed class RemoteBuildToolPipelineTests
         {
             Assert.True(mainStore.TryGetHash(new ProjectId(entry.ProjectPath), "Debug", out var stored));
             Assert.Equal(entry.FullHash, stored.FullHash);
+            Assert.NotNull(BuildDuration.Read(mainStore, new ProjectId(entry.ProjectPath), "Debug"));
         }
     }
 

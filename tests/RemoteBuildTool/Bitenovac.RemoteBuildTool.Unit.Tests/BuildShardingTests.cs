@@ -1,4 +1,7 @@
+using Bitenovac.RemoteBuildTool.Core.Graph;
+using Bitenovac.RemoteBuildTool.Core.Planning;
 using Bitenovac.RemoteBuildTool.Planning;
+using Bitenovac.RemoteBuildTool.Storage;
 
 namespace Bitenovac.RemoteBuildTool.Unit.Tests;
 
@@ -44,6 +47,57 @@ public sealed class BuildShardingTests
         Assert.Equal(
             [["src/Left/Left.csproj"], ["src/Right/Right.csproj"]],
             schedule.Units.Select(unit => unit.Unit.Projects.Select(project => project.Value)));
+    }
+
+    [Fact]
+    public void Schedule_ShouldExpectTheAverageOfTheKnownTimes_WhenAProjectHasNeverBeenBuilt()
+    {
+        // Arrange
+        PlanEntry[] toBuild =
+        [
+            TestFactory.Entry("src/Known1/Known1.csproj"),
+            TestFactory.Entry("src/Known2/Known2.csproj"),
+            TestFactory.Entry("src/New/New.csproj"),
+        ];
+        var durations = new Dictionary<ProjectId, TimeSpan>
+        {
+            [TestFactory.Id("src/Known1/Known1.csproj")] = TimeSpan.FromSeconds(2),
+            [TestFactory.Id("src/Known2/Known2.csproj")] = TimeSpan.FromSeconds(6),
+        };
+
+        // Act
+        var schedule = BuildSharding.Schedule(toBuild, SlotLimits.One, cores: 1, durations);
+
+        // Assert
+        // The new project is expected to take (2 + 6) / 2 = 4, which puts it between the two.
+        Assert.Equal(
+            [("src/Known2/Known2.csproj", TimeSpan.FromSeconds(6)), ("src/New/New.csproj", TimeSpan.FromSeconds(4)), ("src/Known1/Known1.csproj", TimeSpan.FromSeconds(2))],
+            schedule.Units.Select(unit => (unit.Unit.Projects.Single().Value, unit.Unit.Work)));
+    }
+
+    [Fact]
+    public void Durations_ShouldReturnTheTimeOfEachProjectMainHoldsOneFor_WhenSomeWereNeverBuilt()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var main = new LocalVolumeArtifactStore(directory.Combine("main"));
+        TestFactory.WriteFile(directory.Combine("built"), BuildDuration.Path, "1500");
+        main.Put(TestFactory.Id("src/Built/Built.csproj"), "Debug", directory.Combine("built"), new StoredTargetHash("own", "full"));
+        TestFactory.WriteFile(directory.Combine("unreadable"), BuildDuration.Path, "soon");
+        main.Put(TestFactory.Id("src/Unreadable/Unreadable.csproj"), "Debug", directory.Combine("unreadable"), new StoredTargetHash("own", "full"));
+        PlanEntry[] toBuild =
+        [
+            TestFactory.Entry("src/Built/Built.csproj"),
+            TestFactory.Entry("src/Unreadable/Unreadable.csproj"),
+            TestFactory.Entry("src/New/New.csproj"),
+        ];
+
+        // Act
+        var durations = BuildSharding.Durations(toBuild, main, "Debug");
+
+        // Assert
+        var known = Assert.Single(durations);
+        Assert.Equal((TestFactory.Id("src/Built/Built.csproj"), TimeSpan.FromMilliseconds(1500)), (known.Key, known.Value));
     }
 
     [Fact]

@@ -118,6 +118,21 @@ internal sealed class StageRecorder : IDisposable
     public void SetDropVersion(string version) => _dropVersion = version;
 
     /// <summary>
+    /// Returns how long each project this stage built took, for those whose time is known.
+    /// </summary>
+    /// <returns>The build time of each project, keyed by its path. A project restored from the cache is left out.</returns>
+    public IReadOnlyDictionary<string, TimeSpan> BuildDurations()
+    {
+        lock (_gate)
+        {
+            return _targets
+                .Where(target => target is { Kind: "build", CacheOutcome: "miss", DurationMS: not null })
+                .GroupBy(target => target.Project, StringComparer.Ordinal)
+                .ToDictionary(project => project.Key, project => TimeSpan.FromMilliseconds(project.Last().DurationMS!.Value), StringComparer.Ordinal);
+        }
+    }
+
+    /// <summary>
     /// Records what the stage did with one project.
     /// </summary>
     /// <param name="target">The project's record; the build and stage fields are filled in here.</param>
