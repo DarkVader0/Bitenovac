@@ -50,4 +50,8 @@
         <EmbeddedResource Include="Telemetry/Sql/*.sql" LogicalName="Telemetry.%(Filename).sql"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Using Include="Bitenovac.RemoteTools"/>
+    </ItemGroup>
+
 </Project>

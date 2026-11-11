@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 
-namespace Bitenovac.RemoteBuildTool;
+namespace Bitenovac.RemoteTools;
 
 /// <summary>
 /// Represents the writers that a command reports progress and failures to.

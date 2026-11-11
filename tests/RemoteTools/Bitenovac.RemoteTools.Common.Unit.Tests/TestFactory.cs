@@ -1,0 +1,28 @@
+namespace Bitenovac.RemoteTools.Common.Unit.Tests;
+
+/// <summary>
+/// Provides the temporary directories shared by the RemoteTools.Common tests.
+/// </summary>
+internal static class TestFactory
+{
+    public static TemporaryDirectory Directory() => new();
+}
+
+/// <summary>
+/// Represents a directory under the system temporary folder that is deleted on disposal.
+/// </summary>
+internal sealed class TemporaryDirectory : IDisposable
+{
+    public TemporaryDirectory() =>
+        Path = System.IO.Directory.CreateTempSubdirectory("bitenovac-remotetools-tests-").FullName;
+
+    public string Path { get; }
+
+    /// <summary>
+    /// Returns the path of <paramref name="relativePath"/> under this directory, accepting forward slashes.
+    /// </summary>
+    public string Combine(string relativePath) =>
+        System.IO.Path.Combine(Path, relativePath.Replace('/', System.IO.Path.DirectorySeparatorChar));
+
+    public void Dispose() => System.IO.Directory.Delete(Path, recursive: true);
+}

@@ -33,6 +33,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Bitenovac.RemoteBuildTool.Core\Bitenovac.RemoteBuildTool.Core.csproj"/>
         <ProjectReference Include="..\Bitenovac.RemoteBuildTool.Testing\Bitenovac.RemoteBuildTool.Testing.csproj"/>
+        <ProjectReference Include="..\..\RemoteTools\Bitenovac.RemoteTools.Common\Bitenovac.RemoteTools.Common.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -46,6 +47,10 @@
         <PackageReference Include="Microsoft.Build.Locator"/>
         <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime"/>
         <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Bitenovac.RemoteTools"/>
     </ItemGroup>
 
 </Project>

@@ -1,1 +1,1 @@
-return Bitenovac.RemoteBuildTool.CommandLine.Run(args, Bitenovac.RemoteBuildTool.PipelineOutput.Console);
+return Bitenovac.RemoteBuildTool.CommandLine.Run(args, Bitenovac.RemoteTools.PipelineOutput.Console);

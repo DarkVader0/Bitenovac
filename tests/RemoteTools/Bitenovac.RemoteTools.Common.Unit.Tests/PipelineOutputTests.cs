@@ -1,4 +1,4 @@
-namespace Bitenovac.RemoteBuildTool.Unit.Tests;
+namespace Bitenovac.RemoteTools.Common.Unit.Tests;
 
 public sealed class PipelineOutputTests
 {
