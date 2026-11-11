@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>Bitenovac.RemoteTools</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Service"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Unit.Tests"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Service.Unit.Tests"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Integration.Tests"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteTools.Common.Unit.Tests"/>
+    </ItemGroup>
+
+</Project>

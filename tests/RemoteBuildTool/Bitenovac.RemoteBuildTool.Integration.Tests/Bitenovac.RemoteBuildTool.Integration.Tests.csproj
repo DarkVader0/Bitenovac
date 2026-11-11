@@ -6,6 +6,7 @@
 
     <ItemGroup>
         <Using Include="Xunit"/>
+        <Using Include="Bitenovac.RemoteTools"/>
     </ItemGroup>
 
     <Target Name="GenerateBuildInfo" BeforeTargets="BeforeCompile">
