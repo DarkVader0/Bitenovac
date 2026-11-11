@@ -27,7 +27,7 @@ internal sealed class RebuildService(
     ServiceBuild builds,
     MainStoreWriter writer,
     TimeProvider time,
-    ILogger<RebuildService> logger) : ServiceWork(time, logger)
+    ILogger<RebuildService> logger) : RemoteBuildToolWork(time, logger)
 {
     private readonly GitWorkspace _workspace = new(Path.Combine(host.WorkRoot, "checkouts", "rebuild"), host.EffectiveCloneUrl, host.GitHubToken);
     private bool _rebuiltEmptyMain;
