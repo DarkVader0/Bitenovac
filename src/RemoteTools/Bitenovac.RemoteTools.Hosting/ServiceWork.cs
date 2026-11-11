@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Bitenovac.RemoteBuildTool.Service;
+namespace Bitenovac.RemoteTools.Hosting;
 
 /// <summary>
 /// Represents one piece of the service's work, run again and again until the service stops.
@@ -13,6 +13,12 @@ namespace Bitenovac.RemoteBuildTool.Service;
 /// <param name="logger">Where the work reports.</param>
 internal abstract class ServiceWork(TimeProvider time, ILogger logger) : BackgroundService
 {
+    private static readonly Action<ILogger, string, string, Exception?> Failed =
+        LoggerMessage.Define<string, string>(LogLevel.Warning, default, "{Work} failed, retried on its next turn: {Message}");
+
+    private static readonly Action<ILogger, string, Exception?> Reported =
+        LoggerMessage.Define<string>(LogLevel.Information, default, "{Message}");
+
     /// <summary>
     /// Gets the work's name in its reports, as in <c>promotion</c>.
     /// </summary>
@@ -35,12 +41,21 @@ internal abstract class ServiceWork(TimeProvider time, ILogger logger) : Backgro
             await RunOnceAsync(cancellationToken);
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or UnauthorizedAccessException
-            or InvalidOperationException or DuckDB.NET.Data.DuckDBException
+            or InvalidOperationException
+            || IsRecoverable(exception)
             || (exception is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
-            logger.LogWarning("{Work} failed, retried on its next turn: {Message}", Name, exception.Message);
+            Failed(logger, Name, exception.Message, null);
         }
     }
+
+    /// <summary>
+    /// Returns whether a failure of a kind only this service knows is reported and retried, like
+    /// the network and file failures every service shares.
+    /// </summary>
+    /// <param name="exception">What a turn threw.</param>
+    /// <returns><see langword="true"/> when the work should carry on with its next turn.</returns>
+    protected abstract bool IsRecoverable(Exception exception);
 
     /// <summary>
     /// Runs one turn of the work.
@@ -67,7 +82,7 @@ internal abstract class ServiceWork(TimeProvider time, ILogger logger) : Backgro
     /// Reports what the work did.
     /// </summary>
     /// <param name="message">What it did.</param>
-    protected void Report(string message) => logger.LogInformation("{Message}", message);
+    protected void Report(string message) => Reported(logger, message, null);
 
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
