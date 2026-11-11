@@ -1,7 +1,6 @@
 using System.Net;
-using Bitenovac.RemoteBuildTool.Service;
 
-namespace Bitenovac.RemoteBuildTool.Service.Unit.Tests;
+namespace Bitenovac.RemoteTools.Hosting.Unit.Tests;
 
 public sealed class GitHubClientTests
 {
@@ -11,7 +10,7 @@ public sealed class GitHubClientTests
         // Arrange
         var github = new FakeGitHub();
         github.Respond("/repos/owner/repo/branches/master", """{ "name": "master", "commit": { "sha": "abc123" } }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
 
         // Act
         var head = await new GitHubClient(http, "owner/repo").BranchHeadAsync("master", TestContext.Current.CancellationToken);
@@ -26,7 +25,7 @@ public sealed class GitHubClientTests
     {
         // Arrange
         var github = new FakeGitHub();
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
 
         // Act
         Func<Task> act = () => new GitHubClient(http, "owner/repo").BranchHeadAsync("master", TestContext.Current.CancellationToken);
@@ -41,7 +40,7 @@ public sealed class GitHubClientTests
         // Arrange
         var github = new FakeGitHub();
         github.Respond("/repos/owner/repo", """{ "default_branch": "main" }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
 
         // Act
         var branch = await new GitHubClient(http, "owner/repo").DefaultBranchAsync(TestContext.Current.CancellationToken);
@@ -56,7 +55,7 @@ public sealed class GitHubClientTests
         // Arrange
         var github = new FakeGitHub();
         github.Respond("/repos/owner/repo", """{ "default_branch": null }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
 
         // Act
         Func<Task> act = () => new GitHubClient(http, "owner/repo").DefaultBranchAsync(TestContext.Current.CancellationToken);
@@ -71,7 +70,7 @@ public sealed class GitHubClientTests
         // Arrange
         var github = new FakeGitHub();
         github.Respond("/repos/owner/repo/branches/master", """{ "commit": { "sha": null } }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
 
         // Act
         Func<Task> act = () => new GitHubClient(http, "owner/repo").BranchHeadAsync("master", TestContext.Current.CancellationToken);
@@ -95,7 +94,7 @@ public sealed class GitHubClientTests
               ]
             }
             """);
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
 
         // Act
         var runs = await new GitHubClient(http, "owner/repo").CompletedRunsAsync(
@@ -120,7 +119,7 @@ public sealed class GitHubClientTests
         var full = string.Join(',', Enumerable.Range(1, 100).Select(id => $$"""{ "id": {{id}}, "updated_at": "2026-10-14T10:00:00Z" }"""));
         github.Respond("/repos/owner/repo/actions/runs?status=completed&per_page=100&page=1", $$"""{ "workflow_runs": [{{full}}] }""");
         github.Respond("/repos/owner/repo/actions/runs?status=completed&per_page=100&page=2", """{ "workflow_runs": [ { "id": 101, "updated_at": "2026-10-14T10:00:00Z" } ] }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
 
         // Act
         var runs = await new GitHubClient(http, "owner/repo").CompletedRunsAsync(DateTimeOffset.UnixEpoch, TestContext.Current.CancellationToken);
@@ -135,7 +134,7 @@ public sealed class GitHubClientTests
         // Arrange
         var github = new FakeGitHub();
         github.Respond("/repos/owner/repo/actions/runs/7/attempts/2/jobs?per_page=100", """{ "jobs": [] }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test/", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test/", "token", TestFactory.UserAgent, github);
         var run = new WorkflowRun(7, 2, "PR", "success", null, null, null, DateTimeOffset.UnixEpoch);
 
         // Act
@@ -157,7 +156,7 @@ public sealed class GitHubClientTests
               { "number": 3, "merged_at": "2026-10-14T11:00:00Z", "head": { "sha": null } }
             ]
             """);
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
 
         // Act
         var merged = await new GitHubClient(http, "owner/repo").MergedPullRequestsAsync("master", TestContext.Current.CancellationToken);
@@ -182,7 +181,7 @@ public sealed class GitHubClientTests
                 { "id": 2, "event": "merge_group", "updated_at": "2026-10-14T11:00:00Z" }
             ] }
             """);
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
 
         // Act
         var runs = await new GitHubClient(http, "owner/repo").SuccessfulRunsAsync("abc", TestContext.Current.CancellationToken);
@@ -197,7 +196,7 @@ public sealed class GitHubClientTests
         // Arrange
         var github = new FakeGitHub();
         github.Respond("/repos/owner/repo/contents/remotebuildtool.json", """{ "branch": "main" }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
         var client = new GitHubClient(http, "owner/repo");
 
         // Act
@@ -214,7 +213,7 @@ public sealed class GitHubClientTests
     public async Task DefaultBranchFileAsync_ShouldThrow_WhenGitHubFails()
     {
         // Arrange
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", new FailingGitHub());
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, new FailingGitHub());
 
         // Act
         Func<Task> act = () => new GitHubClient(http, "owner/repo").DefaultBranchFileAsync("remotebuildtool.json", TestContext.Current.CancellationToken);

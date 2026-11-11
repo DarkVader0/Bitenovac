@@ -1,9 +1,8 @@
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using Bitenovac.RemoteBuildTool.Hashing;
 
-namespace Bitenovac.RemoteBuildTool.Service;
+namespace Bitenovac.RemoteTools.Hosting;
 
 /// <summary>
 /// Represents a completed workflow run, as the GitHub REST API lists it.
@@ -47,16 +46,17 @@ internal sealed class GitHubClient(HttpClient http, string repository)
     /// </summary>
     /// <param name="apiUrl">The API's address.</param>
     /// <param name="token">The token.</param>
+    /// <param name="userAgent">The tool that asks, with its version; GitHub refuses a request without one.</param>
     /// <param name="handler">What sends the requests; the network when omitted.</param>
     /// <returns>The configured client, which the caller disposes.</returns>
-    public static HttpClient CreateHttpClient(string apiUrl, string token, HttpMessageHandler? handler = null)
+    public static HttpClient CreateHttpClient(string apiUrl, string token, ProductInfoHeaderValue userAgent, HttpMessageHandler? handler = null)
     {
         var client = handler is null ? new HttpClient() : new HttpClient(handler);
         client.BaseAddress = new Uri(apiUrl.TrimEnd('/') + "/");
         client.Timeout = TimeSpan.FromSeconds(30);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Bitenovac.RemoteBuildTool", ToolVersion.Value));
+        client.DefaultRequestHeaders.UserAgent.Add(userAgent);
         client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
         return client;
     }

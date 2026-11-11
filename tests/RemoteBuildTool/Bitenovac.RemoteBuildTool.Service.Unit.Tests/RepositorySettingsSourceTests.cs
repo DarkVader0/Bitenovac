@@ -13,7 +13,7 @@ public sealed class RepositorySettingsSourceTests
     {
         // Arrange
         var github = new FakeContents("""{ "pollSeconds": 30 }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
         var time = new ManualTime { Now = Now };
         var source = new RepositorySettingsSource(new GitHubClient(http, "owner/repo"), time, NullLogger<RepositorySettingsSource>.Instance);
 
@@ -34,7 +34,7 @@ public sealed class RepositorySettingsSourceTests
     {
         // Arrange
         var github = new FakeContents("""{ "pollSeconds": 30 }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
         var time = new ManualTime { Now = Now };
         var source = new RepositorySettingsSource(new GitHubClient(http, "owner/repo"), time, NullLogger<RepositorySettingsSource>.Instance);
         await source.GetAsync(TestContext.Current.CancellationToken);
@@ -53,7 +53,7 @@ public sealed class RepositorySettingsSourceTests
     {
         // Arrange
         var github = new FakeContents("""{ "default_branch": "main" }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
         var source = new RepositorySettingsSource(new GitHubClient(http, "owner/repo"), new ManualTime { Now = Now }, NullLogger<RepositorySettingsSource>.Instance);
 
         // Act
@@ -68,7 +68,7 @@ public sealed class RepositorySettingsSourceTests
     {
         // Arrange
         var github = new FakeContents("""{ "default_branch": "main" }""");
-        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", github);
+        using var http = GitHubClient.CreateHttpClient("https://api.test", "token", TestFactory.UserAgent, github);
         var source = new RepositorySettingsSource(new GitHubClient(http, "owner/repo"), new ManualTime { Now = Now }, NullLogger<RepositorySettingsSource>.Instance);
 
         // Act
