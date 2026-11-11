@@ -3,9 +3,12 @@ using Bitenovac.RemoteBuildTool.Core.Graph;
 namespace Bitenovac.RemoteBuildTool.Core.Scheduling;
 
 /// <summary>
-/// Represents projects that are built together because they depend on one another, and on nothing
-/// else that still has to be built.
+/// Represents projects that are built together, in one build of their own.
 /// </summary>
+/// <remarks>
+/// A unit depends on nothing that still has to be built, except the units it names as its
+/// <see cref="Dependencies"/>, which are built before it.
+/// </remarks>
 public sealed class BuildUnit
 {
     /// <summary>
@@ -17,9 +20,20 @@ public sealed class BuildUnit
     /// The time the unit is expected to take with unlimited parallelism: that of its longest chain of
     /// projects that each reference the one before.
     /// </param>
+    /// <param name="dependencies">The units that are built before this one, or <see langword="null"/> for none.</param>
+    /// <param name="remainingPath">
+    /// The time from the start of this unit to the end of the last unit that waits for it, with
+    /// unlimited parallelism; or <see langword="null"/> when nothing waits for it, which makes it
+    /// <paramref name="criticalPath"/>.
+    /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="projects"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="projects"/> is empty.</exception>
-    public BuildUnit(IEnumerable<ProjectId> projects, TimeSpan work, TimeSpan criticalPath)
+    public BuildUnit(
+        IEnumerable<ProjectId> projects,
+        TimeSpan work,
+        TimeSpan criticalPath,
+        IEnumerable<BuildUnit>? dependencies = null,
+        TimeSpan? remainingPath = null)
     {
         ArgumentNullException.ThrowIfNull(projects);
 
@@ -29,6 +43,8 @@ public sealed class BuildUnit
 
         Work = work;
         CriticalPath = criticalPath;
+        Dependencies = [.. dependencies ?? []];
+        RemainingPath = remainingPath ?? criticalPath;
     }
 
     /// <summary>
@@ -46,4 +62,15 @@ public sealed class BuildUnit
     /// chain of projects that each reference the one before.
     /// </summary>
     public TimeSpan CriticalPath { get; }
+
+    /// <summary>
+    /// Gets the units that are built before this one.
+    /// </summary>
+    public IReadOnlyList<BuildUnit> Dependencies { get; }
+
+    /// <summary>
+    /// Gets the time from the start of this unit to the end of the last unit that waits for it, with
+    /// unlimited parallelism. A unit nothing waits for has its <see cref="CriticalPath"/> left.
+    /// </summary>
+    public TimeSpan RemainingPath { get; }
 }

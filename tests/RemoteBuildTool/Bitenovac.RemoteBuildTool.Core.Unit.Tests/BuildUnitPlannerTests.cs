@@ -73,6 +73,90 @@ public sealed class BuildUnitPlannerTests
     }
 
     [Fact]
+    public void Plan_ShouldThrow_WhenAskedToSplitIntoNoUnits()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("A");
+
+        // Act
+        var act = () => BuildUnitPlanner.Plan(graph, TestFactory.Projects("A"), TestFactory.Durations(), Default, splitInto: 0);
+
+        // Assert
+        Assert.Throws<ArgumentOutOfRangeException>(act);
+    }
+
+    [Fact]
+    public void Plan_ShouldBuildWhatSeveralTopProjectsShareFirst_WhenAskedToSplit()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("App1 -> Lib", "App2 -> Lib");
+        var durations = TestFactory.Durations(("Lib", 4), ("App1", 3), ("App2", 2));
+
+        // Act
+        var units = BuildUnitPlanner.Plan(graph, TestFactory.Projects("Lib", "App1", "App2"), durations, Default, splitInto: 3);
+
+        // Assert
+        // Lib is needed by both apps, so it is a unit of its own with the longer app, 3, still to
+        // come after its 4. Each app is a unit that waits for it.
+        Assert.Equal(
+            [(["Lib"], 4, 4, 7), (["App1"], 3, 3, 3), (["App2"], 2, 2, 2)],
+            units.Select(Summary));
+        Assert.Empty(units[0].Dependencies);
+        Assert.Equal([units[0]], units[1].Dependencies);
+        Assert.Equal([units[0]], units[2].Dependencies);
+    }
+
+    [Fact]
+    public void Plan_ShouldKeepWhatOnlyOneTopProjectNeedsWithIt_WhenAskedToSplit()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("App1 -> Own1, Own2, Lib", "Own1 -> Deep", "Own2 -> Deep", "App2 -> Lib");
+
+        // Act
+        var units = BuildUnitPlanner.Plan(graph, TestFactory.Projects("App1", "App2", "Own1", "Own2", "Deep", "Lib"), TestFactory.Durations(), Default, splitInto: 2);
+
+        // Assert
+        // Only App1 needs Own1, Own2 and Deep, by two routes, so they stay with it: 4 of work, and
+        // the chain Deep, Own, App1 of 3. Lib is shared: 1, with that chain of 3 still to come.
+        Assert.Equal(
+            [(["Lib"], 1, 1, 4), (["Deep", "Own1", "Own2", "App1"], 4, 3, 3), (["App2"], 1, 1, 1)],
+            units.Select(Summary));
+    }
+
+    [Fact]
+    public void Plan_ShouldSpreadTheTopProjectsOverTheUnitsByWork_WhenThereAreMoreOfThemThanUnits()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("A -> Lib", "B -> Lib", "C -> Lib");
+        var durations = TestFactory.Durations(("A", 5), ("B", 3), ("C", 2), ("Lib", 1));
+
+        // Act
+        var units = BuildUnitPlanner.Plan(graph, TestFactory.Projects("A", "B", "C", "Lib"), durations, Default, splitInto: 2);
+
+        // Assert
+        // Longest first into the unit with the least work: A, 5, into the first; B, 3, into the
+        // second; C, 2, into the second again, which then holds 5 of work and a longest chain of 3.
+        Assert.Equal(
+            [(["Lib"], 1, 1, 6), (["A"], 5, 5, 5), (["B", "C"], 5, 3, 3)],
+            units.Select(Summary));
+    }
+
+    [Fact]
+    public void Plan_ShouldLeaveAGroupWhole_WhenOnlyOneProjectSitsOnTopOfIt()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("C -> B", "B -> A");
+
+        // Act
+        var units = BuildUnitPlanner.Plan(graph, TestFactory.Projects("A", "B", "C"), TestFactory.Durations(), Default, splitInto: 4);
+
+        // Assert
+        var unit = Assert.Single(units);
+        Assert.Equal([TestFactory.Id("A"), TestFactory.Id("B"), TestFactory.Id("C")], unit.Projects);
+        Assert.Empty(unit.Dependencies);
+    }
+
+    [Fact]
     public void Plan_ShouldReturnNoUnits_WhenThereIsNothingToBuild()
     {
         // Arrange
@@ -194,4 +278,7 @@ public sealed class BuildUnitPlannerTests
         Assert.Equal(TimeSpan.FromSeconds(11), unit.Work);
         Assert.Equal(TimeSpan.FromSeconds(11), unit.CriticalPath);
     }
+
+    private static (string[] Projects, int Work, int CriticalPath, int RemainingPath) Summary(BuildUnit unit) =>
+        ([.. unit.Projects.Select(project => project.Value)], (int)unit.Work.TotalSeconds, (int)unit.CriticalPath.TotalSeconds, (int)unit.RemainingPath.TotalSeconds);
 }
