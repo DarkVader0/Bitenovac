@@ -6,6 +6,8 @@ namespace Bitenovac.RemoteBuildTool.Integration.Tests;
 
 public sealed class ReleaseCommandIntegrationTests
 {
+    private const string OlderTargetFramework = "net10.0";
+
     private static readonly DateOnly Today = new(2026, 10, 7);
 
     private readonly CapturedOutput _output = new();
@@ -28,6 +30,33 @@ public sealed class ReleaseCommandIntegrationTests
         Assert.DoesNotContain(Directory.EnumerateFileSystemEntries(drop, "*", SearchOption.AllDirectories), path => path.Contains("Lib.Tests", StringComparison.Ordinal));
         Assert.False(Directory.Exists(fixture.Combine("tests/Lib.Tests/bin/Release")));
         Assert.Equal([drop], Directory.EnumerateFileSystemEntries(fixture.Options.DropRoot));
+    }
+
+    [Fact]
+    public void Run_ShouldPublishAnAppOncePerTargetFramework_WhenItDeclaresSeveral()
+    {
+        // Arrange
+        using var fixture = CreateWithApp();
+        var frameworks = $"<TargetFramework></TargetFramework><TargetFrameworks>{FixtureRepository.TargetFramework};{OlderTargetFramework}</TargetFrameworks>";
+        fixture.Write(FixtureRepository.LibraryProject, $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    {frameworks}
+                </PropertyGroup>
+            </Project>
+            """);
+        fixture.Replace("src/App/App.csproj", "<OutputType>Exe</OutputType>", $"<OutputType>Exe</OutputType>{frameworks}");
+        Assert.Equal(0, PlanCommand.Run(fixture.Options, _output.Pipeline));
+
+        // Act
+        var exitCode = ReleaseCommand.Run(fixture.Options, _output.Pipeline, Today);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        var app = Path.Combine(fixture.Options.DropRoot, "2026.10.07.001", "apps", "App");
+        Assert.True(File.Exists(Path.Combine(app, FixtureRepository.TargetFramework, "App.dll")));
+        Assert.True(File.Exists(Path.Combine(app, OlderTargetFramework, "App.dll")));
+        Assert.False(File.Exists(Path.Combine(app, "App.dll")));
     }
 
     [Fact]

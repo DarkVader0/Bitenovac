@@ -58,10 +58,9 @@ A miss's log line says why it missed: which inputs changed, or which dependency 
 
 - **.NET 11 SDK** to run the tool. The repository you build can pin any SDK in its
   `global.json`; RemoteBuildTool builds with whatever SDK the repository selects.
-- **MSBuild projects** (`.csproj` and friends). A library or a test project may target several
-  frameworks with `<TargetFrameworks>`: all of them are built, a change to any of them rebuilds the
-  project, and a test project runs once for each, so the machine needs a runtime for each. An
-  executable with `<TargetFrameworks>` fails the plan.
+- **MSBuild projects** (`.csproj` and friends). A project may target several frameworks with
+  `<TargetFrameworks>`: all of them are built, and a change to any of them rebuilds the project. A
+  test project runs once for each, so the machine needs a runtime for each.
 - **Test projects on Microsoft.Testing.Platform**, built as executables (the default for
   xUnit v3, MSTest and NUnit runners on the platform), with the
   [`coverlet.MTP`](https://www.nuget.org/packages/coverlet.MTP) extension for coverage. A test
@@ -238,7 +237,8 @@ run with the cache off, under the next version: the date and a counter, such as 
 `REMOTEBUILDTOOL_DROP_ROOT/<version>`:
 
 - `apps/<name>/`: every executable that is not a .NET tool and does not set
-  `<IsPublishable>false</IsPublishable>`, published.
+  `<IsPublishable>false</IsPublishable>`, published. One with several target frameworks is
+  published once for each, into `apps/<name>/<framework>/`.
 - `packages/`: every other project with `<IsPackable>true</IsPackable>`, packed, .NET tools
   included.
 - `build-graph.json`: the plan the release was built from.
@@ -276,7 +276,7 @@ tables do not hold: console output and binary logs.
 
 ## Limitations
 
-- .NET projects built with MSBuild only; an executable targets one framework.
+- .NET projects built with MSBuild only.
 - The stores are directories, so the jobs of a run need a shared filesystem.
 
 ## License

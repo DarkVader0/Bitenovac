@@ -55,6 +55,13 @@ internal interface IMsBuildRunner
     /// <param name="defaultProperties">Properties the project keeps its own value of.</param>
     /// <param name="outputDirectory">Where the published application goes.</param>
     /// <param name="logs">Where MSBuild logs.</param>
+    /// <param name="targetFramework">The target framework to publish, for a project that has several; otherwise <see langword="null"/>.</param>
     /// <returns>The exit code of MSBuild and what it used.</returns>
-    ProcessResult Publish(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs);
+    ProcessResult Publish(
+        string repositoryRoot,
+        string projectFullPath,
+        IReadOnlyDictionary<string, string> defaultProperties,
+        string outputDirectory,
+        MsBuildLogs logs,
+        string? targetFramework);
 }
