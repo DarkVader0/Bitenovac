@@ -62,6 +62,15 @@ internal static class TestFactory
         params (string Project, string OwnHash, string FullHash)[] entries) =>
         entries.ToDictionary(e => Id(e.Project), e => new StoredTargetHash(e.OwnHash, e.FullHash));
 
+    public static IReadOnlySet<ProjectId> Projects(params string[] projects) =>
+        projects.Select(Id).ToHashSet();
+
+    /// <summary>
+    /// Creates the expected build durations of projects, in seconds.
+    /// </summary>
+    public static IReadOnlyDictionary<ProjectId, TimeSpan> Durations(params (string Project, int Seconds)[] entries) =>
+        entries.ToDictionary(e => Id(e.Project), e => TimeSpan.FromSeconds(e.Seconds));
+
     public static CoveragePolicy Policy(double line = 100, double branch = 100) => new(line, branch);
 
     public static CoverageMeasurement Measurement(double line, double branch) => new(line, branch);
