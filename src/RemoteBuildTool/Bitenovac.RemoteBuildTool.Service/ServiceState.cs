@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Bitenovac.RemoteBuildTool.Service;
 
 /// <summary>
@@ -34,30 +32,11 @@ internal sealed record ServiceState
     /// </summary>
     /// <param name="path">The state file.</param>
     /// <returns>The state.</returns>
-    public static ServiceState Load(string path)
-    {
-        if (!File.Exists(path))
-            return new ServiceState();
-
-        try
-        {
-            return JsonSerializer.Deserialize(File.ReadAllText(path), ServiceJsonContext.Default.ServiceState) ?? new ServiceState();
-        }
-        catch (JsonException)
-        {
-            return new ServiceState();
-        }
-    }
+    public static ServiceState Load(string path) => JsonFile.LoadOrNew(path, ServiceJsonContext.Default.ServiceState);
 
     /// <summary>
     /// Writes the state, whole or not at all.
     /// </summary>
     /// <param name="path">The state file.</param>
-    public void Save(string path)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        var partial = path + ".partial";
-        File.WriteAllText(partial, JsonSerializer.Serialize(this, ServiceJsonContext.Default.ServiceState));
-        File.Move(partial, path, overwrite: true);
-    }
+    public void Save(string path) => JsonFile.Save(path, this, ServiceJsonContext.Default.ServiceState);
 }

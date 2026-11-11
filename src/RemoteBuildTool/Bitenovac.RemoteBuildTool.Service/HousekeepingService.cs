@@ -14,7 +14,7 @@ namespace Bitenovac.RemoteBuildTool.Service;
 internal sealed class HousekeepingService(
     HostSettings host,
     RepositorySettingsSource settings,
-    ServiceStateStore state,
+    JsonStateStore<ServiceState> state,
     TimeProvider time,
     ILogger<HousekeepingService> logger) : RemoteBuildToolWork(time, logger)
 {
