@@ -109,15 +109,19 @@ public sealed class PlanCommandIntegrationTests
         Assert.Equal("src/Lib/Lib.csproj: MinimumLineCoverage must be a percentage from 0 to 100, such as 95.5; it is '95,5'.", exception.Message);
     }
 
-    [Fact]
-    public void Run_ShouldFailBeforeRestoring_WhenAProjectDeclaresTargetFrameworks()
+    [Theory]
+    [InlineData(FixtureRepository.TestProject, "")]
+    [InlineData(FixtureRepository.LibraryProject, "<OutputType>Exe</OutputType>")]
+    public void Run_ShouldFailBeforeRestoring_WhenATestProjectOrAnExecutableDeclaresTargetFrameworks(string project, string outputType)
     {
         // Arrange
         using var fixture = FixtureRepository.Create();
-        fixture.Write(FixtureRepository.LibraryProject, $"""
+        fixture.Write(project, $"""
             <Project Sdk="Microsoft.NET.Sdk">
                 <PropertyGroup>
+                    <TargetFramework></TargetFramework>
                     <TargetFrameworks>{FixtureRepository.TargetFramework};netstandard2.0</TargetFrameworks>
+                    {outputType}
                 </PropertyGroup>
             </Project>
             """);
@@ -129,6 +133,31 @@ public sealed class PlanCommandIntegrationTests
         Assert.Equal(1, exitCode);
         Assert.False(File.Exists(fixture.Combine("src/Lib/obj/project.assets.json")));
         Assert.False(File.Exists(fixture.Options.PlanFile));
+    }
+
+    [Fact]
+    public void Run_ShouldFingerprintEveryTargetFramework_WhenALibraryDeclaresSeveral()
+    {
+        // Arrange
+        using var fixture = FixtureRepository.Create();
+        fixture.Write(FixtureRepository.LibraryProject, $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <TargetFramework></TargetFramework>
+                    <TargetFrameworks>{FixtureRepository.TargetFramework};netstandard2.0</TargetFrameworks>
+                </PropertyGroup>
+            </Project>
+            """);
+
+        // Act
+        var exitCode = PlanCommand.Run(fixture.Options, _output.Pipeline);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        var library = PlanState.Load(fixture.Options.PlanFile).For("Debug").Single(entry => entry.ProjectPath == FixtureRepository.LibraryProject);
+        Assert.Contains($"framework:{FixtureRepository.TargetFramework}:property:TargetFramework={FixtureRepository.TargetFramework}", library.OwnHashInputs);
+        Assert.Contains("framework:netstandard2.0:property:TargetFramework=netstandard2.0", library.OwnHashInputs);
+        Assert.DoesNotContain(library.OwnHashInputs, input => input.StartsWith("property:", StringComparison.Ordinal));
     }
 
     [Fact]
