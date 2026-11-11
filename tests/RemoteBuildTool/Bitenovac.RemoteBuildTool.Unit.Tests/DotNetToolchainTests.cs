@@ -91,6 +91,35 @@ public sealed class DotNetToolchainTests
     }
 
     [Fact]
+    public void Build_ShouldKeepItsLogsUnderTheSlotsName_WhenItBuildsOneUnitOfSeveral()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.TelemetryOptions(directory);
+        var entry = Entry(directory, "src/A/A.csproj");
+        TestFactory.WriteFile(directory.Combine("src/A/obj/project.assets.json"), "{}");
+        var msBuild = new FakeMsBuild
+        {
+            PerformanceLog = $"""
+                Project Performance Summary:
+                      120 ms  {entry.FullPath}   1 calls
+                """,
+        };
+        using var toolchain = new DotNetToolchain(directory.Path, msBuild);
+        var stage = StageRecorder.Start(options, TestFactory.Silence(), "build", "Debug");
+
+        // Act
+        var exitCode = toolchain.Build(options, [entry], "Debug", new BuildSlot("unit-2", 3), TestFactory.Silence(), stage);
+        stage.Complete(exitCode);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal(["build unit-2 with 3 core(s)"], msBuild.Calls);
+        Assert.True(File.Exists(options.MsBuildLogs("build-Debug-unit-2").PerformanceLogPath));
+        Assert.Equal(120L, Assert.Single(Targets(options)).DurationMS);
+    }
+
+    [Fact]
     public void Build_ShouldTakeEachProjectsTimeFromTheLog_WhenThePlanAlreadyRestoredIt()
     {
         // Arrange
@@ -365,12 +394,13 @@ public sealed class DotNetToolchainTests
             string configuration,
             string solutionPath,
             IReadOnlyDictionary<string, string> defaultProperties,
-            MsBuildLogs logs)
+            MsBuildLogs logs,
+            BuildSlot? slot)
         {
             if (PerformanceLog is not null)
                 TestFactory.WriteFile(logs.PerformanceLogPath, PerformanceLog);
 
-            return Result("build", BuildExitCode);
+            return Result(slot is null ? "build" : $"build {slot.Name} with {slot.Cores} core(s)", BuildExitCode);
         }
 
         public ProcessResult Pack(string repositoryRoot, string projectFullPath, IReadOnlyDictionary<string, string> defaultProperties, string outputDirectory, MsBuildLogs logs) =>

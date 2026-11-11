@@ -90,7 +90,10 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
     }
 
     public int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, PipelineOutput output, StageRecorder stage) =>
-        Build(options, entries, configuration, new Dictionary<string, string>(), output, stage);
+        Build(options, entries, configuration, new Dictionary<string, string>(), output, stage, slot: null);
+
+    public int Build(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string configuration, BuildSlot slot, PipelineOutput output, StageRecorder stage) =>
+        Build(options, entries, configuration, new Dictionary<string, string>(), output, stage, slot);
 
     public int Publish(PipelineOptions options, IReadOnlyList<PlanEntry> entries, string version, string dropDirectory, PipelineOutput output, StageRecorder stage)
     {
@@ -98,7 +101,7 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
         // is unset, so a release Version would mask a project's own VersionPrefix.
         var defaultProperties = new Dictionary<string, string> { ["VersionPrefix"] = version };
 
-        var exitCode = Build(options, entries, "Release", defaultProperties, output, stage);
+        var exitCode = Build(options, entries, "Release", defaultProperties, output, stage, slot: null);
         if (exitCode != 0)
             return exitCode;
 
@@ -177,19 +180,23 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
         string configuration,
         IReadOnlyDictionary<string, string> defaultProperties,
         PipelineOutput output,
-        StageRecorder stage)
+        StageRecorder stage,
+        BuildSlot? slot)
     {
+        // A unit built beside others keeps its solution and its logs under its own name.
+        var name = slot is null ? configuration : $"{configuration}-{slot.Name}";
+
         var unrestored = entries
             .Where(entry => !RestoreOutputs.Materialise(options.RepositoryRoot, entry.FullPath, options.RestoreOutputsRoot))
             .ToList();
 
         if (unrestored.Count > 0)
         {
-            var restoreExitCode = Run($"restore-{configuration}", $"Restoring {unrestored.Count} project(s) plan did not restore", StagePhase.Restore, options, output, stage, logs => msBuild.Restore(
+            var restoreExitCode = Run($"restore-{name}", $"Restoring {unrestored.Count} project(s) plan did not restore", StagePhase.Restore, options, output, stage, logs => msBuild.Restore(
                 options.RepositoryRoot,
                 unrestored.Select(entry => entry.FullPath),
                 configuration,
-                options.SyntheticSolutionPath($"restore-{configuration}"),
+                options.SyntheticSolutionPath($"restore-{name}"),
                 logs)).ExitCode;
 
             if (restoreExitCode != 0)
@@ -199,14 +206,15 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
             }
         }
 
-        var step = $"build-{configuration}";
+        var step = $"build-{name}";
         var exitCode = Run(step, $"Building {entries.Count} project(s) ({configuration})", StagePhase.Build, options, output, stage, logs => msBuild.Build(
             options.RepositoryRoot,
             entries.Select(entry => entry.FullPath),
             configuration,
             options.SyntheticSolutionPath(step),
             defaultProperties,
-            logs)).ExitCode;
+            logs,
+            slot)).ExitCode;
 
         // One MSBuild process builds them all, so a project's CPU time and memory are not its own.
         var durations = MsBuildPerformance.ProjectDurations(options.MsBuildLogs(step).PerformanceLogPath);

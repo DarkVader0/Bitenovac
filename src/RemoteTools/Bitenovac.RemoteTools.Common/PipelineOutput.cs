@@ -43,6 +43,13 @@ internal sealed record PipelineOutput(TextWriter Out, TextWriter Error, bool Git
     public string? FirstFailure { get; private set; }
 
     /// <summary>
+    /// Takes the first failure of an output whose lines were held back and are written here now,
+    /// unless this output already has one.
+    /// </summary>
+    /// <param name="heldBack">The output that was written to while its lines were held back.</param>
+    public void Adopt(PipelineOutput heldBack) => FirstFailure ??= heldBack.FirstFailure;
+
+    /// <summary>
     /// Writes one line of progress.
     /// </summary>
     /// <param name="message">The line to write.</param>
