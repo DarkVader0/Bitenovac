@@ -35,3 +35,12 @@ fi
 sdk_version_in() { sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$1/global.json" | head -n 1; }
 
 tool_version_in() { sed -n 's/.*<VersionPrefix>[[:space:]]*\([^<[:space:]]*\)[[:space:]]*<\/VersionPrefix>.*/\1/p' "$1/src/RemoteBuildTool/Directory.Build.props" | head -n 1; }
+
+readonly TOOL_PACKAGES=(Bitenovac.RemoteBuildTool Bitenovac.RemoteBuildTool.Service)
+
+has_tool_packages() {
+    local id
+    for id in "${TOOL_PACKAGES[@]}"; do
+        [[ -f "$1/${id}.$2.nupkg" ]] || return 1
+    done
+}

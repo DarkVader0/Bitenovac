@@ -1,2 +1,3 @@
 *
 !docker/entrypoint.sh
+!runner/packages/*.nupkg

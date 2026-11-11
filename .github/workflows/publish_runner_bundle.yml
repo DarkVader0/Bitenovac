@@ -33,11 +33,16 @@ jobs:
         env:
           DROP: ${{ steps.drop.outputs.drop }}
           SHA: ${{ steps.drop.outputs.sha }}
+          VERSION: ${{ steps.drop.outputs.version }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           auth=(-H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
-          body="$(printf '{"tag_name":"bitenovac-runner-%s","target_commitish":"%s","name":"Runner setup %s","body":"Installs the Bitenovac runner setup. Extract the archive, then run runner/setup-runner.sh as described in docs/Local_RemoteBuildTool_Setup.md."}' "${DROP}" "${SHA}" "${DROP}")"
+          tag="bitenovac-runner-${VERSION}"
+          status="$(curl -sS -o /dev/null -w '%{http_code}' "${auth[@]}" "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${tag}")"
+          [[ "${status}" != 200 ]] || { echo "error: ${tag} is already released. Bump <VersionPrefix> in src/RemoteBuildTool/Directory.Build.props, then publish the drop Official builds from it." >&2; exit 1; }
+          [[ "${status}" == 404 ]] || { echo "error: could not check whether ${tag} is released: HTTP ${status}." >&2; exit 1; }
+          body="$(printf '{"tag_name":"%s","target_commitish":"%s","name":"Runner setup %s","body":"Installs the Bitenovac runner setup with RemoteBuildTool %s, built in Official drop %s. Extract the archive, then run runner/setup-runner.sh as described in docs/Local_RemoteBuildTool_Setup.md."}' "${tag}" "${SHA}" "${VERSION}" "${VERSION}" "${DROP}")"
           release="$(curl -fsSL -X POST "${auth[@]}" -H "Content-Type: application/json" -d "${body}" "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases")"
           upload="$(printf '%s' "${release}" | sed -n 's/.*"upload_url": *"\([^"{]*\).*/\1/p' | head -n 1)"
           [[ -n "${upload}" ]] || { echo "error: the release was not created." >&2; exit 1; }

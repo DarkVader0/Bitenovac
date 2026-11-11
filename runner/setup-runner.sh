@@ -527,7 +527,6 @@ cat <<EOF
   Every run attempt keeps its own store in ${STAGING_VOLUME} for 24 hours; the service promotes
   it into main once its pull request is merged.
 
-  Pull requests run the RemoteBuildTool release installed in the image. Once a bumped
-  <VersionPrefix> in its csproj is on the feed, update it without
-  re-registering the agents:  bash runner/build-image.sh
+  Pull requests run the RemoteBuildTool release installed in the image, from the packages in
+  runner/packages. To move to another release, download its runner bundle and run setup from it.
 EOF
