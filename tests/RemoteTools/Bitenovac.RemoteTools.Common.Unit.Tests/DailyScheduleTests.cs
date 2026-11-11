@@ -1,7 +1,6 @@
 using System.Globalization;
-using Bitenovac.RemoteBuildTool.Service;
 
-namespace Bitenovac.RemoteBuildTool.Service.Unit.Tests;
+namespace Bitenovac.RemoteTools.Common.Unit.Tests;
 
 public sealed class DailyScheduleTests
 {

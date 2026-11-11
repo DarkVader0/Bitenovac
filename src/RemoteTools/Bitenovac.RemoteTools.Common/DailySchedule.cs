@@ -1,4 +1,4 @@
-namespace Bitenovac.RemoteBuildTool.Service;
+namespace Bitenovac.RemoteTools;
 
 /// <summary>
 /// Provides a method for deciding whether work set for a time of day is due.
