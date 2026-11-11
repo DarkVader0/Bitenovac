@@ -137,8 +137,14 @@ at the repository root:
 up to `max` of them at once, the unit whose longest chain of projects takes longest first, each with
 an equal share of the cores. It goes by how long each project took the last time it was built,
 which is kept in the cache with the project. It picks the number within the limits that it expects to finish soonest. A unit
-that fails does not stop the others. Without the setting, `build` builds everything in one MSBuild
-run.
+that fails does not stop the others.
+
+When the projects to build all hang together, as after a change to a library everything uses,
+`build` splits them: what several of the top projects need is built first, as one unit, and the
+rest, which then no longer depend on one another, is spread over up to `max` units that wait for
+it. If that first unit fails, the units behind it are skipped.
+
+Without the setting, `build` builds everything in one MSBuild run.
 
 To make something else part of every project's fingerprint, such as a schema version or a tool a
 build step calls, declare it as an item:

@@ -50,6 +50,34 @@ public sealed class BuildShardingTests
     }
 
     [Fact]
+    public void Schedule_ShouldBuildWhatTheTopProjectsShareFirst_WhenTheLimitsAllowSeveralSlots()
+    {
+        // Arrange
+        PlanEntry[] toBuild =
+        [
+            TestFactory.Entry("src/App1/App1.csproj", references: ["src/Lib/Lib.csproj"]),
+            TestFactory.Entry("src/App2/App2.csproj", references: ["src/Lib/Lib.csproj"]),
+            TestFactory.Entry("src/Lib/Lib.csproj"),
+        ];
+
+        // Act
+        var schedule = BuildSharding.Schedule(toBuild, new SlotLimits(1, 2), cores: 2);
+
+        // Assert
+        // One slot builds Lib, App1 and App2 one after another, in 3. Two slots build Lib, then
+        // both apps at once, in 2.
+        Assert.Equal(2, schedule.Slots);
+        Assert.Equal(
+            [["src/Lib/Lib.csproj"], ["src/App1/App1.csproj"], ["src/App2/App2.csproj"]],
+            schedule.Units.Select(unit => unit.Unit.Projects.Select(project => project.Value)));
+        Assert.Equal(
+            $"  unit 1 (slot 1): 1 project(s), from src/Lib/Lib.csproj{Environment.NewLine}"
+            + $"  unit 2 (slot 2): 1 project(s), from src/App1/App1.csproj, after unit 1{Environment.NewLine}"
+            + $"  unit 3 (slot 1): 1 project(s), from src/App2/App2.csproj, after unit 1{Environment.NewLine}",
+            BuildSharding.Describe(schedule));
+    }
+
+    [Fact]
     public void Schedule_ShouldExpectTheAverageOfTheKnownTimes_WhenAProjectHasNeverBeenBuilt()
     {
         // Arrange
