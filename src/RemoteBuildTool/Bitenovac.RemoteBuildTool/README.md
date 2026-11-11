@@ -58,9 +58,10 @@ A miss's log line says why it missed: which inputs changed, or which dependency 
 
 - **.NET 11 SDK** to run the tool. The repository you build can pin any SDK in its
   `global.json`; RemoteBuildTool builds with whatever SDK the repository selects.
-- **MSBuild projects** (`.csproj` and friends). A library may target several frameworks with
-  `<TargetFrameworks>`: all of them are built, and a change to any of them rebuilds the project. A
-  test project or an executable with `<TargetFrameworks>` fails the plan.
+- **MSBuild projects** (`.csproj` and friends). A library or a test project may target several
+  frameworks with `<TargetFrameworks>`: all of them are built, a change to any of them rebuilds the
+  project, and a test project runs once for each, so the machine needs a runtime for each. An
+  executable with `<TargetFrameworks>` fails the plan.
 - **Test projects on Microsoft.Testing.Platform**, built as executables (the default for
   xUnit v3, MSTest and NUnit runners on the platform), with the
   [`coverlet.MTP`](https://www.nuget.org/packages/coverlet.MTP) extension for coverage. A test
@@ -275,7 +276,7 @@ tables do not hold: console output and binary logs.
 
 ## Limitations
 
-- .NET projects built with MSBuild only; a test project or an executable targets one framework.
+- .NET projects built with MSBuild only; an executable targets one framework.
 - The stores are directories, so the jobs of a run need a shared filesystem.
 
 ## License

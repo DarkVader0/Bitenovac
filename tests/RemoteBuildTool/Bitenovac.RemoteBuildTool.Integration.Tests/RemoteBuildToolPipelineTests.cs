@@ -7,6 +7,8 @@ namespace Bitenovac.RemoteBuildTool.Integration.Tests;
 
 public sealed class RemoteBuildToolPipelineTests
 {
+    private const string OlderTargetFramework = "net10.0";
+
     private readonly CapturedOutput _output = new();
 
     [Fact]
@@ -68,6 +70,41 @@ public sealed class RemoteBuildToolPipelineTests
         Assert.Equal(0, testExitCode);
         Assert.True(File.Exists(fixture.Combine($"src/Lib/bin/Debug/{FixtureRepository.TargetFramework}/Lib.dll")));
         Assert.True(File.Exists(fixture.Combine("src/Lib/bin/Debug/netstandard2.0/Lib.dll")));
+    }
+
+    [Fact]
+    public void Pipeline_ShouldRunTheTestsOfEveryTargetFramework_WhenATestProjectDeclaresSeveral()
+    {
+        // Arrange
+        using var fixture = FixtureRepository.Create();
+        var frameworks = $"<TargetFramework></TargetFramework><TargetFrameworks>{FixtureRepository.TargetFramework};{OlderTargetFramework}</TargetFrameworks>";
+        fixture.Write(FixtureRepository.LibraryProject, $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    {frameworks}
+                </PropertyGroup>
+            </Project>
+            """);
+        // The older framework's tests roll forward, so they run where only the newest runtime is installed.
+        fixture.Replace(FixtureRepository.TestProject, "<OutputType>Exe</OutputType>", $"<OutputType>Exe</OutputType>{frameworks}<RollForward>Major</RollForward>");
+
+        // Act
+        var planExitCode = PlanCommand.Run(fixture.Options, _output.Pipeline);
+        var buildExitCode = BuildCommand.Run(fixture.Options, "Debug", _output.Pipeline);
+        var testExitCode = TestCommand.Run(fixture.Options, "Debug", _output.Pipeline);
+
+        // Assert
+        Assert.Equal(0, planExitCode);
+        Assert.Equal(0, buildExitCode);
+        Assert.Equal(0, testExitCode);
+        var results = Directory.EnumerateFiles(fixture.Combine("artifacts/coverage/Debug"), "*.cobertura.*").Select(Path.GetFileName).ToList();
+        Assert.Contains(results, file => file!.StartsWith($"Lib.Tests.{FixtureRepository.TargetFramework}.", StringComparison.Ordinal));
+        Assert.Contains(results, file => file!.StartsWith($"Lib.Tests.{OlderTargetFramework}.", StringComparison.Ordinal));
+
+        var prStore = new LocalVolumeArtifactStore(fixture.Options.PrStoreRoot);
+        Assert.True(prStore.TryGetFileDigests(new ProjectId(FixtureRepository.TestProject), "Debug", out _, out var staged));
+        Assert.Contains(staged.Keys, path => path.StartsWith($"tests/Lib.Tests.{FixtureRepository.TargetFramework}.", StringComparison.Ordinal));
+        Assert.Contains(staged.Keys, path => path.StartsWith($"tests/Lib.Tests.{OlderTargetFramework}.", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -212,6 +212,31 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
         return exitCode;
     }
 
+    public IReadOnlyList<TestVariant> TestVariants(PlanEntry entry)
+    {
+        var targetFrameworks = entry.Properties.GetValueOrDefault(TargetFrameworksProperty, "")
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (targetFrameworks.Length == 0)
+            return [new TestVariant("", entry)];
+
+        // Each target framework has a test executable of its own.
+        return [.. targetFrameworks.Select(targetFramework => new TestVariant(targetFramework, entry with
+        {
+            Properties = new Dictionary<string, string>(entry.Properties)
+            {
+                [RunCommandProperty] = entry.Properties.GetValueOrDefault(RunCommandOf(targetFramework), ""),
+            },
+        }))];
+    }
+
+    /// <summary>
+    /// Returns the plan property that holds the run command of one target framework of a project
+    /// that has several.
+    /// </summary>
+    /// <param name="targetFramework">The target framework.</param>
+    /// <returns>The property's name.</returns>
+    public static string RunCommandOf(string targetFramework) => $"{RunCommandProperty}:{targetFramework}";
+
     public TestRunResult RunTests(PlanEntry entry, string configuration, string resultsFilePrefix, string resultsDirectory)
     {
         var executable = entry.Properties.GetValueOrDefault(RunCommandProperty, "");
@@ -301,18 +326,18 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
 
         var offenders = projects
             .Where(project => !string.IsNullOrEmpty(project.Properties.GetValueOrDefault(TargetFrameworksProperty)))
-            .Where(project => project.IsTestProject || IsExecutable(project.Properties))
+            .Where(project => !project.IsTestProject && IsExecutable(project.Properties))
             .ToList();
 
         if (offenders.Count > 0)
         {
-            output.WriteFailure("these test projects and executables declare <TargetFrameworks>; RemoteBuildTool builds several target frameworks for libraries only. Set a single <TargetFramework> instead.");
+            output.WriteFailure("these executables declare <TargetFrameworks>; RemoteBuildTool builds several target frameworks for libraries and test projects only. Set a single <TargetFramework> instead.");
             foreach (var project in offenders)
                 output.WriteError($"  {project.Id}");
             return 1;
         }
 
-        output.WriteLine("OK: every test project and executable targets a single framework.");
+        output.WriteLine("OK: every executable targets a single framework.");
         return 0;
     }
 
