@@ -135,17 +135,22 @@
         }
 
         _listener = DotNetObjectReference.Create(this);
-        _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/chart.js");
+        _module = await JS.InvokeGuardedAsync<IJSObjectReference>("import", "./js/chart.js");
+        if (_module is null)
+        {
+            return;
+        }
+
         if (_disposed)
         {
             await _module.DisposeAsync();
             return;
         }
 
-        _tracker = await _module.InvokeAsync<IJSObjectReference>("track", _svg, _listener);
-        if (_disposed)
+        _tracker = await _module.InvokeGuardedAsync<IJSObjectReference>("track", _svg, _listener);
+        if (_disposed && _tracker is not null)
         {
-            await _tracker.InvokeVoidAsync("dispose");
+            await _tracker.InvokeVoidGuardedAsync("dispose");
             await _tracker.DisposeAsync();
         }
     }
@@ -169,7 +174,7 @@
         _disposed = true;
         if (_tracker is not null)
         {
-            await _tracker.InvokeVoidAsync("dispose");
+            await _tracker.InvokeVoidGuardedAsync("dispose");
             await _tracker.DisposeAsync();
         }
 

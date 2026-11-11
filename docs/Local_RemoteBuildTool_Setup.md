@@ -431,7 +431,7 @@ runner image reads it directly; for example, every project of one build with wha
 (Ubuntu):
 
 ```bash
-docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint duckdb bitenovac-remotebuildtool-runner:10.0.402 \
+docker run --rm -v /srv/bitenovac/logs:/logs:ro --entrypoint duckdb bitenovac-remotebuildtool-runner:11.0.100 \
     -c "SELECT unnest(Configurations.Debug, recursive := true) FROM read_json('/logs/PR_18/16473829-1/build-graph.json')"
 ```
 
