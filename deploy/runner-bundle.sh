@@ -8,8 +8,9 @@
 #   output  An empty or missing directory to copy the bundle into.
 #   drop    The drop, for example 2026.10.11.001. Defaults to the newest one.
 #
-# Prints drop=<version> and sha=<commit the drop was built from> on stdout, in the form the
-# workflow reads from GITHUB_OUTPUT. The bundle is left in <output> with the drop's build-graph.json.
+# Prints drop=<drop>, sha=<commit the drop was built from> and version=<the RemoteBuildTool version
+# the bundle installs> on stdout, in the form the workflow reads from GITHUB_OUTPUT. The bundle is
+# left in <output> with the drop's build-graph.json.
 
 set -euo pipefail
 
@@ -64,4 +65,9 @@ rm "${output}/drop"
 sha="$(sed -n 's/.*"sha": *"\([0-9a-f]*\)".*/\1/p' "${output}/build-graph.json" | head -n 1)"
 [[ -n "${sha}" ]] || fail "The drop ${drop_name} does not name the commit it was built from."
 
-printf 'drop=%s\nsha=%s\n' "${drop_name}" "${sha}"
+bundles=("${output}"/bitenovac-runner-*.tar.gz)
+[[ ${#bundles[@]} -eq 1 && -f "${bundles[0]}" ]] || fail "Expected one bundle in the drop ${drop_name}, found ${#bundles[@]}."
+version="$(basename "${bundles[0]}" .tar.gz)"
+version="${version#bitenovac-runner-}"
+
+printf 'drop=%s\nsha=%s\nversion=%s\n' "${drop_name}" "${sha}" "${version}"

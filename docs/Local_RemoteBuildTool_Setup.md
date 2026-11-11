@@ -5,7 +5,7 @@ Runs the GitHub pull request pipeline on your own PC, inside WSL.
 What you end up with:
 
 - 3 GitHub runners in Ubuntu (WSL), each job limited to 3 CPUs and 2 GB RAM
-- the pinned RemoteBuildTool release already installed in the runner image
+- the RemoteBuildTool release the installer carries, installed in the runner image
 - the build cache filled from `master`, and kept filled by every merged pull request
 - the **RemoteBuildTool service**, always running beside the runners: it promotes what merged pull
   requests built into the cache, rebuilds the cache from scratch every night, records every build,
@@ -46,9 +46,10 @@ and **untick Ubuntu**. Setup installs its own Docker inside Ubuntu.
 
 **1. Download the installer** (Ubuntu)
 
-The installer is the newest release, `bitenovac-runner-<drop>` on the GitHub Releases page. It holds
-everything setup needs, so no repository checkout is required. The download uses `gh`; without it,
-download the two files from the release page instead and continue from `sha256sum`.
+The installer is the newest release, `bitenovac-runner-<version>` on the GitHub Releases page. It
+holds everything setup needs, RemoteBuildTool included, so no repository checkout and no package
+feed is required. The download uses `gh`; without it, download the two files from the release page
+instead and continue from `sha256sum`.
 
 ```bash
 mkdir -p ~/bitenovac-runner && cd ~/bitenovac-runner
@@ -189,39 +190,66 @@ sudo bash runner/service.sh rebuild
 
 ---
 
-## After releasing RemoteBuildTool, or changing the Dockerfile or `global.json`
+## After changing RemoteBuildTool, the Dockerfile or `global.json`
 
 Pull requests and the service use the RemoteBuildTool release **installed in the runner image**,
-not the source in the pull request. To ship a change to RemoteBuildTool:
+not the source in the pull request. The image installs it from the two packages in
+`runner/packages`, which the runner bundle carries. No package feed is involved, so a release
+reaches a machine as a new bundle:
 
 1. Bump `<VersionPrefix>` in `src/RemoteBuildTool/Directory.Build.props` and merge it. That is the
-   only place the version lives, for both packages: `runner/build-image.sh` reads it from there.
-2. Wait for the next Official build, or run one: Actions → Official → Run workflow. It keeps the
-   package's own version rather than the date.
-3. Publish it from that drop: Actions → Deploy RemoteBuildTool → Run workflow. Leave the drop empty
-   for the newest one. A version that is already on nuget.org fails the run, so a forgotten bump
-   cannot overwrite anything.
+   only place the version lives, for both packages and for the bundle.
+2. Wait for the next Official build, or run one: Actions → Official → Run workflow. It builds the
+   packages under that version and puts them into the drop's bundle.
+3. Publish the bundle: see [Publishing the runner bundle](#publishing-the-runner-bundle). A version
+   that is already released fails the run, so a forgotten bump cannot replace a release.
+4. On each machine, replace the installer with the new release and rebuild the image (Ubuntu):
 
-nuget.org takes a few minutes to index a new package. Once it is listed, and after any Dockerfile or
-`global.json` change that has been published in a release (Ubuntu):
+   ```bash
+   cd ~/bitenovac-runner
+   rm -f bitenovac-runner-*.tar.gz bitenovac-runner-*.tar.gz.sha256
+   gh release download --repo DarkVader0/Bitenovac --pattern 'bitenovac-runner-*'
+   sha256sum -c bitenovac-runner-*.tar.gz.sha256
+   tar -xzf bitenovac-runner-*.tar.gz
+   sudo bash runner/build-image.sh
+   ```
 
-```bash
-cd ~/bitenovac-runner
-sudo bash runner/build-image.sh
-```
+A Dockerfile or `global.json` change travels the same way, since the bundle carries both. Bump the
+version for it too: a version is released once.
 
-It restarts the service on the new image. Every fingerprint includes the RemoteBuildTool version,
-so a new release starts from an empty cache rather than trusting what an older one built; so does
-a `global.json` or Dockerfile change. Until the nightly rebuild, pull requests build everything they
-touch. To refill the cache now instead (Ubuntu):
+`build-image.sh` restarts the service on the new image. Every fingerprint includes the
+RemoteBuildTool version, so a new release starts from an empty cache rather than trusting what an
+older one built; so does a `global.json` or Dockerfile change. Until the nightly rebuild, pull
+requests build everything they touch. To refill the cache now instead (Ubuntu):
 
 ```bash
 sudo bash runner/service.sh rebuild
 ```
 
-Set `REMOTEBUILDTOOL_SOURCE` before `build-image.sh` to install from a feed other than nuget.org.
+### From a checkout of the repository
 
-### First time only: let the deploy workflow publish
+`runner/build-image.sh` also runs from a checkout, which has no `runner/packages`. It then
+downloads the bundle of the version in `src/RemoteBuildTool/Directory.Build.props` from the GitHub
+Releases page and takes the packages from it. `docker/ci-local.sh` builds its image this way. On a
+machine set up from a checkout, updating is `git pull`, then `sudo bash runner/build-image.sh`.
+
+To run what an Official drop on this machine built, before it is released (Ubuntu):
+
+```bash
+sudo bash runner/build-image.sh --drop [2026.10.11.001]
+```
+
+Without a name it takes the newest drop. The drop must have been built from a commit with the same
+`<VersionPrefix>` as the checkout. Two drops can carry different builds under one version, and the
+cache cannot tell them apart, so follow it with `sudo bash runner/service.sh rebuild`.
+
+### Optional: RemoteBuildTool on nuget.org
+
+Nothing in this setup installs from nuget.org. Publishing there only serves other repositories that
+install the tool with `dotnet tool install`: Actions → Deploy RemoteBuildTool → Run workflow. Leave
+the drop empty for the newest one. A version that is already on nuget.org fails the run.
+
+#### First time only: let the deploy workflow publish
 
 The deploy workflow uses nuget.org Trusted Publishing: each run trades its GitHub identity for an
 API key that expires within the hour, so no key is ever stored.
@@ -283,21 +311,22 @@ NUGET_API_KEY=<KEY> bash src/DecompressionAlgorithms/deploy_libraries.sh [2026.1
 
 ## Publishing the runner bundle
 
-The runner setup is published on GitHub Releases as `bitenovac-runner-<drop>`, where `<drop>` is the
-Official drop it was built in, the same way the Web app is versioned. The release holds the bundle
-archive and its `.sha256`. Anyone can download it, so it holds only the setup scripts, the image's
-build files and the two pins. No source code, tests, workflows or secrets.
+The runner setup is published on GitHub Releases as `bitenovac-runner-<version>`, where `<version>`
+is the RemoteBuildTool version it installs. The release holds the bundle archive and its `.sha256`.
+Anyone can download it. It holds the setup scripts, the image's build files, the two pins and the
+two RemoteBuildTool packages. No source code, tests, workflows or secrets.
 
-Every Official drop carries the bundle in its `runner/` folder, so it is made from the same commit as
-the drop.
+Every Official drop carries the bundle in its `runner/` folder, made from the same commit and with
+the packages that drop built.
 
 1. Wait for the Official run that made the drop, or run one: Actions → Official → Run workflow.
    Its run page shows the drop version.
-2. Actions → Publish runner bundle → Run workflow. Leave the drop empty for the newest one. A drop
-   that already has a release fails the run.
+2. Actions → Publish runner bundle → Run workflow. Leave the drop empty for the newest one. The
+   release notes name the drop. A version that already has a release fails the run: bump
+   `<VersionPrefix>` in `src/RemoteBuildTool/Directory.Build.props` first.
 
 A new machine gets the installer from the release, the same way as every other machine: see
-[Setup](#setup). Nothing on it needs a checkout of the repository.
+[Setup](#setup). Nothing on it needs a checkout of the repository or a package feed.
 
 ---
 
@@ -610,7 +639,7 @@ drops and the NFS share, and it keeps the service's settings unless you pass `--
    its agent is replaced.
 2. Download the release into a new folder, from [Setup step 1](#setup). The newest release is the
    default; to pick one, give its tag, for example
-   `gh release download bitenovac-runner-2026.10.28.001 --repo DarkVader0/Bitenovac --pattern 'bitenovac-runner-*'`.
+   `gh release download bitenovac-runner-1.4.0 --repo DarkVader0/Bitenovac --pattern 'bitenovac-runner-*'`.
 3. Get a new runner token, then run setup from that folder (Ubuntu). The agent count and limits
    come from `/etc/bitenovac/runner.env`:
 

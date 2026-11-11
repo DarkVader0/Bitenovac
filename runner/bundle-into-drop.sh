@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Puts the runner bundle into an Official drop, as <drop>/runner/, so the Publish runner bundle
-# workflow can release it under the drop's version, the way the Web app is deployed from a drop.
+# Puts the runner bundle into an Official drop, as <drop>/runner/, with the RemoteBuildTool packages
+# that drop built in it, so the Publish runner bundle workflow can release it.
 #
 # Usage, on the runner host, from the checkout Official built:
 #   bash runner/bundle-into-drop.sh <drop>
@@ -42,5 +42,5 @@ docker run \
         [[ -d "/mnt/official/${DROP}" ]] || { echo "error: no drop ${DROP}." >&2; exit 1; }
         mkdir -p "/mnt/official/${DROP}/runner"
         cd /repo
-        bash runner/make-bundle.sh "/mnt/official/${DROP}/runner"
+        bash runner/make-bundle.sh "/mnt/official/${DROP}/packages" "/mnt/official/${DROP}/runner"
     '
