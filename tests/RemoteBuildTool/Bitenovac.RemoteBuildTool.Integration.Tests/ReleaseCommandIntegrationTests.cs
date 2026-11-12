@@ -33,6 +33,8 @@ public sealed class ReleaseCommandIntegrationTests
         Assert.Equal(
             [("app", "App", "apps/App", null), ("package", "Lib", "packages/Lib.2026.10.7.1.nupkg", "2026.10.7.1")],
             manifest.Artifacts.Select(artifact => (artifact.Kind, artifact.Name, artifact.Path, artifact.Version)));
+        var release = PlanState.Load(fixture.Options.PlanFile).For("Release").ToDictionary(entry => entry.ProjectPath, entry => entry.FullHash);
+        Assert.Equal([release["src/App/App.csproj"], release[FixtureRepository.LibraryProject]], manifest.Artifacts.Select(artifact => artifact.Fingerprint));
         Assert.False(Directory.Exists(fixture.Combine("tests/Lib.Tests/bin/Release")));
         Assert.Equal([drop], Directory.EnumerateFileSystemEntries(fixture.Options.DropRoot));
     }

@@ -30,6 +30,42 @@ public sealed class DropManifestTests
     }
 
     [Fact]
+    public void Describe_ShouldFingerprintTheArtifactsItIsGivenFingerprintsFor_WhenSomeHaveNone()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.WriteFile(directory.Combine("apps/Web/index.html"), "<html/>");
+        TestFactory.WriteFile(directory.Combine("apps/Unknown/a.txt"), "a");
+        Package(directory.Combine("packages/Bitenovac.Lib.1.2.3.nupkg"), "Bitenovac.Lib", "1.2.3");
+        var fingerprints = new Dictionary<string, string> { ["Web"] = "web-full", ["Bitenovac.Lib"] = "lib-full" };
+
+        // Act
+        var manifest = DropManifest.Describe(directory.Path, "2026.10.07.001", null, null, Created, fingerprints);
+
+        // Assert
+        Assert.Equal(
+            [("Unknown", null), ("Web", "web-full"), ("Bitenovac.Lib", "lib-full")],
+            manifest.Artifacts.Select(artifact => (artifact.Name, artifact.Fingerprint)));
+    }
+
+    [Fact]
+    public void Read_ShouldLeaveTheFingerprintsOut_WhenAnEarlierReleaseWroteNone()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.WriteFile(directory.Combine(DropManifest.FileName), """
+            { "schemaVersion": 1, "version": "2026.10.07.001", "created": "2026-10-07T12:00:00Z",
+              "artifacts": [ { "kind": "app", "name": "Web", "path": "apps/Web", "sha256": "abc" } ] }
+            """);
+
+        // Act
+        var manifest = DropManifest.Read(directory.Path);
+
+        // Assert
+        Assert.Null(Assert.Single(manifest.Artifacts).Fingerprint);
+    }
+
+    [Fact]
     public void Describe_ShouldDigestAnAppFromItsFilesPathsAndContents_WhenItHasSeveral()
     {
         // Arrange

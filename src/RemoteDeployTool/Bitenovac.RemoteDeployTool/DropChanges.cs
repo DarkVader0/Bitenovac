@@ -48,8 +48,9 @@ internal static class DropChanges
     /// <param name="to">The newer drop's manifest.</param>
     /// <returns>
     /// Every artifact either drop holds, matched by kind and name and ordered by name, then kind. An
-    /// artifact both hold has changed exactly when its <see cref="DropArtifact.Sha256"/> differs; a
-    /// package whose version moved has, as its file has.
+    /// artifact both hold has changed when its <see cref="DropArtifact.Fingerprint"/> differs, so a
+    /// project nothing touched is not deployed again although its files were built anew. Where
+    /// either drop has no fingerprint for it, a <see cref="DropArtifact.Sha256"/> that differs is a change.
     /// </returns>
     public static IReadOnlyList<ArtifactComparison> Compare(DropManifest from, DropManifest to)
     {
@@ -67,6 +68,7 @@ internal static class DropChanges
                 {
                     (null, _) => ArtifactChange.Added,
                     (_, null) => ArtifactChange.Removed,
+                    ({ Fingerprint: { } was }, { Fingerprint: { } now }) => was == now ? ArtifactChange.Unchanged : ArtifactChange.Changed,
                     _ when before.Sha256 == after.Sha256 => ArtifactChange.Unchanged,
                     _ => ArtifactChange.Changed,
                 };

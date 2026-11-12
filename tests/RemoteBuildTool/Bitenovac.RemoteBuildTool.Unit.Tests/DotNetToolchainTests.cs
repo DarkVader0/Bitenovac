@@ -314,6 +314,27 @@ public sealed class DotNetToolchainTests
     }
 
     [Theory]
+    [InlineData("OutputType=Exe", "App")]
+    [InlineData("IsPackable=true", "App")]
+    [InlineData("IsPackable=true;PackageId=Bitenovac.App", "Bitenovac.App")]
+    [InlineData("IsPackable=true;PackageId=", "App")]
+    [InlineData("OutputType=Exe;PackageId=Bitenovac.App", "App")]
+    [InlineData("OutputType=Exe;PackAsTool=true;IsPackable=true;PackageId=Bitenovac.App.Tool", "Bitenovac.App.Tool")]
+    public void DeployedName_ShouldNameAPackageByItsIdAndEverythingElseByItsFile_WhenAReleaseDropsIt(string properties, string expected)
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        using var toolchain = new DotNetToolchain(directory.Path, new FakeMsBuild());
+        var entry = Entry(directory, "src/App/App.csproj", properties.Split(';').Select(pair => pair.Split('=')).ToDictionary(pair => pair[0], pair => pair[1]));
+
+        // Act
+        var name = toolchain.DeployedName(entry);
+
+        // Assert
+        Assert.Equal(expected, name);
+    }
+
+    [Theory]
     [InlineData("package:Microsoft.Testing.Extensions.TrxReport/2.0.0", nameof(TestReport.Trx))]
     [InlineData("package:xunit.v3.core/3.1.0", nameof(TestReport.XunitTrx))]
     [InlineData("package:xunit.v3.core.mtp-v1/3.1.0", nameof(TestReport.XunitTrx))]

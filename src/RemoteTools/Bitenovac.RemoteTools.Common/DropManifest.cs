@@ -16,9 +16,14 @@ namespace Bitenovac.RemoteTools;
 /// <param name="Version">The package's version; <see langword="null"/> for an app, which carries the drop's.</param>
 /// <param name="Sha256">
 /// The SHA-256 of the package file; for an app, of its files, each as its path, a tab and its own
-/// SHA-256 on a line, in path order. Two drops hold the same artifact exactly when this matches.
+/// SHA-256 on a line, in path order. It says the files arrived whole. It differs between any two
+/// builds from different commits, since every assembly names the commit it was built from.
 /// </param>
-internal sealed record DropArtifact(string Kind, string Name, string Path, string? Version, string Sha256)
+/// <param name="Fingerprint">
+/// The fingerprint of the project that made the artifact, which changes only when what the project
+/// is built from does; <see langword="null"/> when the release could not tell which project that was.
+/// </param>
+internal sealed record DropArtifact(string Kind, string Name, string Path, string? Version, string Sha256, string? Fingerprint = null)
 {
     /// <summary>
     /// The kind of a published application.
@@ -71,19 +76,26 @@ internal sealed record DropManifest(
     /// <param name="sha">The commit the drop was built from, when known.</param>
     /// <param name="buildId">The build that made the drop, when known.</param>
     /// <param name="created">When the drop was made.</param>
+    /// <param name="fingerprints">The fingerprint of the project behind each artifact, by the artifact's name, where known.</param>
     /// <returns>The manifest.</returns>
     /// <exception cref="InvalidOperationException">A package carries no readable id and version.</exception>
-    public static DropManifest Describe(string dropDirectory, string version, string? sha, string? buildId, DateTimeOffset created)
+    public static DropManifest Describe(
+        string dropDirectory, string version, string? sha, string? buildId, DateTimeOffset created, IReadOnlyDictionary<string, string>? fingerprints = null)
     {
+        fingerprints ??= new Dictionary<string, string>();
+
         var apps = Subdirectories(Path.Combine(dropDirectory, AppsDirectory))
-            .Select(app => new DropArtifact(DropArtifact.App, Path.GetFileName(app), $"{AppsDirectory}/{Path.GetFileName(app)}", null, DirectoryDigest(app)));
+            .Select(app => Path.GetFileName(app))
+            .Select(app => new DropArtifact(
+                DropArtifact.App, app, $"{AppsDirectory}/{app}", null, DirectoryDigest(Path.Combine(dropDirectory, AppsDirectory, app)), fingerprints.GetValueOrDefault(app)));
 
         var packagesDirectory = Path.Combine(dropDirectory, PackagesDirectory);
         var packages = (Directory.Exists(packagesDirectory) ? Directory.EnumerateFiles(packagesDirectory, "*.nupkg") : [])
             .Select(package =>
             {
                 var (id, packageVersion) = PackageIdentity(package);
-                return new DropArtifact(DropArtifact.Package, id, $"{PackagesDirectory}/{Path.GetFileName(package)}", packageVersion, FileDigest(package));
+                return new DropArtifact(
+                    DropArtifact.Package, id, $"{PackagesDirectory}/{Path.GetFileName(package)}", packageVersion, FileDigest(package), fingerprints.GetValueOrDefault(id));
             });
 
         return new DropManifest(

@@ -228,6 +228,11 @@ internal sealed class FakeToolchain : IToolchain
 
     public List<string> Published { get; } = [];
 
+    /// <summary>
+    /// Gets what publishing writes into the drop besides <c>published.txt</c>, if anything.
+    /// </summary>
+    public Action<string>? PublishInto { get; init; }
+
     public string Name => DotNetToolchain.ToolchainName;
 
     public IReadOnlyList<string> OutputDirectories => ["bin", "obj"];
@@ -274,6 +279,7 @@ internal sealed class FakeToolchain : IToolchain
     {
         Published.AddRange(entries.Select(entry => entry.ProjectPath));
         File.WriteAllText(Path.Combine(dropDirectory, "published.txt"), version);
+        PublishInto?.Invoke(dropDirectory);
         return PublishExitCode;
     }
 

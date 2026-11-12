@@ -141,6 +141,14 @@ internal interface IToolchain : IDisposable
     IReadOnlyList<TestVariant> TestVariants(PlanEntry entry) => [new TestVariant("", entry)];
 
     /// <summary>
+    /// Returns the name a release drops a project's deployable output under: its app's directory,
+    /// or its package's id.
+    /// </summary>
+    /// <param name="entry">The project.</param>
+    /// <returns>The name; the project's file name unless the toolchain knows better.</returns>
+    string DeployedName(PlanEntry entry) => Path.GetFileNameWithoutExtension(entry.ProjectPath);
+
+    /// <summary>
     /// Runs one built test project, collecting coverage into <paramref name="resultsDirectory"/>.
     /// </summary>
     /// <exception cref="InvalidOperationException">The project's test executable has not been built.</exception>
