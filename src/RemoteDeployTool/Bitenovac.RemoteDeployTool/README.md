@@ -15,7 +15,8 @@ remotedeploytool drops                  every drop, newest first
 remotedeploytool show [drop]            what a drop holds; the newest when none is named
 remotedeploytool changes <from> [to]    what differs from one drop to another, the newest by default
 remotedeploytool nuget <package>... [--drop <drop>] [--same-version]
-remotedeploytool pages <app> <site> [--drop <drop>]
+remotedeploytool pages <app> <site> [--drop <drop> | --from <target>]
+remotedeploytool cloudflare <app> --project <name> [--branch <branch>] [--drop <drop>]
 remotedeploytool status
 remotedeploytool record <target> <artifact> [--drop <drop>] [--failed <reason>]
 ```
@@ -45,6 +46,23 @@ GitHub Pages site, for a site served from the root of its domain:
 - `404.html` is a copy of `index.html`, so a reloaded deep link reaches the app, which routes it.
 - `.nojekyll` stops Pages running Jekyll, which would drop `_framework`.
 
+## Staging on Cloudflare Pages, and promoting
+
+`cloudflare` deploys a drop's web app to a branch of a Cloudflare Pages project, `main` by
+default, with Wrangler 4.155.0. It uploads the very site `pages` prepares, so what staging serves is
+what production will. It needs Node 22.12 or later for `npx`, and `CLOUDFLARE_API_TOKEN`, a token
+that may edit Cloudflare Pages, and `CLOUDFLARE_ACCOUNT_ID`. The project must exist; the deployment
+is recorded in the ledger as `cloudflare-pages:<project>/<branch>`.
+
+`pages <app> <site> --from <target>` prepares the site from the drop the ledger says last went
+through to that target, so promoting staging to production is
+
+```
+remotedeploytool pages Bitenovac.DecompressionCalculator.Web site --from cloudflare-pages:planner-staging/main
+```
+
+followed by publishing the site and recording it with `record github-pages`.
+
 ## The ledger
 
 With `REMOTEDEPLOYTOOL_LEDGER_DIR` set, every deployment is recorded there as JSON lines, under
@@ -67,6 +85,8 @@ through, when, on which machine and in which build.
 | `NUGET_API_KEY` | none | The feed's key; required for a feed on the web. |
 | `REMOTEDEPLOYTOOL_LEDGER_DIR` | none | Where the ledger of deployments is kept; none is kept without it. |
 | `REMOTEDEPLOYTOOL_MACHINE` | this machine's name | The machine the ledger names. |
+| `CLOUDFLARE_API_TOKEN` | none | A token that may edit Cloudflare Pages; required by `cloudflare`. |
+| `CLOUDFLARE_ACCOUNT_ID` | none | The Cloudflare account; required by `cloudflare`. |
 
 ## License
 

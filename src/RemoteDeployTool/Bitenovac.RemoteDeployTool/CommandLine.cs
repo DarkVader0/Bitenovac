@@ -34,6 +34,8 @@ internal static class CommandLine
                 ["record", var target, var artifact, .. var rest] => Record(options, target, artifact, rest, output, services),
                 ["pages", var app, var site] => PagesSite.Prepare(Drops.Resolve(options, null), app, site, output),
                 ["pages", var app, var site, "--drop", var drop] => PagesSite.Prepare(Drops.Resolve(options, drop), app, site, output),
+                ["pages", var app, var site, "--from", var target] => PagesSite.Prepare(Promoted(options, target, app), app, site, output),
+                ["cloudflare", var app, .. var rest] => Cloudflare(options, app, rest, read, output, services),
                 ["--help" or "-h"] => Usage(output, 0),
                 ["--version"] => Version(output),
                 _ => Fail(output, $"'{string.Join(' ', args)}' is not a command. Run 'remotedeploytool --help'."),
@@ -125,6 +127,49 @@ internal static class CommandLine
             return Fail(output, $"NUGET_API_KEY is not set; {options.NuGetSource} takes packages only with a key.");
 
         return NuGetDeploy.Run(Drops.Resolve(options, drop), patterns, sameVersion, services.FeedFor(options), output, options, services.Time);
+    }
+
+    // Promoting takes what a target, such as staging, last got and went through.
+    private static string Promoted(DeployOptions options, string target, string app)
+    {
+        var ledger = options.Ledger ?? throw new InvalidOperationException("REMOTEDEPLOYTOOL_LEDGER_DIR is not set, so there is no ledger to promote from.");
+        var deployed = ledger.LastSucceeded(target, app)
+            ?? throw new InvalidOperationException($"{app} has never gone through to {target}, so there is nothing to promote.");
+
+        return Drops.Resolve(options, deployed.Drop);
+    }
+
+    private static int Cloudflare(DeployOptions options, string app, string[] arguments, Func<string, string?> read, PipelineOutput output, DeployServices services)
+    {
+        string? project = null;
+        var branch = "main";
+        string? drop = null;
+        for (var index = 0; index < arguments.Length; index++)
+        {
+            switch (arguments[index])
+            {
+                case "--project" when index + 1 < arguments.Length:
+                    project = arguments[++index];
+                    break;
+                case "--branch" when index + 1 < arguments.Length:
+                    branch = arguments[++index];
+                    break;
+                case "--drop" when index + 1 < arguments.Length:
+                    drop = arguments[++index];
+                    break;
+                case var unknown:
+                    return Fail(output, $"'{unknown}' is not an option of cloudflare, or it needs a value. Run 'remotedeploytool --help'.");
+            }
+        }
+
+        if (project is null)
+            return Fail(output, "name the Cloudflare Pages project with --project.");
+
+        var missing = new[] { "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID" }.Where(name => read(name) is not { Length: > 0 }).ToList();
+        if (missing.Count > 0)
+            return Fail(output, $"{string.Join(" and ", missing)} must be set for Wrangler to reach Cloudflare.");
+
+        return CloudflarePagesDeploy.Run(Drops.Resolve(options, drop), app, project, branch, options, services, output);
     }
 
     private static int Status(DeployOptions options, PipelineOutput output)
@@ -224,6 +269,12 @@ internal static class CommandLine
               remotedeploytool pages <app> <site> [--drop <drop>]
                                                       Write a drop's web app into an empty directory as a GitHub
                                                       Pages site; the newest drop by default
+              remotedeploytool pages <app> <site> --from <target>
+                                                      The same, from the drop the ledger says last went through
+                                                      to a target, such as staging: a promote
+              remotedeploytool cloudflare <app> --project <name> [--branch <branch>] [--drop <drop>]
+                                                      Deploy a drop's web app to a Cloudflare Pages project with
+                                                      Wrangler; branch main and the newest drop by default
               remotedeploytool status                 Where each artifact stands on each target, from the ledger
               remotedeploytool record <target> <artifact> [--drop <drop>] [--failed <reason>]
                                                       Record a deployment made by something else, such as a
@@ -237,6 +288,8 @@ internal static class CommandLine
               NUGET_API_KEY                   The feed's key; required for a feed on the web
               REMOTEDEPLOYTOOL_LEDGER_DIR     Where the ledger of deployments is kept (default: none kept)
               REMOTEDEPLOYTOOL_MACHINE        The machine the ledger names (default: this one's name)
+              CLOUDFLARE_API_TOKEN            A token that may edit Cloudflare Pages; required by cloudflare
+              CLOUDFLARE_ACCOUNT_ID           The Cloudflare account; required by cloudflare
             """);
         return exitCode;
     }

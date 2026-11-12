@@ -518,6 +518,182 @@ public sealed class CommandLineTests
         Assert.Contains($"'{option}' is not an option of record, or it needs a value.", output.Error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Pages_ShouldWriteTheDropLastDeployedToTheTarget_WhenPromotingFromIt()
+    {
+        // Arrange
+        // Staging last took 2026.10.07.001; a newer drop exists, and a later staging attempt failed.
+        using var directory = TestFactory.Directory();
+        foreach (var (drop, title) in new[] { ("2026.10.07.001", "staged"), ("2026.10.08.001", "newer") })
+        {
+            var path = TestFactory.Drop(directory.Path, TestFactory.Manifest(drop, TestFactory.App("Web", "aaa")));
+            TestFactory.WriteFile(Path.Combine(path, "apps/Web/wwwroot/index.html"), title);
+        }
+
+        var environment = Ledgered(directory, directory.Combine("ledger"));
+        CommandLine.Run(["record", "cloudflare-pages:planner-staging/main", "Web", "--drop", "2026.10.07.001"], TestFactory.Silence(), environment);
+        CommandLine.Run(["record", "cloudflare-pages:planner-staging/main", "Web", "--failed", "upload timed out"], TestFactory.Silence(), environment);
+
+        // Act
+        var exitCode = CommandLine.Run(["pages", "Web", directory.Combine("site"), "--from", "cloudflare-pages:planner-staging/main"], TestFactory.Silence(), environment);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal("staged", File.ReadAllText(directory.Combine("site/index.html")));
+    }
+
+    [Fact]
+    public void Pages_ShouldFail_WhenTheAppNeverWentThroughToTheTarget()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.Drop(directory.Path, TestFactory.Manifest("2026.10.08.001", TestFactory.App("Web", "aaa")));
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["pages", "Web", directory.Combine("site"), "--from", "staging"], output.Pipeline, Ledgered(directory, directory.Combine("ledger")));
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Contains("Web has never gone through to staging, so there is nothing to promote.", output.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pages_ShouldFail_WhenPromotingWithoutALedger()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["pages", "Web", directory.Combine("site"), "--from", "staging"], output.Pipeline, TestFactory.Environment(directory.Path));
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Contains("REMOTEDEPLOYTOOL_LEDGER_DIR is not set, so there is no ledger to promote from.", output.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Cloudflare_ShouldDeployTheNamedDropToTheBranchGiven_WhenCloudflareIsReachable()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        foreach (var drop in new[] { "2026.10.07.001", "2026.10.08.001" })
+        {
+            var path = TestFactory.Drop(directory.Path, TestFactory.Manifest(drop, TestFactory.App("Web", "aaa")));
+            TestFactory.WriteFile(Path.Combine(path, "apps/Web/wwwroot/index.html"), drop);
+        }
+
+        var calls = new List<IReadOnlyList<string>>();
+        var services = new DeployServices { Run = (_, arguments, _) => { calls.Add(arguments); return (0, ""); } };
+
+        // Act
+        var exitCode = CommandLine.Run(
+            ["cloudflare", "Web", "--project", "planner-staging", "--branch", "preview", "--drop", "2026.10.07.001"],
+            TestFactory.Silence(),
+            WithCloudflare(directory),
+            services);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        var arguments = Assert.Single(calls);
+        Assert.Equal(("planner-staging", "preview", "Drop 2026.10.07.001"), (arguments[6], arguments[8], arguments[^1]));
+    }
+
+    [Fact]
+    public void Cloudflare_ShouldDeployTheNewestDropToMain_WhenNeitherIsNamed()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        foreach (var drop in new[] { "2026.10.07.001", "2026.10.08.001" })
+        {
+            var path = TestFactory.Drop(directory.Path, TestFactory.Manifest(drop, TestFactory.App("Web", "aaa")));
+            TestFactory.WriteFile(Path.Combine(path, "apps/Web/wwwroot/index.html"), drop);
+        }
+
+        var calls = new List<IReadOnlyList<string>>();
+        var services = new DeployServices { Run = (_, arguments, _) => { calls.Add(arguments); return (0, ""); } };
+
+        // Act
+        var exitCode = CommandLine.Run(["cloudflare", "Web", "--project", "planner-staging"], TestFactory.Silence(), WithCloudflare(directory), services);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        var arguments = Assert.Single(calls);
+        Assert.Equal(("main", "Drop 2026.10.08.001"), (arguments[8], arguments[^1]));
+    }
+
+    [Theory]
+    [InlineData(null, null, "CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must be set for Wrangler to reach Cloudflare.")]
+    [InlineData("token", "", "CLOUDFLARE_ACCOUNT_ID must be set for Wrangler to reach Cloudflare.")]
+    [InlineData("", "account", "CLOUDFLARE_API_TOKEN must be set for Wrangler to reach Cloudflare.")]
+    public void Cloudflare_ShouldFailWithoutRunningWrangler_WhenCloudflareCannotBeReached(string? token, string? account, string expected)
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var calls = 0;
+        var services = new DeployServices { Run = (_, _, _) => { calls++; return (0, ""); } };
+        var output = new CapturedOutput();
+        string? Read(string name) => name switch
+        {
+            "REMOTEDEPLOYTOOL_DROP_ROOT" => directory.Path,
+            "CLOUDFLARE_API_TOKEN" => token,
+            "CLOUDFLARE_ACCOUNT_ID" => account,
+            _ => null,
+        };
+
+        // Act
+        var exitCode = CommandLine.Run(["cloudflare", "Web", "--project", "planner-staging"], output.Pipeline, Read, services);
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Equal(0, calls);
+        Assert.Contains(expected, output.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Cloudflare_ShouldFail_WhenNoProjectIsNamed()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["cloudflare", "Web", "--branch", "main"], output.Pipeline, WithCloudflare(directory));
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Contains("name the Cloudflare Pages project with --project.", output.Error, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("--project")]
+    [InlineData("--branch")]
+    [InlineData("--drop")]
+    [InlineData("--force")]
+    public void Cloudflare_ShouldFailNamingTheOption_WhenItIsUnknownOrHasNoValue(string option)
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["cloudflare", "Web", option], output.Pipeline, WithCloudflare(directory));
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Contains($"'{option}' is not an option of cloudflare, or it needs a value.", output.Error, StringComparison.Ordinal);
+    }
+
+    private static Func<string, string?> WithCloudflare(TemporaryDirectory directory) =>
+        name => name switch
+        {
+            "REMOTEDEPLOYTOOL_DROP_ROOT" => directory.Path,
+            "CLOUDFLARE_API_TOKEN" => "token",
+            "CLOUDFLARE_ACCOUNT_ID" => "account",
+            _ => null,
+        };
+
     private static Func<string, string?> Ledgered(TemporaryDirectory directory, string ledger) =>
         name => name switch
         {
