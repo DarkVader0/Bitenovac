@@ -246,6 +246,110 @@ public sealed class CommandLineTests
             Lines(output.Out));
     }
 
+    [Fact]
+    public void NuGet_ShouldPushFromTheNamedDropToTheFeedGiven_WhenTheFeedIsADirectory()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.Drop(directory.Path, TestFactory.Manifest("2026.10.07.001", TestFactory.Package("Lib", "1.0.0", "aaa")));
+        TestFactory.Drop(directory.Path, TestFactory.Manifest("2026.10.08.001", TestFactory.Package("Lib", "1.1.0", "bbb")));
+        var feed = directory.Combine("feed");
+        var pushed = new List<string>();
+
+        // Act
+        var exitCode = CommandLine.Run(
+            ["nuget", "Lib", "--drop", "2026.10.07.001", "--same-version"],
+            TestFactory.Silence(),
+            TestFactory.Environment(directory.Path, feed, apiKey: null),
+            options => new RecordingFeed(options.NuGetSource, pushed));
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal([$"{feed} <- Lib.1.0.0.nupkg"], pushed);
+    }
+
+    [Theory]
+    [InlineData("local-feed", null)]
+    [InlineData("https://feed.test/v3/index.json", "key")]
+    public void NuGet_ShouldPushFromTheNewestDrop_WhenTheFeedHasWhatItNeeds(string source, string? apiKey)
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.Drop(directory.Path, TestFactory.Manifest("2026.10.07.001", TestFactory.Package("Lib", "1.0.0", "aaa")));
+        TestFactory.Drop(directory.Path, TestFactory.Manifest("2026.10.08.001", TestFactory.Package("Lib", "1.1.0", "bbb")));
+        var pushed = new List<string>();
+
+        // Act
+        var exitCode = CommandLine.Run(
+            ["nuget", "Lib"],
+            TestFactory.Silence(),
+            TestFactory.Environment(directory.Path, source, apiKey),
+            options => new RecordingFeed(options.NuGetSource, pushed));
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal([$"{source} <- Lib.1.1.0.nupkg"], pushed);
+    }
+
+    [Fact]
+    public void NuGet_ShouldFailWithoutPushing_WhenAFeedOnTheWebHasNoKey()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.Drop(directory.Path, TestFactory.Manifest("2026.10.08.001", TestFactory.Package("Lib", "1.1.0", "bbb")));
+        var pushed = new List<string>();
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["nuget", "Lib"], output.Pipeline, TestFactory.Environment(directory.Path), options => new RecordingFeed(options.NuGetSource, pushed));
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Empty(pushed);
+        Assert.Contains("NUGET_API_KEY is not set; https://api.nuget.org/v3/index.json takes packages only with a key.", output.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NuGet_ShouldFail_WhenNoPackageIsNamed()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["nuget", "--same-version"], output.Pipeline, TestFactory.Environment(directory.Path, "feed", null));
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Contains("name the packages to push, as an id or a prefix such as Bitenovac.DecompressionCalculator.*.", output.Error, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("--force")]
+    [InlineData("--drop")]
+    public void NuGet_ShouldFailNamingTheOption_WhenItIsUnknownOrHasNoValue(string option)
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = CommandLine.Run(["nuget", "Lib", option], output.Pipeline, TestFactory.Environment(directory.Path, "feed", null));
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Contains($"'{option}' is not an option of nuget, or it needs a value.", output.Error, StringComparison.Ordinal);
+    }
+
+    private sealed class RecordingFeed(string source, List<string> pushed) : IPackageFeed
+    {
+        public PushOutcome Push(string packagePath, string id, string version)
+        {
+            pushed.Add($"{source} <- {Path.GetFileName(packagePath)}");
+            return PushOutcome.Pushed;
+        }
+    }
+
     private static string[] Lines(string text) =>
         text.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 }

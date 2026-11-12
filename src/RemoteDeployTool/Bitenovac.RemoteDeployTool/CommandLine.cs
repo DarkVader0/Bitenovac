@@ -13,10 +13,12 @@ internal static class CommandLine
     /// <param name="args">The command and its arguments.</param>
     /// <param name="output">Where the command reports.</param>
     /// <param name="read">Reads an environment variable.</param>
+    /// <param name="feedFor">The NuGet feed to push to, given the options; <c>dotnet nuget push</c> to their feed when omitted.</param>
     /// <returns>Zero on success, one on failure.</returns>
-    public static int Run(string[] args, PipelineOutput output, Func<string, string?> read)
+    public static int Run(string[] args, PipelineOutput output, Func<string, string?> read, Func<DeployOptions, IPackageFeed>? feedFor = null)
     {
         var options = DeployOptions.FromEnvironment(read, Directory.GetCurrentDirectory());
+        feedFor ??= deploy => new DotNetPackageFeed(deploy.NuGetSource, deploy.NuGetApiKey);
         try
         {
             return args switch
@@ -27,6 +29,7 @@ internal static class CommandLine
                 ["show", var drop] => Show(options, drop, output),
                 ["changes", var from] => Changes(options, from, null, output),
                 ["changes", var from, var to] => Changes(options, from, to, output),
+                ["nuget", .. var rest] => NuGet(options, rest, output, feedFor),
                 ["--help" or "-h"] => Usage(output, 0),
                 ["--version"] => Version(output),
                 _ => Fail(output, $"'{string.Join(' ', args)}' is not a command. Run 'remotedeploytool --help'."),
@@ -88,6 +91,38 @@ internal static class CommandLine
         return 0;
     }
 
+    private static int NuGet(DeployOptions options, string[] arguments, PipelineOutput output, Func<DeployOptions, IPackageFeed> feedFor)
+    {
+        string? drop = null;
+        var sameVersion = false;
+        var patterns = new List<string>();
+        for (var index = 0; index < arguments.Length; index++)
+        {
+            switch (arguments[index])
+            {
+                case "--drop" when index + 1 < arguments.Length:
+                    drop = arguments[++index];
+                    break;
+                case "--same-version":
+                    sameVersion = true;
+                    break;
+                case var option when option.StartsWith("--", StringComparison.Ordinal):
+                    return Fail(output, $"'{option}' is not an option of nuget, or it needs a value. Run 'remotedeploytool --help'.");
+                case var pattern:
+                    patterns.Add(pattern);
+                    break;
+            }
+        }
+
+        if (patterns.Count == 0)
+            return Fail(output, "name the packages to push, as an id or a prefix such as Bitenovac.DecompressionCalculator.*.");
+
+        if (options.NuGetApiKey is null && DotNetPackageFeed.IsOnTheWeb(options.NuGetSource))
+            return Fail(output, $"NUGET_API_KEY is not set; {options.NuGetSource} takes packages only with a key.");
+
+        return NuGetDeploy.Run(Drops.Resolve(options, drop), patterns, sameVersion, feedFor(options), output);
+    }
+
     private static string Describe(DropManifest manifest) =>
         string.Create(
             CultureInfo.InvariantCulture,
@@ -116,11 +151,16 @@ internal static class CommandLine
               remotedeploytool drops                  List every drop, newest first
               remotedeploytool show [drop]            What a drop holds; the newest when none is named
               remotedeploytool changes <from> [to]    What differs from one drop to another, the newest by default
+              remotedeploytool nuget <package>... [--drop <drop>] [--same-version]
+                                                      Push a drop's packages, by id or by a prefix such as
+                                                      Bitenovac.DecompressionCalculator.*; the newest drop by default
               remotedeploytool --version              Print the version
               remotedeploytool --help                 Print this help
 
             Environment:
-              REMOTEDEPLOYTOOL_DROP_ROOT   Where the drops are (default: artifacts/official)
+              REMOTEDEPLOYTOOL_DROP_ROOT      Where the drops are (default: artifacts/official)
+              REMOTEDEPLOYTOOL_NUGET_SOURCE   Where packages are pushed (default: nuget.org)
+              NUGET_API_KEY                   The feed's key; required for a feed on the web
             """);
         return exitCode;
     }

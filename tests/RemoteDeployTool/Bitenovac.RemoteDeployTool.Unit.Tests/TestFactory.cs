@@ -33,6 +33,23 @@ internal static class TestFactory
     /// </summary>
     public static Func<string, string?> Environment(string dropRoot) =>
         name => name == "REMOTEDEPLOYTOOL_DROP_ROOT" ? dropRoot : null;
+
+    /// <summary>
+    /// Returns an environment that names the drop root, the NuGet feed and its key.
+    /// </summary>
+    public static Func<string, string?> Environment(string dropRoot, string? source, string? apiKey) =>
+        name => name switch
+        {
+            "REMOTEDEPLOYTOOL_DROP_ROOT" => dropRoot,
+            "REMOTEDEPLOYTOOL_NUGET_SOURCE" => source,
+            "NUGET_API_KEY" => apiKey,
+            _ => null,
+        };
+
+    /// <summary>
+    /// Creates an output that discards everything written to it.
+    /// </summary>
+    public static PipelineOutput Silence() => new(TextWriter.Null, TextWriter.Null);
 }
 
 /// <summary>
