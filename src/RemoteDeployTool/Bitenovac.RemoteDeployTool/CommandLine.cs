@@ -30,6 +30,8 @@ internal static class CommandLine
                 ["changes", var from] => Changes(options, from, null, output),
                 ["changes", var from, var to] => Changes(options, from, to, output),
                 ["nuget", .. var rest] => NuGet(options, rest, output, feedFor),
+                ["pages", var app, var site] => PagesSite.Prepare(Drops.Resolve(options, null), app, site, output),
+                ["pages", var app, var site, "--drop", var drop] => PagesSite.Prepare(Drops.Resolve(options, drop), app, site, output),
                 ["--help" or "-h"] => Usage(output, 0),
                 ["--version"] => Version(output),
                 _ => Fail(output, $"'{string.Join(' ', args)}' is not a command. Run 'remotedeploytool --help'."),
@@ -154,6 +156,9 @@ internal static class CommandLine
               remotedeploytool nuget <package>... [--drop <drop>] [--same-version]
                                                       Push a drop's packages, by id or by a prefix such as
                                                       Bitenovac.DecompressionCalculator.*; the newest drop by default
+              remotedeploytool pages <app> <site> [--drop <drop>]
+                                                      Write a drop's web app into an empty directory as a GitHub
+                                                      Pages site; the newest drop by default
               remotedeploytool --version              Print the version
               remotedeploytool --help                 Print this help
 

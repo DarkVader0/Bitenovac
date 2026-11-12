@@ -53,6 +53,8 @@ public sealed class CommandLineTests
     [InlineData("deploy")]
     [InlineData("drops", "extra")]
     [InlineData("changes")]
+    [InlineData("pages", "Web")]
+    [InlineData("pages", "Web", "site", "--force")]
     public void Run_ShouldFailNamingWhatWasGiven_WhenItIsNotACommand(params string[] arguments)
     {
         // Arrange
@@ -339,6 +341,45 @@ public sealed class CommandLineTests
         // Assert
         Assert.Equal(1, exitCode);
         Assert.Contains($"'{option}' is not an option of nuget, or it needs a value.", output.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pages_ShouldWriteTheNewestDropsApp_WhenNoDropIsNamed()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        foreach (var (drop, title) in new[] { ("2026.10.07.001", "older"), ("2026.10.08.001", "newer") })
+        {
+            var path = TestFactory.Drop(directory.Path, TestFactory.Manifest(drop, TestFactory.App("Web", "aaa")));
+            TestFactory.WriteFile(Path.Combine(path, "apps/Web/wwwroot/index.html"), title);
+        }
+
+        // Act
+        var exitCode = CommandLine.Run(["pages", "Web", directory.Combine("site")], TestFactory.Silence(), TestFactory.Environment(directory.Path));
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal("newer", File.ReadAllText(directory.Combine("site/index.html")));
+    }
+
+    [Fact]
+    public void Pages_ShouldWriteTheNamedDropsApp_WhenADropIsNamed()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        foreach (var (drop, title) in new[] { ("2026.10.07.001", "older"), ("2026.10.08.001", "newer") })
+        {
+            var path = TestFactory.Drop(directory.Path, TestFactory.Manifest(drop, TestFactory.App("Web", "aaa")));
+            TestFactory.WriteFile(Path.Combine(path, "apps/Web/wwwroot/index.html"), title);
+        }
+
+        // Act
+        var exitCode = CommandLine.Run(
+            ["pages", "Web", directory.Combine("site"), "--drop", "2026.10.07.001"], TestFactory.Silence(), TestFactory.Environment(directory.Path));
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal("older", File.ReadAllText(directory.Combine("site/index.html")));
     }
 
     private sealed class RecordingFeed(string source, List<string> pushed) : IPackageFeed

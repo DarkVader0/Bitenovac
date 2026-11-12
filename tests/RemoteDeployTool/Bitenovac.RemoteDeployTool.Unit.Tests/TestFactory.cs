@@ -47,6 +47,16 @@ internal static class TestFactory
         };
 
     /// <summary>
+    /// Writes <paramref name="content"/> to <paramref name="path"/>, creating its directory.
+    /// </summary>
+    public static string WriteFile(string path, string content)
+    {
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, content);
+        return path;
+    }
+
+    /// <summary>
     /// Creates an output that discards everything written to it.
     /// </summary>
     public static PipelineOutput Silence() => new(TextWriter.Null, TextWriter.Null);
