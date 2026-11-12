@@ -21,7 +21,7 @@ jobs:
   deploy:
     name: Deploy
     runs-on: [self-hosted, linux, x64, bitenovac]
-    timeout-minutes: 1
+    timeout-minutes: 3
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -29,9 +29,14 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Prepare
+        id: prepare
         env:
           DROP: ${{ inputs.drop }}
-        run: bash src/DecompressionCalculator/deploy_web.sh "${RUNNER_TEMP}/site" "${DROP}"
+        run: |
+          set -euo pipefail
+          args=(pages Bitenovac.DecompressionCalculator.Web "${RUNNER_TEMP}/site")
+          [[ -z "${DROP}" ]] || args+=(--drop "${DROP}")
+          bash deploy/remotedeploytool.sh "${args[@]}"
 
       - name: Upload
         uses: actions/upload-pages-artifact@v5
@@ -42,3 +47,15 @@ jobs:
       - name: Publish
         id: deployment
         uses: actions/deploy-pages@v5
+
+      - name: Record
+        if: success()
+        env:
+          DROP: ${{ steps.prepare.outputs.drop }}
+        run: bash deploy/remotedeploytool.sh record github-pages Bitenovac.DecompressionCalculator.Web --drop "${DROP}"
+
+      - name: Record the failure
+        if: failure() && steps.prepare.outputs.drop != '' && steps.deployment.outcome != 'success'
+        env:
+          DROP: ${{ steps.prepare.outputs.drop }}
+        run: bash deploy/remotedeploytool.sh record github-pages Bitenovac.DecompressionCalculator.Web --drop "${DROP}" --failed "the Pages deployment did not go through"
