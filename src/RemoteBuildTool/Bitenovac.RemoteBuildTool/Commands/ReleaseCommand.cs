@@ -59,7 +59,9 @@ internal static class ReleaseCommand
                 }
             }
 
-            BuildGraphFile.Write(staging, options.Identity ?? BuildIdentity.FromEnvironment(_ => null), plan.ByConfiguration);
+            var identity = options.Identity ?? BuildIdentity.FromEnvironment(_ => null);
+            BuildGraphFile.Write(staging, identity, plan.ByConfiguration);
+            DropManifest.Describe(staging, version, identity.Sha, identity.BuildId, DateTimeOffset.UtcNow).Write(staging);
             Directory.Move(staging, drop);
         }
         finally

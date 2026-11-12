@@ -28,6 +28,11 @@ public sealed class ReleaseCommandIntegrationTests
         Assert.True(File.Exists(Path.Combine(drop, "packages", "Lib.2026.10.7.1.nupkg")));
         Assert.True(File.Exists(Path.Combine(drop, "apps", "App", "App.dll")));
         Assert.DoesNotContain(Directory.EnumerateFileSystemEntries(drop, "*", SearchOption.AllDirectories), path => path.Contains("Lib.Tests", StringComparison.Ordinal));
+        var manifest = DropManifest.Read(drop);
+        Assert.Equal("2026.10.07.001", manifest.Version);
+        Assert.Equal(
+            [("app", "App", "apps/App", null), ("package", "Lib", "packages/Lib.2026.10.7.1.nupkg", "2026.10.7.1")],
+            manifest.Artifacts.Select(artifact => (artifact.Kind, artifact.Name, artifact.Path, artifact.Version)));
         Assert.False(Directory.Exists(fixture.Combine("tests/Lib.Tests/bin/Release")));
         Assert.Equal([drop], Directory.EnumerateFileSystemEntries(fixture.Options.DropRoot));
     }

@@ -262,6 +262,8 @@ run with the cache off, under the next version: the date and a counter, such as 
 - `packages/`: every other project with `<IsPackable>true</IsPackable>`, packed, .NET tools
   included.
 - `build-graph.json`: the plan the release was built from.
+- `manifest.json`: every app and package in the drop, with its version and a SHA-256, for whatever
+  deploys from it. Two drops hold the same artifact exactly when its SHA-256 matches.
 
 The version is only a default: a project that sets its own `<VersionPrefix>` keeps it. A release
 that fails drops nothing and does not use up its number.
