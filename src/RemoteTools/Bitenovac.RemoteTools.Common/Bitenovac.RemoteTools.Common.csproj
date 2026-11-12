@@ -10,6 +10,8 @@
         <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Unit.Tests"/>
         <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Service.Unit.Tests"/>
         <InternalsVisibleTo Include="Bitenovac.RemoteBuildTool.Integration.Tests"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteDeployTool"/>
+        <InternalsVisibleTo Include="Bitenovac.RemoteDeployTool.Unit.Tests"/>
         <InternalsVisibleTo Include="Bitenovac.RemoteTools.Common.Unit.Tests"/>
     </ItemGroup>
 

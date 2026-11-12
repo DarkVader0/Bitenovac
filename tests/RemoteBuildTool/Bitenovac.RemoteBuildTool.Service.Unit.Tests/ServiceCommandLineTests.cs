@@ -47,7 +47,7 @@ public sealed class ServiceCommandLineTests : IDisposable
     {
         // Arrange
         var service = typeof(ServiceCommandLine).Assembly;
-        var expected = ToolVersion.Of(service.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion, service.GetName().Version);
+        var expected = ProductVersion.Of(service.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion, service.GetName().Version);
         var output = new CapturedOutput();
 
         // Act
