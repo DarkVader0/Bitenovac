@@ -44,6 +44,42 @@ public sealed class DeployOptionsTests
     }
 
     [Fact]
+    public void FromEnvironment_ShouldKeepNoLedgerAndNameThisMachine_WhenNothingIsSet()
+    {
+        // Arrange
+        string? Read(string name) => null;
+
+        // Act
+        var options = DeployOptions.FromEnvironment(Read, "/repo");
+
+        // Assert
+        Assert.Equal(((string?)null, (Ledger?)null, Environment.MachineName, (string?)null), (options.LedgerRoot, options.Ledger, options.Machine, options.BuildId));
+    }
+
+    [Theory]
+    [InlineData("3", "555-3")]
+    [InlineData(null, "555-1")]
+    public void FromEnvironment_ShouldNameTheLedgerMachineAndBuild_WhenTheyAreSet(string? attempt, string expectedBuild)
+    {
+        // Arrange
+        string? Read(string name) => name switch
+        {
+            "REMOTEDEPLOYTOOL_LEDGER_DIR" => "/srv/ledger",
+            "REMOTEDEPLOYTOOL_MACHINE" => "host-2",
+            "GITHUB_RUN_ID" => "555",
+            "GITHUB_RUN_ATTEMPT" => attempt,
+            _ => null,
+        };
+
+        // Act
+        var options = DeployOptions.FromEnvironment(Read, "/repo");
+
+        // Assert
+        Assert.Equal(("/srv/ledger", "host-2", expectedBuild), (options.LedgerRoot, options.Machine, options.BuildId));
+        Assert.NotNull(options.Ledger);
+    }
+
+    [Fact]
     public void FromEnvironment_ShouldUseTheFeedAndKeyGiven_WhenBothAreSet()
     {
         // Arrange

@@ -57,6 +57,25 @@ internal static class TestFactory
     }
 
     /// <summary>
+    /// Creates options that keep the ledger in <paramref name="ledgerRoot"/>, or none.
+    /// </summary>
+    public static DeployOptions Options(string? ledgerRoot = null) =>
+        new("drops", "https://feed.test/v3/index.json", "key", ledgerRoot, "host-1", "100-1");
+
+    /// <summary>
+    /// Creates a ledger row of an app that went through.
+    /// </summary>
+    public static DeploymentInfo Deployment(string target, string artifact, string drop, DateTimeOffset time) => new()
+    {
+        Target = target,
+        Kind = DropArtifact.App,
+        Artifact = artifact,
+        Drop = drop,
+        Result = DeploymentInfo.Succeeded,
+        Time = time,
+    };
+
+    /// <summary>
     /// Creates an output that discards everything written to it.
     /// </summary>
     public static PipelineOutput Silence() => new(TextWriter.Null, TextWriter.Null);
@@ -94,4 +113,14 @@ internal sealed class CapturedOutput
     public string Out => _out.ToString();
 
     public string Error => _error.ToString();
+}
+
+/// <summary>
+/// Represents a clock that says what the test sets.
+/// </summary>
+internal sealed class ManualTime(DateTimeOffset now) : TimeProvider
+{
+    public DateTimeOffset Now { get; set; } = now;
+
+    public override DateTimeOffset GetUtcNow() => Now;
 }

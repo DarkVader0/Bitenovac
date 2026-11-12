@@ -13,23 +13,25 @@ internal static class CommandLine
     /// <param name="args">The command and its arguments.</param>
     /// <param name="output">Where the command reports.</param>
     /// <param name="read">Reads an environment variable.</param>
-    /// <param name="feedFor">The NuGet feed to push to, given the options; <c>dotnet nuget push</c> to their feed when omitted.</param>
+    /// <param name="services">What the tool reaches outside itself through; the real feeds, programs and clock when omitted.</param>
     /// <returns>Zero on success, one on failure.</returns>
-    public static int Run(string[] args, PipelineOutput output, Func<string, string?> read, Func<DeployOptions, IPackageFeed>? feedFor = null)
+    public static int Run(string[] args, PipelineOutput output, Func<string, string?> read, DeployServices? services = null)
     {
         var options = DeployOptions.FromEnvironment(read, Directory.GetCurrentDirectory());
-        feedFor ??= deploy => new DotNetPackageFeed(deploy.NuGetSource, deploy.NuGetApiKey);
+        services ??= new DeployServices();
         try
         {
             return args switch
             {
                 [] => Usage(output, 1),
                 ["drops"] => ListDrops(options, output),
+                ["status"] => Status(options, output),
                 ["show"] => Show(options, null, output),
                 ["show", var drop] => Show(options, drop, output),
                 ["changes", var from] => Changes(options, from, null, output),
                 ["changes", var from, var to] => Changes(options, from, to, output),
-                ["nuget", .. var rest] => NuGet(options, rest, output, feedFor),
+                ["nuget", .. var rest] => NuGet(options, rest, output, services),
+                ["record", var target, var artifact, .. var rest] => Record(options, target, artifact, rest, output, services),
                 ["pages", var app, var site] => PagesSite.Prepare(Drops.Resolve(options, null), app, site, output),
                 ["pages", var app, var site, "--drop", var drop] => PagesSite.Prepare(Drops.Resolve(options, drop), app, site, output),
                 ["--help" or "-h"] => Usage(output, 0),
@@ -93,7 +95,7 @@ internal static class CommandLine
         return 0;
     }
 
-    private static int NuGet(DeployOptions options, string[] arguments, PipelineOutput output, Func<DeployOptions, IPackageFeed> feedFor)
+    private static int NuGet(DeployOptions options, string[] arguments, PipelineOutput output, DeployServices services)
     {
         string? drop = null;
         var sameVersion = false;
@@ -122,7 +124,70 @@ internal static class CommandLine
         if (options.NuGetApiKey is null && DotNetPackageFeed.IsOnTheWeb(options.NuGetSource))
             return Fail(output, $"NUGET_API_KEY is not set; {options.NuGetSource} takes packages only with a key.");
 
-        return NuGetDeploy.Run(Drops.Resolve(options, drop), patterns, sameVersion, feedFor(options), output);
+        return NuGetDeploy.Run(Drops.Resolve(options, drop), patterns, sameVersion, services.FeedFor(options), output, options, services.Time);
+    }
+
+    private static int Status(DeployOptions options, PipelineOutput output)
+    {
+        var ledger = options.Ledger ?? throw new InvalidOperationException("REMOTEDEPLOYTOOL_LEDGER_DIR is not set, so no ledger of deployments is kept.");
+        var latest = ledger.All()
+            .GroupBy(deployment => (deployment.Target, deployment.Kind, deployment.Artifact))
+            .OrderBy(group => group.Key.Target, StringComparer.Ordinal)
+            .ThenBy(group => group.Key.Artifact, StringComparer.Ordinal)
+            .ToList();
+        if (latest.Count == 0)
+        {
+            output.WriteLine($"No deployments are recorded in {options.LedgerRoot}.");
+            return 0;
+        }
+
+        foreach (var group in latest)
+        {
+            // The rows are oldest first, so the last of a group is where its artifact stands.
+            var last = group.Last();
+            var line = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{group.Key.Target}  {group.Key.Kind} {Label(group.Key.Artifact, last.Version)}  {last.Drop}  {last.Result}  {last.Time:yyyy-MM-dd HH:mm}Z");
+            if (last.Result == DeploymentInfo.Failed)
+            {
+                line += group.LastOrDefault(deployment => deployment.Result == DeploymentInfo.Succeeded) is { } good
+                    ? $"; {good.Drop} is the last that went through"
+                    : "; none has gone through";
+            }
+
+            output.WriteLine(line);
+        }
+
+        return 0;
+    }
+
+    private static int Record(DeployOptions options, string target, string name, string[] arguments, PipelineOutput output, DeployServices services)
+    {
+        string? drop = null;
+        string? error = null;
+        for (var index = 0; index < arguments.Length; index++)
+        {
+            switch (arguments[index])
+            {
+                case "--drop" when index + 1 < arguments.Length:
+                    drop = arguments[++index];
+                    break;
+                case "--failed" when index + 1 < arguments.Length:
+                    error = arguments[++index];
+                    break;
+                case var unknown:
+                    return Fail(output, $"'{unknown}' is not an option of record, or it needs a value. Run 'remotedeploytool --help'.");
+            }
+        }
+
+        var ledger = options.Ledger ?? throw new InvalidOperationException("REMOTEDEPLOYTOOL_LEDGER_DIR is not set, so there is no ledger to record in.");
+        var manifest = DropManifest.Read(Drops.Resolve(options, drop));
+        var artifact = manifest.Artifacts.FirstOrDefault(artifact => artifact.Name == name)
+            ?? throw new InvalidOperationException($"drop {manifest.Version} holds no {name}.");
+
+        ledger.Record([options.Deployment(target, manifest, artifact, services.Time.GetUtcNow(), error)]);
+        output.WriteLine($"Recorded {name} from drop {manifest.Version} as {(error is null ? DeploymentInfo.Succeeded : DeploymentInfo.Failed)} on {target}.");
+        return 0;
     }
 
     private static string Describe(DropManifest manifest) =>
@@ -159,6 +224,10 @@ internal static class CommandLine
               remotedeploytool pages <app> <site> [--drop <drop>]
                                                       Write a drop's web app into an empty directory as a GitHub
                                                       Pages site; the newest drop by default
+              remotedeploytool status                 Where each artifact stands on each target, from the ledger
+              remotedeploytool record <target> <artifact> [--drop <drop>] [--failed <reason>]
+                                                      Record a deployment made by something else, such as a
+                                                      workflow publishing a Pages site; the newest drop by default
               remotedeploytool --version              Print the version
               remotedeploytool --help                 Print this help
 
@@ -166,6 +235,8 @@ internal static class CommandLine
               REMOTEDEPLOYTOOL_DROP_ROOT      Where the drops are (default: artifacts/official)
               REMOTEDEPLOYTOOL_NUGET_SOURCE   Where packages are pushed (default: nuget.org)
               NUGET_API_KEY                   The feed's key; required for a feed on the web
+              REMOTEDEPLOYTOOL_LEDGER_DIR     Where the ledger of deployments is kept (default: none kept)
+              REMOTEDEPLOYTOOL_MACHINE        The machine the ledger names (default: this one's name)
             """);
         return exitCode;
     }

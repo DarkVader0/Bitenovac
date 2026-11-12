@@ -16,6 +16,8 @@ remotedeploytool show [drop]            what a drop holds; the newest when none 
 remotedeploytool changes <from> [to]    what differs from one drop to another, the newest by default
 remotedeploytool nuget <package>... [--drop <drop>] [--same-version]
 remotedeploytool pages <app> <site> [--drop <drop>]
+remotedeploytool status
+remotedeploytool record <target> <artifact> [--drop <drop>] [--failed <reason>]
 ```
 
 `changes` goes by the fingerprint RemoteBuildTool gives each project, which changes only when what
@@ -43,6 +45,19 @@ GitHub Pages site, for a site served from the root of its domain:
 - `404.html` is a copy of `index.html`, so a reloaded deep link reaches the app, which routes it.
 - `.nojekyll` stops Pages running Jekyll, which would drop `_framework`.
 
+## The ledger
+
+With `REMOTEDEPLOYTOOL_LEDGER_DIR` set, every deployment is recorded there as JSON lines, under
+`deployment/date=<day>/`, the layout RemoteBuildTool's telemetry uses: one row per artifact, naming
+the target, the drop and the commit it came from, the project's fingerprint, whether it went
+through, when, on which machine and in which build.
+
+- `nuget` records each package it pushed, and the one the feed refused. A version the feed already
+  had is not recorded: this push did not put it there.
+- `record` records a deployment made by something else, such as a workflow publishing a Pages site.
+- `status` says where each artifact stands on each target, and for one whose last deployment failed,
+  which drop last went through.
+
 ## Environment
 
 | Variable | Default | Meaning |
@@ -50,6 +65,8 @@ GitHub Pages site, for a site served from the root of its domain:
 | `REMOTEDEPLOYTOOL_DROP_ROOT` | `artifacts/official` | Where the drops are. |
 | `REMOTEDEPLOYTOOL_NUGET_SOURCE` | nuget.org | Where packages are pushed: a feed URL or a directory. |
 | `NUGET_API_KEY` | none | The feed's key; required for a feed on the web. |
+| `REMOTEDEPLOYTOOL_LEDGER_DIR` | none | Where the ledger of deployments is kept; none is kept without it. |
+| `REMOTEDEPLOYTOOL_MACHINE` | this machine's name | The machine the ledger names. |
 
 ## License
 

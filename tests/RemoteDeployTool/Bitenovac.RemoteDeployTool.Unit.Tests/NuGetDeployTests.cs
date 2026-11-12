@@ -17,7 +17,7 @@ public sealed class NuGetDeployTests
         var output = new CapturedOutput();
 
         // Act
-        var exitCode = NuGetDeploy.Run(drop, ["Bitenovac.Calculator.*"], sameVersion: false, feed, output.Pipeline);
+        var exitCode = NuGetDeploy.Run(drop, ["Bitenovac.Calculator.*"], sameVersion: false, feed, output.Pipeline, TestFactory.Options(), TimeProvider.System);
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -41,7 +41,7 @@ public sealed class NuGetDeployTests
         var feed = new FakeFeed();
 
         // Act
-        var exitCode = NuGetDeploy.Run(drop, ["bitenovac.remotebuildtool", "Bitenovac.RemoteBuildTool.Service"], sameVersion: true, feed, TestFactory.Silence());
+        var exitCode = NuGetDeploy.Run(drop, ["bitenovac.remotebuildtool", "Bitenovac.RemoteBuildTool.Service"], sameVersion: true, feed, TestFactory.Silence(), TestFactory.Options(), TimeProvider.System);
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -58,7 +58,7 @@ public sealed class NuGetDeployTests
         var output = new CapturedOutput();
 
         // Act
-        var exitCode = NuGetDeploy.Run(drop, ["Web", "Bitenovac.*"], sameVersion: false, feed, output.Pipeline);
+        var exitCode = NuGetDeploy.Run(drop, ["Web", "Bitenovac.*"], sameVersion: false, feed, output.Pipeline, TestFactory.Options(), TimeProvider.System);
 
         // Assert
         Assert.Equal(1, exitCode);
@@ -79,7 +79,7 @@ public sealed class NuGetDeployTests
         var output = new CapturedOutput();
 
         // Act
-        var exitCode = NuGetDeploy.Run(drop, ["Bitenovac.Calculator.*"], sameVersion: false, feed, output.Pipeline);
+        var exitCode = NuGetDeploy.Run(drop, ["Bitenovac.Calculator.*"], sameVersion: false, feed, output.Pipeline, TestFactory.Options(), TimeProvider.System);
 
         // Assert
         Assert.Equal(1, exitCode);
@@ -102,7 +102,7 @@ public sealed class NuGetDeployTests
         var feed = new FakeFeed();
 
         // Act
-        var exitCode = NuGetDeploy.Run(drop, ["Lib"], sameVersion: false, feed, TestFactory.Silence());
+        var exitCode = NuGetDeploy.Run(drop, ["Lib"], sameVersion: false, feed, TestFactory.Silence(), TestFactory.Options(), TimeProvider.System);
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -122,7 +122,7 @@ public sealed class NuGetDeployTests
         var output = new CapturedOutput();
 
         // Act
-        var exitCode = NuGetDeploy.Run(drop, ["Bitenovac.RemoteBuildTool", "Bitenovac.RemoteBuildTool.Service"], sameVersion: true, feed, output.Pipeline);
+        var exitCode = NuGetDeploy.Run(drop, ["Bitenovac.RemoteBuildTool", "Bitenovac.RemoteBuildTool.Service"], sameVersion: true, feed, output.Pipeline, TestFactory.Options(), TimeProvider.System);
 
         // Assert
         Assert.Equal(1, exitCode);
@@ -146,7 +146,7 @@ public sealed class NuGetDeployTests
         var output = new CapturedOutput();
 
         // Act
-        var exitCode = NuGetDeploy.Run(drop, ["A", "B"], sameVersion: false, feed, output.Pipeline);
+        var exitCode = NuGetDeploy.Run(drop, ["A", "B"], sameVersion: false, feed, output.Pipeline, TestFactory.Options(), TimeProvider.System);
 
         // Assert
         Assert.Equal(0, exitCode);
@@ -164,23 +164,76 @@ public sealed class NuGetDeployTests
         var output = new CapturedOutput();
 
         // Act
-        var exitCode = NuGetDeploy.Run(drop, ["A"], sameVersion: false, feed, output.Pipeline);
+        var exitCode = NuGetDeploy.Run(drop, ["A"], sameVersion: false, feed, output.Pipeline, TestFactory.Options(), TimeProvider.System);
 
         // Assert
         Assert.Equal(1, exitCode);
         Assert.Contains("the feed already has every package of drop 2026.10.08.001 that matches A; raise their <VersionPrefix>.", output.Error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Run_ShouldRecordWhatItPushed_WhenTheFeedAlreadyHadSomeOfIt()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var drop = TestFactory.Drop(directory.Combine("drops"), TestFactory.Manifest(
+            "2026.10.08.001",
+            TestFactory.Package("A", "1.0.0", "aaa") with { Fingerprint = "a-full" },
+            TestFactory.Package("B", "2.0.0", "bbb")));
+        var feed = new FakeFeed { AlreadyThere = { "A.1.0.0.nupkg" } };
+        var options = TestFactory.Options(directory.Combine("ledger"));
+
+        // Act
+        var exitCode = NuGetDeploy.Run(drop, ["A", "B"], sameVersion: false, feed, TestFactory.Silence(), options, new ManualTime(TestFactory.Created));
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        var row = Assert.Single(options.Ledger!.All());
+        Assert.Equal(
+            ("nuget:https://feed.test/v3/index.json", "package", "B", "2.0.0", "2026.10.08.001", "abc1234def", null, "succeeded", TestFactory.Created, "host-1", "100-1"),
+            (row.Target, row.Kind, row.Artifact, row.Version, row.Drop, row.Sha, row.Fingerprint, row.Result, row.Time, row.Machine, row.BuildId));
+    }
+
+    [Fact]
+    public void Run_ShouldRecordThePackageTheFeedRefusedAndStop_WhenAPushFails()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var drop = TestFactory.Drop(directory.Combine("drops"), TestFactory.Manifest(
+            "2026.10.08.001",
+            TestFactory.Package("A", "1.0.0", "aaa"),
+            TestFactory.Package("B", "1.0.0", "bbb"),
+            TestFactory.Package("C", "1.0.0", "ccc")));
+        var feed = new FakeFeed { Refused = { "B.1.0.0.nupkg" } };
+        var options = TestFactory.Options(directory.Combine("ledger"));
+
+        // Act
+        Action act = () => NuGetDeploy.Run(drop, ["A", "B", "C"], sameVersion: false, feed, TestFactory.Silence(), options, new ManualTime(TestFactory.Created));
+
+        // Assert
+        Assert.Equal("the feed refused B.1.0.0.nupkg", Assert.Throws<InvalidOperationException>(act).Message);
+        Assert.Equal(["A.1.0.0.nupkg", "B.1.0.0.nupkg"], feed.Pushed.Select(Path.GetFileName));
+        Assert.Equal(
+            [("A", "succeeded", null), ("B", "failed", "the feed refused B.1.0.0.nupkg")],
+            options.Ledger!.All().Select(row => (row.Artifact, row.Result, row.Error)));
+    }
+
     private sealed class FakeFeed : IPackageFeed
     {
         public HashSet<string> AlreadyThere { get; } = [];
+
+        public HashSet<string> Refused { get; } = [];
 
         public List<string> Pushed { get; } = [];
 
         public PushOutcome Push(string packagePath, string id, string version)
         {
             Pushed.Add(packagePath);
-            return AlreadyThere.Contains(Path.GetFileName(packagePath)) ? PushOutcome.AlreadyThere : PushOutcome.Pushed;
+            var file = Path.GetFileName(packagePath);
+            if (Refused.Contains(file))
+                throw new InvalidOperationException($"the feed refused {file}");
+
+            return AlreadyThere.Contains(file) ? PushOutcome.AlreadyThere : PushOutcome.Pushed;
         }
     }
 }

@@ -16,6 +16,8 @@ internal static class NuGetDeploy
     /// <param name="sameVersion">Whether the packages must all have one version, as a tool and its service do.</param>
     /// <param name="feed">Where they go.</param>
     /// <param name="output">Where the deployment reports.</param>
+    /// <param name="options">The feed's name, and the ledger that each package pushed, or refused, is recorded in.</param>
+    /// <param name="time">The clock the ledger is kept by.</param>
     /// <returns>Zero when at least one package was pushed; one otherwise.</returns>
     /// <exception cref="InvalidOperationException">The drop has no manifest, or the feed refused a package.</exception>
     /// <remarks>
@@ -30,7 +32,8 @@ internal static class NuGetDeploy
     /// was not raised fails loudly.
     /// </para>
     /// </remarks>
-    public static int Run(string dropDirectory, IReadOnlyList<string> patterns, bool sameVersion, IPackageFeed feed, PipelineOutput output)
+    public static int Run(
+        string dropDirectory, IReadOnlyList<string> patterns, bool sameVersion, IPackageFeed feed, PipelineOutput output, DeployOptions options, TimeProvider time)
     {
         var manifest = DropManifest.Read(dropDirectory);
         var packages = manifest.Artifacts
@@ -55,14 +58,37 @@ internal static class NuGetDeploy
             return 1;
         }
 
+        // What this push put on the feed is recorded; a version the feed already had was not this push's.
+        var target = $"nuget:{options.NuGetSource}";
+        var recorded = new List<DeploymentInfo>();
         var pushed = 0;
-        foreach (var package in packages)
+        try
         {
-            output.WriteLine($"==> Pushing {package.Name} {package.Version} from drop {manifest.Version}");
-            var outcome = feed.Push(Path.Combine(dropDirectory, package.Path), package.Name, package.Version!);
-            output.WriteLine(outcome == PushOutcome.Pushed ? "    pushed" : "    already on the feed; skipped");
-            if (outcome == PushOutcome.Pushed)
-                pushed++;
+            foreach (var package in packages)
+            {
+                output.WriteLine($"==> Pushing {package.Name} {package.Version} from drop {manifest.Version}");
+                PushOutcome outcome;
+                try
+                {
+                    outcome = feed.Push(Path.Combine(dropDirectory, package.Path), package.Name, package.Version!);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    recorded.Add(options.Deployment(target, manifest, package, time.GetUtcNow(), exception.Message));
+                    throw;
+                }
+
+                output.WriteLine(outcome == PushOutcome.Pushed ? "    pushed" : "    already on the feed; skipped");
+                if (outcome == PushOutcome.Pushed)
+                {
+                    recorded.Add(options.Deployment(target, manifest, package, time.GetUtcNow()));
+                    pushed++;
+                }
+            }
+        }
+        finally
+        {
+            options.Ledger?.Record(recorded);
         }
 
         if (pushed == 0)
