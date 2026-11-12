@@ -1,5 +1,4 @@
 using Bitenovac.RemoteBuildTool.Planning;
-using Bitenovac.RemoteBuildTool.Releasing;
 using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Toolchains;
 
@@ -37,7 +36,7 @@ internal static class ReleaseCommand
         }
 
         Directory.CreateDirectory(options.DropRoot);
-        var version = ReleaseVersion.Next(options.DropRoot, date);
+        var version = DropName.Next(options.DropRoot, date);
         var staging = Path.Combine(options.DropRoot, $".staging-{version}");
         var drop = Path.Combine(options.DropRoot, version);
 
