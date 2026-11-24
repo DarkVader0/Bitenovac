@@ -122,13 +122,18 @@ fi
 has_tools "${TOOLS_DIR}" \
     || fail "${TOOLS_DIR} does not hold remotebuildtool and remotebuildtool-service."
 
+readonly CANDIDATE="bitenovac-remotebuildtool-runner:${sdk_version}-${tool_version}"
+
 docker build \
     --file "${DOCKERFILE}" \
     --build-arg "DOTNET_SDK_VERSION=${sdk_version}" \
-    --tag "bitenovac-remotebuildtool-runner:${sdk_version}" \
+    --tag "${CANDIDATE}" \
     "${docker_args[@]}" \
     "${REPO_ROOT}"
 
-if [[ -r /etc/remotebuildtool/.env ]]; then
-    bash "${REPO_ROOT}/runner/service.sh" start
+if ! docker image inspect "bitenovac-remotebuildtool-runner:${sdk_version}" > /dev/null 2>&1; then
+    bash "${REPO_ROOT}/runner/images.sh" promote "${CANDIDATE}"
+    if [[ -r /etc/remotebuildtool/.env ]]; then
+        bash "${REPO_ROOT}/runner/service.sh" start
+    fi
 fi
