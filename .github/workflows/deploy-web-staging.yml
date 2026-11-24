@@ -29,6 +29,7 @@ jobs:
           DROP: ${{ inputs.drop }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          REMOTEDEPLOYTOOL_STAGING_URL: ${{ vars.STAGING_URL }}
         run: |
           args=(auto)
           if [[ -n "${DROP}" ]]; then args+=("${DROP}"); fi
