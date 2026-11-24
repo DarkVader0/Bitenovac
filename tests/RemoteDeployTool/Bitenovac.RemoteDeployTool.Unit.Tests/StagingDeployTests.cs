@@ -74,6 +74,38 @@ public sealed class StagingDeployTests
     }
 
     [Fact]
+    public async Task RunAsync_ShouldDeployWithoutRecording_WhenNoLedgerIsKept()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = Options(directory) with { LedgerRoot = null };
+        Drop(directory, "2026.10.07.001");
+
+        // Act
+        var exitCode = await StagingDeploy.RunAsync(options, Services(new FakeStaging { Served = "2026.10.07.001" }, new FakeWrangler()), ["2026.10.07.001"], TestFactory.Silence());
+
+        // Assert
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task RunAsync_ShouldFailWithoutRollingBack_WhenStagingServesNothingAndNoLedgerIsKept()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = Options(directory) with { LedgerRoot = null };
+        Drop(directory, "2026.10.07.001");
+        var output = new CapturedOutput();
+
+        // Act
+        var exitCode = await StagingDeploy.RunAsync(options, Services(new FakeStaging(), new FakeWrangler()), ["2026.10.07.001"], output.Pipeline);
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        Assert.Contains("there is no drop staging served before to roll back to.", output.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task RunAsync_ShouldFail_WhenStagingCannotBeReached()
     {
         // Arrange
