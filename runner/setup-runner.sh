@@ -527,6 +527,6 @@ cat <<EOF
   Every run attempt keeps its own store in ${STAGING_VOLUME} for 24 hours; the service promotes
   it into main once its pull request is merged.
 
-  Pull requests run the RemoteBuildTool release installed in the image, from the packages in
-  runner/packages. To move to another release, download its runner bundle and run setup from it.
+  Pull requests run the RemoteBuildTool release installed in the image, from the tools in
+  runner/tools. To move to another release, download its runner bundle and run setup from it.
 EOF

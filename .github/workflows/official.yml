@@ -36,4 +36,4 @@ jobs:
           drop="$(sed -n 's/^Release \([^ ]*\) dropped to .*/\1/p' "${RUNNER_TEMP}/release.txt" | tail -n 1)"
           echo "::notice title=Official drop::${drop}"
           echo "### Official drop ${drop}" >> "${GITHUB_STEP_SUMMARY}"
-          bash runner/bundle-into-drop.sh "${drop}"
+          bash runner/tools-into-drop.sh "${drop}"

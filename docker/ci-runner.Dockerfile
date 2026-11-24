@@ -35,19 +35,7 @@ ENV DOTNET_ROOT=/usr/share/dotnet \
 
 FROM sdk
 
-ARG REMOTEBUILDTOOL_VERSION
-
-COPY runner/packages/ /usr/local/share/remotebuildtool-packages/
-
-RUN test -n "${REMOTEBUILDTOOL_VERSION}" || { echo "error: pass --build-arg REMOTEBUILDTOOL_VERSION; runner/build-image.sh does." >&2; exit 1; } \
-    && dotnet tool install Bitenovac.RemoteBuildTool \
-        --version "${REMOTEBUILDTOOL_VERSION}" \
-        --tool-path /opt/remotebuildtool \
-        --source /usr/local/share/remotebuildtool-packages \
-    && dotnet tool install Bitenovac.RemoteBuildTool.Service \
-        --version "${REMOTEBUILDTOOL_VERSION}" \
-        --tool-path /opt/remotebuildtool \
-        --source /usr/local/share/remotebuildtool-packages
+COPY runner/tools/ /opt/remotebuildtool/
 
 ENV PATH="/opt/remotebuildtool:${PATH}"
 

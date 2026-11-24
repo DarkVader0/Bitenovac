@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       drop:
-        description: Official drop to deploy, for example 2026.10.11.001. Empty for the newest.
+        description: Official drop to deploy RemoteBuildTool from, for example 2026.10.11.001. Empty for the newest.
         required: false
         default: ''
 
@@ -13,30 +13,40 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
-  id-token: write
+  contents: write
 
 jobs:
-  deploy:
+  publish:
     name: Deploy
     runs-on: [self-hosted, linux, x64, bitenovac]
-    timeout-minutes: 3
-    environment: nuget
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
 
-      - name: Log in to nuget.org
-        id: login
-        uses: NuGet/login@v1
-        with:
-          user: ${{ vars.NUGET_USER }}
-
-      - name: Push
+      - name: Copy the bundle out of the drop
+        id: drop
         env:
-          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
           DROP: ${{ inputs.drop }}
+        run: bash deploy/runner-bundle.sh "${RUNNER_TEMP}/bundle" "${DROP}" >> "${GITHUB_OUTPUT}"
+
+      - name: Release the runner bundle
+        env:
+          DROP: ${{ steps.drop.outputs.drop }}
+          SHA: ${{ steps.drop.outputs.sha }}
+          VERSION: ${{ steps.drop.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          args=(nuget Bitenovac.RemoteBuildTool Bitenovac.RemoteBuildTool.Service --same-version)
-          [[ -z "${DROP}" ]] || args+=(--drop "${DROP}")
-          bash deploy/remotedeploytool.sh "${args[@]}"
+          auth=(-H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
+          tag="bitenovac-runner-${VERSION}"
+          status="$(curl -sS -o /dev/null -w '%{http_code}' "${auth[@]}" "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${tag}")"
+          [[ "${status}" != 200 ]] || { echo "error: ${tag} is already released. Bump <VersionPrefix> in src/RemoteBuildTool/Directory.Build.props, then publish the drop Official builds from it." >&2; exit 1; }
+          [[ "${status}" == 404 ]] || { echo "error: could not check whether ${tag} is released: HTTP ${status}." >&2; exit 1; }
+          body="$(printf '{"tag_name":"%s","target_commitish":"%s","name":"Runner setup %s","body":"Installs the Bitenovac runner setup with RemoteBuildTool %s, built in Official drop %s. Extract the archive, then run runner/setup-runner.sh as described in docs/Local_RemoteBuildTool_Setup.md."}' "${tag}" "${SHA}" "${VERSION}" "${VERSION}" "${DROP}")"
+          release="$(curl -fsSL -X POST "${auth[@]}" -H "Content-Type: application/json" -d "${body}" "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases")"
+          upload="$(printf '%s' "${release}" | sed -n 's/.*"upload_url": *"\([^"{]*\).*/\1/p' | head -n 1)"
+          [[ -n "${upload}" ]] || { echo "error: the release was not created." >&2; exit 1; }
+          for file in "${RUNNER_TEMP}"/bundle/bitenovac-runner-*; do
+              curl -fsSL -X POST "${auth[@]}" -H "Content-Type: application/octet-stream" \
+                  --data-binary "@${file}" "${upload}?name=$(basename "${file}")" > /dev/null
+          done

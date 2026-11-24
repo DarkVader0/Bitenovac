@@ -76,20 +76,18 @@ A miss's log line says why it missed: which inputs changed, or which dependency 
 
 ## Install
 
-As a local tool, pinned in the repository:
+RemoteBuildTool is a standalone executable: it needs no .NET runtime. Each release has one, in the
+runner bundle `bitenovac-runner-<version>` on the GitHub Releases page, in `runner/tools/`. Put
+`remotebuildtool` on the PATH:
 
 ```
-dotnet new tool-manifest
-dotnet tool install Bitenovac.RemoteBuildTool
-dotnet tool install dotnet-reportgenerator-globaltool
-dotnet remotebuildtool --version
-```
-
-Or globally:
-
-```
-dotnet tool install --global Bitenovac.RemoteBuildTool
 remotebuildtool --version
+```
+
+The coverage gate also needs the ReportGenerator tool:
+
+```
+dotnet tool install dotnet-reportgenerator-globaltool
 ```
 
 ## Quick start
@@ -259,8 +257,9 @@ run with the cache off, under the next version: the date and a counter, such as 
 - `apps/<name>/`: every executable that is not a .NET tool and does not set
   `<IsPublishable>false</IsPublishable>`, published. One with several target frameworks is
   published once for each, into `apps/<name>/<framework>/`.
-- `packages/`: every other project with `<IsPackable>true</IsPackable>`, packed, .NET tools
-  included.
+- `packages/`: every other project with `<IsPackable>true</IsPackable>`, packed.
+- `tools/`: the standalone RemoteBuildTool, its service and RemoteDeployTool, published by the
+  Official run that makes the drop, after the release, not by the release itself.
 - `build-graph.json`: the plan the release was built from.
 - `manifest.json`: every app and package in the drop, with its version and a SHA-256, for whatever
   deploys from it. Two drops hold the same artifact exactly when its SHA-256 matches.

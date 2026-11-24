@@ -1,21 +1,20 @@
 #!/usr/bin/env bash
 #
-# Runs RemoteDeployTool from the drop it deploys. deploy/remotedeploytool.sh runs this in the runner
-# image, with the drops mounted; it can also run anywhere dotnet is, given where the drops are.
+# Runs RemoteDeployTool from the drop it deploys. deploy/remotedeploytool.sh runs this on the runner
+# host, with the drops where the Official workflow leaves them.
 #
 # Usage:
 #   bash deploy/lib/run-remotedeploytool.sh <command> [arguments...]
 #
 # Environment:
 #   REMOTEDEPLOYTOOL_DROP_ROOT   Where the drops are. Defaults to /mnt/official.
-#   TOOLS_DIR                    Where the tool is installed. Defaults to a new temporary directory.
 #   GITHUB_OUTPUT                When set, the drop a deploying command deploys is written to it
 #                                as drop=<name>.
 #
-# The tool is installed from the packages of the drop the command deploys, so a drop is always
-# deployed by the RemoteDeployTool built with it, and nothing is fetched from a feed. A command that
-# deploys from a drop and names none is given the newest explicitly, so the drop installed from, the
-# drop deployed and the drop reported are one and the same.
+# The tool is the standalone executable the drop holds in its tools folder, so a drop is always
+# deployed by the RemoteDeployTool published with it, and nothing is installed. A command that
+# deploys from a drop and names none is given the newest explicitly, so the drop run from, the drop
+# deployed and the drop reported are one and the same.
 
 set -euo pipefail
 
@@ -52,19 +51,12 @@ fi
 
 [[ "${drop}" =~ ${DROP_PATTERN} ]] || fail "'${drop}' is not a drop name. Drops are named yyyy.MM.dd.NNN."
 
-packages="${REMOTEDEPLOYTOOL_DROP_ROOT}/${drop}/packages"
-shopt -s nullglob
-found=("${packages}"/Bitenovac.RemoteDeployTool.[0-9]*.nupkg)
-shopt -u nullglob
-[[ ${#found[@]} -eq 1 ]] \
-    || fail "Drop ${drop} holds ${#found[@]} RemoteDeployTool package(s), not one; it was made before RemoteDeployTool, or by a broken release."
-
-tools="${TOOLS_DIR:-$(mktemp -d)}"
-dotnet tool install Bitenovac.RemoteDeployTool --tool-path "${tools}" --source "${packages}" > /dev/null \
-    || fail "Could not install RemoteDeployTool from drop ${drop}."
+tool="${REMOTEDEPLOYTOOL_DROP_ROOT}/${drop}/tools/remotedeploytool"
+[[ -x "${tool}" ]] \
+    || fail "Drop ${drop} holds no RemoteDeployTool; it was made before the tools were published into drops."
 
 if [[ -n "${GITHUB_OUTPUT:-}" && "${deploys}" == true ]]; then
     printf 'drop=%s\n' "${drop}" >> "${GITHUB_OUTPUT}"
 fi
 
-exec "${tools}/remotedeploytool" "${args[@]}"
+exec "${tool}" "${args[@]}"
