@@ -1,5 +1,4 @@
 using Bitenovac.RemoteBuildTool.Planning;
-using Bitenovac.RemoteBuildTool.Releasing;
 using Bitenovac.RemoteBuildTool.Telemetry;
 using Bitenovac.RemoteBuildTool.Toolchains;
 
@@ -37,7 +36,7 @@ internal static class ReleaseCommand
         }
 
         Directory.CreateDirectory(options.DropRoot);
-        var version = ReleaseVersion.Next(options.DropRoot, date);
+        var version = DropName.Next(options.DropRoot, date);
         var staging = Path.Combine(options.DropRoot, $".staging-{version}");
         var drop = Path.Combine(options.DropRoot, version);
 
@@ -60,7 +59,9 @@ internal static class ReleaseCommand
                 }
             }
 
-            BuildGraphFile.Write(staging, options.Identity ?? BuildIdentity.FromEnvironment(_ => null), plan.ByConfiguration);
+            var identity = options.Identity ?? BuildIdentity.FromEnvironment(_ => null);
+            BuildGraphFile.Write(staging, identity, plan.ByConfiguration);
+            DropManifest.Describe(staging, version, identity.Sha, identity.BuildId, DateTimeOffset.UtcNow, Fingerprints(entries, toolchains)).Write(staging);
             Directory.Move(staging, drop);
         }
         finally
@@ -74,4 +75,12 @@ internal static class ReleaseCommand
         stage.SetProjects(entries.Count, 0);
         return stage.Complete(0);
     }
+
+    // Each artifact is fingerprinted by the project that made it, which changes only when the
+    // project's inputs do. A name two projects would drop under is left out rather than guessed.
+    private static Dictionary<string, string> Fingerprints(IReadOnlyList<PlanEntry> entries, ToolchainRegistry toolchains) =>
+        entries
+            .GroupBy(entry => toolchains.For(entry.Toolchain).DeployedName(entry), StringComparer.Ordinal)
+            .Where(name => name.Count() == 1)
+            .ToDictionary(name => name.Key, name => name.Single().FullHash, StringComparer.Ordinal);
 }

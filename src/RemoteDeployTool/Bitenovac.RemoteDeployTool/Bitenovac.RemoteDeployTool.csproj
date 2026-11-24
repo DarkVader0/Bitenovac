@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <RootNamespace>Bitenovac.RemoteDeployTool</RootNamespace>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>remotedeploytool</ToolCommandName>
+        <IsPackable>true</IsPackable>
+        <PackageId>Bitenovac.RemoteDeployTool</PackageId>
+        <Title>RemoteDeployTool</Title>
+        <Description>Deploys what a release drop holds. It reads the manifest a RemoteBuildTool release writes into each drop, tells which drop is newest and what changed between two drops.</Description>
+        <PackageTags>deployment;release;dotnet-tool;github-actions</PackageTags>
+        <Authors>Radivoje Milutinovic</Authors>
+        <Company>Bitenovac</Company>
+        <Copyright>Copyright (c) 2026 Radivoje Milutinovic</Copyright>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/DarkVader0/Bitenovac/tree/master/src/RemoteDeployTool/Bitenovac.RemoteDeployTool</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/DarkVader0/Bitenovac</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\RemoteTools\Bitenovac.RemoteTools.Common\Bitenovac.RemoteTools.Common.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Bitenovac.RemoteDeployTool.Unit.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Bitenovac.RemoteTools"/>
+    </ItemGroup>
+
+</Project>

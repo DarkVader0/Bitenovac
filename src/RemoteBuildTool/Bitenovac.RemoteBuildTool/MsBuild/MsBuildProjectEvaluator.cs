@@ -94,6 +94,7 @@ internal sealed class MsBuildProjectEvaluator : IDisposable
             [DotNetToolchain.IsPackableProperty] = project.GetPropertyValue("IsPackable"),
             [DotNetToolchain.PackAsToolProperty] = project.GetPropertyValue("PackAsTool"),
             [DotNetToolchain.IsPublishableProperty] = project.GetPropertyValue("IsPublishable"),
+            [DotNetToolchain.PackageIdProperty] = project.GetPropertyValue("PackageId"),
         };
         foreach (var (targetFramework, evaluated) in perFramework)
             properties[DotNetToolchain.RunCommandOf(targetFramework)] = evaluated.GetPropertyValue("RunCommand");

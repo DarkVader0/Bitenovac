@@ -247,7 +247,9 @@ cache cannot tell them apart, so follow it with `sudo bash runner/service.sh reb
 
 Nothing in this setup installs from nuget.org. Publishing there only serves other repositories that
 install the tool with `dotnet tool install`: Actions → Deploy RemoteBuildTool → Run workflow. Leave
-the drop empty for the newest one. A version that is already on nuget.org fails the run.
+the drop empty for the newest one. The tool and its service must have one version; a package
+nuget.org already has at that version is skipped, and a run in which it has both fails, as the
+version was not bumped.
 
 #### First time only: let the deploy workflow publish
 
@@ -272,7 +274,7 @@ publish waits for your approval. The environment is created on the first run if 
 To publish by hand on the runner host instead, with a key from nuget.org:
 
 ```bash
-NUGET_API_KEY=<KEY> bash deploy/remotebuildtool.sh [2026.10.11.001]
+NUGET_API_KEY=<KEY> bash deploy/remotedeploytool.sh nuget Bitenovac.RemoteBuildTool Bitenovac.RemoteBuildTool.Service --same-version [--drop 2026.10.11.001]
 ```
 
 ---
@@ -304,8 +306,11 @@ like the one above but with the workflow file `deploy_DecompressionAlgorithmLibr
 To publish by hand on the runner host instead, with a key from nuget.org:
 
 ```bash
-NUGET_API_KEY=<KEY> bash src/DecompressionAlgorithms/deploy_libraries.sh [2026.10.11.001]
+NUGET_API_KEY=<KEY> bash deploy/remotedeploytool.sh nuget 'Bitenovac.DecompressionAlgorithms.*' [--drop 2026.10.11.001]
 ```
+
+Each package's version must be its product's own: one that carries the drop's date is refused, as
+nuget.org would keep it forever and rank it above every real version.
 
 ---
 
@@ -339,9 +344,10 @@ Official drop holds it, published, under `apps/Bitenovac.DecompressionCalculator
 2. Publish it from that drop: Actions → Deploy web → Run workflow. Leave the drop empty for the
    newest one. Installed copies offer the new version with a Reload banner on their next visit.
 
-`src/DecompressionCalculator/deploy_web.sh` copies the site out of the drop and adds what Pages needs: `.nojekyll`, so the
-`_framework` folder is served, and a `404.html` copy of `index.html`, so a reloaded `/plan/...`
-still opens the app.
+The workflow has RemoteDeployTool copy the site out of the drop and add what Pages needs:
+`.nojekyll`, so the `_framework` folder is served, and a `404.html` copy of `index.html`, so a
+reloaded `/plan/...` still opens the app. It records the deployment as `github-pages`, or its
+failure.
 
 ### First time only: point Pages at the domain
 
@@ -358,8 +364,30 @@ only over HTTPS.
 To prepare the site by hand on the runner host:
 
 ```bash
-bash src/DecompressionCalculator/deploy_web.sh /tmp/site [2026.10.11.001]
+bash deploy/remotedeploytool.sh pages Bitenovac.DecompressionCalculator.Web /tmp/site [--drop 2026.10.11.001]
 ```
+
+---
+
+## Deploying from drops
+
+Every deploy workflow runs `deploy/remotedeploytool.sh`, which runs
+[RemoteDeployTool](../src/RemoteDeployTool/Bitenovac.RemoteDeployTool/README.md) in the runner image
+with the drops mounted read-only. The tool is installed from the drop being deployed, so each drop is
+deployed by the RemoteDeployTool built with it, and nothing comes from a feed. A drop made before
+RemoteDeployTool existed cannot be deployed this way: run Official once first.
+
+Every deployment is recorded in the ledger, kept in the telemetry volume as the `deployment` table.
+To see what is where, or what changed between two drops (Ubuntu):
+
+```bash
+bash deploy/remotedeploytool.sh status
+bash deploy/remotedeploytool.sh drops
+bash deploy/remotedeploytool.sh changes 2026.10.11.001
+```
+
+`changes` compares projects by their fingerprint, so it lists what changed in what the drop was built
+from, not the files that differ only because they name another commit.
 
 ---
 

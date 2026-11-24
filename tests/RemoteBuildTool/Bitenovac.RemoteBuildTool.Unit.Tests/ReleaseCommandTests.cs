@@ -97,6 +97,36 @@ public sealed class ReleaseCommandTests
     }
 
     [Fact]
+    public void Run_ShouldFingerprintEachArtifactByItsProject_WhenOneProjectAloneDropsUnderItsName()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = TestFactory.Options(directory.Path, directory.Combine("main"), directory.Combine("pr"));
+        TestFactory.Plan(
+            "Release",
+            TestFactory.Entry("src/Lib/Lib.csproj", fullHash: "lib-full"),
+            TestFactory.Entry("src/One/App.csproj", fullHash: "one-full"),
+            TestFactory.Entry("src/Two/App.csproj", fullHash: "two-full")).Save(options.PlanFile);
+        using var registry = new FakeToolchain
+        {
+            PublishInto = drop =>
+            {
+                TestFactory.WriteFile(drop, "apps/Lib/Lib.dll", "lib");
+                TestFactory.WriteFile(drop, "apps/App/App.dll", "app");
+            },
+        }.Registry();
+
+        // Act
+        var exitCode = ReleaseCommand.Run(options, TestFactory.Silence(), Today, registry);
+
+        // Assert
+        // Two projects would drop as App, so App is not fingerprinted rather than given either one's.
+        Assert.Equal(0, exitCode);
+        var manifest = DropManifest.Read(Path.Combine(options.DropRoot, "2026.10.14.001"));
+        Assert.Equal([("App", null), ("Lib", "lib-full")], manifest.Artifacts.Select(artifact => (artifact.Name, artifact.Fingerprint)));
+    }
+
+    [Fact]
     public void Run_ShouldRecordTheDropVersion_WhenTheReleaseIsDropped()
     {
         // Arrange

@@ -40,6 +40,7 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
     public const string PackAsToolProperty = "PackAsTool";
 
     public const string IsPublishableProperty = "IsPublishable";
+    public const string PackageIdProperty = "PackageId";
 
     private MsBuildProjectEvaluator? _evaluator;
 
@@ -264,6 +265,12 @@ internal sealed class DotNetToolchain(string repositoryRoot, IMsBuildRunner msBu
     /// <param name="targetFramework">The target framework.</param>
     /// <returns>The property's name.</returns>
     public static string RunCommandOf(string targetFramework) => $"{RunCommandProperty}:{targetFramework}";
+
+    // An app is published into a directory named after its project file; a package is named by its id.
+    public string DeployedName(PlanEntry entry) =>
+        DeploymentOf(entry) == Deployment.Pack && entry.Properties.GetValueOrDefault(PackageIdProperty) is { Length: > 0 } packageId
+            ? packageId
+            : Path.GetFileNameWithoutExtension(entry.ProjectPath);
 
     public TestRunResult RunTests(PlanEntry entry, string configuration, string resultsFilePrefix, string resultsDirectory)
     {
