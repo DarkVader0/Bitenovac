@@ -1,0 +1,50 @@
+name: Promote web from staging
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  promote:
+    name: Promote
+    runs-on: [self-hosted, linux, x64, bitenovac]
+    timeout-minutes: 3
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Prepare from staging
+        id: prepare
+        run: bash deploy/remotedeploytool.sh pages Bitenovac.DecompressionCalculator.Web "${RUNNER_TEMP}/site" --from cloudflare-pages:planner-staging/main
+
+      - name: Upload
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ runner.temp }}/site
+          include-hidden-files: true
+
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+      - name: Record
+        if: success()
+        env:
+          DROP: ${{ steps.prepare.outputs.drop }}
+        run: bash deploy/remotedeploytool.sh record github-pages Bitenovac.DecompressionCalculator.Web --drop "${DROP}"
+
+      - name: Record the failure
+        if: failure() && steps.prepare.outputs.drop != '' && steps.deployment.outcome != 'success'
+        env:
+          DROP: ${{ steps.prepare.outputs.drop }}
+        run: bash deploy/remotedeploytool.sh record github-pages Bitenovac.DecompressionCalculator.Web --drop "${DROP}" --failed "the Pages deployment did not go through"
