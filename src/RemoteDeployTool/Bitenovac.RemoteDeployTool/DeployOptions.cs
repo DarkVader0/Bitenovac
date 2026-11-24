@@ -9,7 +9,9 @@ namespace Bitenovac.RemoteDeployTool;
 /// <param name="LedgerRoot">The directory the ledger of deployments is kept in; none is kept when <see langword="null"/>.</param>
 /// <param name="Machine">The machine that deploys, as the ledger names it.</param>
 /// <param name="BuildId">The build that deploys, as in <c>16473829-1</c>, when it runs in one.</param>
-internal sealed record DeployOptions(string DropRoot, string NuGetSource, string? NuGetApiKey, string? LedgerRoot = null, string? Machine = null, string? BuildId = null)
+/// <param name="GitHubToken">The token GitHub releases are made with, if any.</param>
+/// <param name="GitHubRepository">The repository releases are made in, as <c>owner/name</c>.</param>
+internal sealed record DeployOptions(string DropRoot, string NuGetSource, string? NuGetApiKey, string? LedgerRoot = null, string? Machine = null, string? BuildId = null, string? GitHubToken = null, string? GitHubRepository = null)
 {
     /// <summary>
     /// The feed packages go to unless told otherwise.
@@ -43,7 +45,9 @@ internal sealed record DeployOptions(string DropRoot, string NuGetSource, string
             Value("NUGET_API_KEY"),
             Value("REMOTEDEPLOYTOOL_LEDGER_DIR"),
             Value("REMOTEDEPLOYTOOL_MACHINE") ?? Environment.MachineName,
-            Value("GITHUB_RUN_ID") is { } run ? $"{run}-{Value("GITHUB_RUN_ATTEMPT") ?? "1"}" : null);
+            Value("GITHUB_RUN_ID") is { } run ? $"{run}-{Value("GITHUB_RUN_ATTEMPT") ?? "1"}" : null,
+            Value("GITHUB_TOKEN"),
+            Value("GITHUB_REPOSITORY"));
     }
 
     /// <summary>

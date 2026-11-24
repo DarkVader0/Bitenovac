@@ -34,6 +34,11 @@ internal sealed record DropArtifact(string Kind, string Name, string Path, strin
     /// The kind of a NuGet package.
     /// </summary>
     public const string Package = "package";
+
+    /// <summary>
+    /// The kind of a runner bundle: the setup that installs the RemoteBuildTool tools on a runner.
+    /// </summary>
+    public const string Runner = "runner";
 }
 
 /// <summary>
@@ -66,10 +71,15 @@ internal sealed record DropManifest(
 
     private const string AppsDirectory = "apps";
     private const string PackagesDirectory = "packages";
+    private const string RunnerDirectory = "runner";
+    private const string RunnerBundlePrefix = "bitenovac-runner-";
+    private const string RunnerBundleSuffix = ".tar.gz";
+    private const string RunnerName = "bitenovac-runner";
 
     /// <summary>
-    /// Describes what a drop directory holds: every directory under <c>apps/</c> as an app, and every
-    /// <c>.nupkg</c> under <c>packages/</c> as a package. Symbol packages are left out.
+    /// Describes what a drop directory holds: every directory under <c>apps/</c> as an app, every
+    /// <c>.nupkg</c> under <c>packages/</c> as a package, and every <c>bitenovac-runner-*.tar.gz</c> under
+    /// <c>runner/</c> as a runner bundle. Symbol packages are left out.
     /// </summary>
     /// <param name="dropDirectory">The drop, complete but for its manifest.</param>
     /// <param name="version">The drop's name.</param>
@@ -98,13 +108,35 @@ internal sealed record DropManifest(
                     DropArtifact.Package, id, $"{PackagesDirectory}/{Path.GetFileName(package)}", packageVersion, FileDigest(package), fingerprints.GetValueOrDefault(id));
             });
 
+        var runners = RunnerBundles(dropDirectory)
+            .Select(bundle => new DropArtifact(
+                DropArtifact.Runner, RunnerName, $"{RunnerDirectory}/{Path.GetFileName(bundle)}", RunnerVersion(bundle), FileDigest(bundle)));
+
         return new DropManifest(
             CurrentSchemaVersion,
             version,
             sha,
             buildId,
             created,
-            [.. apps.Concat(packages).OrderBy(artifact => artifact.Path, StringComparer.Ordinal)]);
+            [.. apps.Concat(packages).Concat(runners).OrderBy(artifact => artifact.Path, StringComparer.Ordinal)]);
+    }
+
+    /// <summary>
+    /// Reads the manifest of a drop as it is, and describes it again with the artifacts the drop holds
+    /// now, such as a runner bundle that was made after the release. The drop's version, commit, build
+    /// and date stay as they were; an artifact keeps the fingerprint the manifest gave it.
+    /// </summary>
+    /// <param name="dropDirectory">The drop.</param>
+    /// <returns>The refreshed manifest.</returns>
+    /// <exception cref="InvalidOperationException">The drop has no manifest, or a package carries no readable id and version.</exception>
+    public static DropManifest Refresh(string dropDirectory)
+    {
+        var existing = Read(dropDirectory);
+        var fingerprints = existing.Artifacts
+            .Where(artifact => artifact.Fingerprint is not null)
+            .ToDictionary(artifact => artifact.Name, artifact => artifact.Fingerprint!, StringComparer.Ordinal);
+
+        return Describe(dropDirectory, existing.Version, existing.Sha, existing.BuildId, existing.Created, fingerprints);
     }
 
     /// <summary>
@@ -157,6 +189,20 @@ internal sealed record DropManifest(
             .Select(file => $"{file.Path}\t{FileDigest(file.File)}\n");
 
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Concat(lines))));
+    }
+
+    private static IEnumerable<string> RunnerBundles(string dropDirectory)
+    {
+        var directory = Path.Combine(dropDirectory, RunnerDirectory);
+        return Directory.Exists(directory)
+            ? Directory.EnumerateFiles(directory, $"{RunnerBundlePrefix}*{RunnerBundleSuffix}").OrderBy(file => file, StringComparer.Ordinal)
+            : [];
+    }
+
+    private static string RunnerVersion(string bundle)
+    {
+        var name = Path.GetFileName(bundle);
+        return name[RunnerBundlePrefix.Length..^RunnerBundleSuffix.Length];
     }
 
     // A package says who it is in the .nuspec at its root; its file name cannot be split into id

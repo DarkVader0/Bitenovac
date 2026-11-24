@@ -19,7 +19,7 @@
 # - Deployments are recorded in the ledger, kept in the telemetry volume beside the build telemetry,
 #   when this machine has one.
 # - Secrets reach the container by name, never on a command line: NUGET_API_KEY,
-#   CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+#   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and GITHUB_TOKEN.
 # - Under GitHub Actions the drop deployed is written to the step's outputs as drop=<name>.
 
 set -euo pipefail
@@ -75,7 +75,7 @@ if [[ -n "${GITHUB_OUTPUT:-}" && -f "${GITHUB_OUTPUT}" ]]; then
     run_args+=(--volume "${GITHUB_OUTPUT}:/mnt/github-output" --env GITHUB_OUTPUT=/mnt/github-output)
 fi
 
-for variable in NUGET_API_KEY REMOTEDEPLOYTOOL_NUGET_SOURCE CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID GITHUB_ACTIONS GITHUB_RUN_ID GITHUB_RUN_ATTEMPT; do
+for variable in NUGET_API_KEY REMOTEDEPLOYTOOL_NUGET_SOURCE CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID GITHUB_TOKEN GITHUB_REPOSITORY GITHUB_ACTIONS GITHUB_RUN_ID GITHUB_RUN_ATTEMPT; do
     [[ -n "${!variable:-}" ]] && run_args+=(--env "${variable}")
 done
 

@@ -84,5 +84,6 @@ docker run \
 
         mkdir -p "/mnt/official/${DROP}/runner"
         bash runner/make-bundle.sh "${tools}" "/mnt/official/${DROP}/runner"
+        REMOTEDEPLOYTOOL_DROP_ROOT=/mnt/official "${tools}/remotedeploytool" manifest --drop "${DROP}" > /dev/null
         echo "Published the tools and the runner bundle into drop ${DROP}." >&2
     '

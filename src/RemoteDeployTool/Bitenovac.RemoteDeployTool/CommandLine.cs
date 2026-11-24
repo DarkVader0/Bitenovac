@@ -36,6 +36,10 @@ internal static class CommandLine
                 ["pages", var app, var site, "--drop", var drop] => PagesSite.Prepare(Drops.Resolve(options, drop), app, site, output),
                 ["pages", var app, var site, "--from", var target] => PagesSite.Prepare(Promoted(options, target, app), app, site, output),
                 ["cloudflare", var app, .. var rest] => Cloudflare(options, app, rest, read, output, services),
+                ["manifest"] => Manifest(options, null, output),
+                ["manifest", "--drop", var drop] => Manifest(options, drop, output),
+                ["github-release"] => ReleaseBundle(options, null, output, services),
+                ["github-release", "--drop", var drop] => ReleaseBundle(options, drop, output, services),
                 ["--help" or "-h"] => Usage(output, 0),
                 ["--version"] => Version(output),
                 _ => Fail(output, $"'{string.Join(' ', args)}' is not a command. Run 'remotedeploytool --help'."),
@@ -127,6 +131,23 @@ internal static class CommandLine
             return Fail(output, $"NUGET_API_KEY is not set; {options.NuGetSource} takes packages only with a key.");
 
         return NuGetDeploy.Run(Drops.Resolve(options, drop), patterns, sameVersion, services.FeedFor(options), output, options, services.Time);
+    }
+
+    private static int Manifest(DeployOptions options, string? drop, PipelineOutput output)
+    {
+        var directory = Drops.Resolve(options, drop);
+        DropManifest.Refresh(directory).Write(directory);
+        output.WriteLine($"Refreshed the manifest of {Path.GetFileName(directory)}.");
+        return 0;
+    }
+
+    private static int ReleaseBundle(DeployOptions options, string? drop, PipelineOutput output, DeployServices services)
+    {
+        if (options.GitHubToken is null || options.GitHubRepository is null)
+            return Fail(output, "GITHUB_TOKEN and GITHUB_REPOSITORY must be set to release a runner bundle.");
+
+        return GitHubRelease.RunAsync(
+            Drops.Resolve(options, drop), options.GitHubRepository, options.GitHubToken, services.Http(), output, options, services.Time).GetAwaiter().GetResult();
     }
 
     // Promoting takes what a target, such as staging, last got and went through.
@@ -275,6 +296,12 @@ internal static class CommandLine
               remotedeploytool cloudflare <app> --project <name> [--branch <branch>] [--drop <drop>]
                                                       Deploy a drop's web app to a Cloudflare Pages project with
                                                       Wrangler; branch main and the newest drop by default
+              remotedeploytool manifest [--drop <drop>]
+                                                      Describe a drop again, to add what was made after its release,
+                                                      such as its runner bundle; the newest drop by default
+              remotedeploytool github-release [--drop <drop>]
+                                                      Release a drop's runner bundle on GitHub, at the commit the
+                                                      drop was built from; the newest drop by default
               remotedeploytool status                 Where each artifact stands on each target, from the ledger
               remotedeploytool record <target> <artifact> [--drop <drop>] [--failed <reason>]
                                                       Record a deployment made by something else, such as a

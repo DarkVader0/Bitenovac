@@ -20,6 +20,11 @@ internal sealed record DeployServices
         (fileName, arguments, workingDirectory) => ChildProcess.Run(fileName, arguments, workingDirectory);
 
     /// <summary>
+    /// Gets the client GitHub is reached through.
+    /// </summary>
+    public Func<HttpClient> Http { get; init; } = () => new HttpClient();
+
+    /// <summary>
     /// Gets the clock deployments are recorded by.
     /// </summary>
     public TimeProvider Time { get; init; } = TimeProvider.System;
