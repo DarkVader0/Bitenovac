@@ -34,7 +34,7 @@ internal static class CommandLine
                 ["record", var target, var artifact, .. var rest] => Record(options, target, artifact, rest, output, services),
                 ["pages", var app, var site] => PagesSite.Prepare(Drops.Resolve(options, null), app, site, output),
                 ["pages", var app, var site, "--drop", var drop] => PagesSite.Prepare(Drops.Resolve(options, drop), app, site, output),
-                ["pages", var app, var site, "--from", var target] => PagesSite.Prepare(Promoted(options, target, app), app, site, output),
+                ["pages", var app, var site, "--from", var target] => Promote(options, target, app, site, output, read),
                 ["cloudflare", var app, .. var rest] => Cloudflare(options, app, rest, read, output, services),
                 ["manifest"] => Manifest(options, null, output),
                 ["manifest", "--drop", var drop] => Manifest(options, drop, output),
@@ -148,6 +148,16 @@ internal static class CommandLine
 
         return GitHubRelease.RunAsync(
             Drops.Resolve(options, drop), options.GitHubRepository, options.GitHubToken, services.Http(), output, options, services.Time).GetAwaiter().GetResult();
+    }
+
+    // Under GitHub Actions the drop promoted is written to the step's outputs, as the workflow records it.
+    private static int Promote(DeployOptions options, string target, string app, string site, PipelineOutput output, Func<string, string?> read)
+    {
+        var directory = Promoted(options, target, app);
+        if (read("GITHUB_OUTPUT") is { Length: > 0 } outputs)
+            File.AppendAllText(outputs, $"drop={Path.GetFileName(directory)}\n");
+
+        return PagesSite.Prepare(directory, app, site, output);
     }
 
     // Promoting takes what a target, such as staging, last got and went through.

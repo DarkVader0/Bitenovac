@@ -12,6 +12,7 @@ RUN apt-get update \
         tzdata \
         libicu74 \
         unzip \
+        xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
@@ -26,6 +27,19 @@ RUN case "$(uname -m)" in x86_64) arch=amd64 ;; aarch64) arch=arm64 ;; *) echo "
     && unzip -q /tmp/duckdb.zip -d /usr/local/bin \
     && chmod +x /usr/local/bin/duckdb \
     && rm /tmp/duckdb.zip
+
+ARG NODE_VERSION=22.23.5
+
+RUN case "$(uname -m)" in \
+        x86_64) arch=x64; sha=cdeb8670a0c81f51b4dc4ac61919f9b1ad917b304bf8221eb939570663d240f8 ;; \
+        aarch64) arch=arm64; sha=2babb9eb5264860d540849f4b064a6fbdebcdc323657d9d382ce23d313fd5e09 ;; \
+        *) echo "error: no Node.js for $(uname -m)" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL -o /tmp/node.tar.xz "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${arch}.tar.xz" \
+    && echo "${sha}  /tmp/node.tar.xz" | sha256sum --check --quiet \
+    && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
+    && rm /tmp/node.tar.xz \
+    && node --version
 
 ENV DOTNET_ROOT=/usr/share/dotnet \
     PATH="/usr/share/dotnet:/root/.dotnet/tools:${PATH}" \

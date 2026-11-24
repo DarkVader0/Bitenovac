@@ -567,6 +567,26 @@ public sealed class CommandLineTests
     }
 
     [Fact]
+    public void Pages_ShouldWriteThePromotedDropToTheStepOutputs_WhenGivenThem()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var path = TestFactory.Drop(directory.Path, TestFactory.Manifest("2026.10.07.001", TestFactory.App("Web", "aaa")));
+        TestFactory.WriteFile(Path.Combine(path, "apps/Web/wwwroot/index.html"), "staged");
+        var ledger = Ledgered(directory, directory.Combine("ledger"));
+        CommandLine.Run(["record", "cloudflare-pages:planner-staging/main", "Web", "--drop", "2026.10.07.001"], TestFactory.Silence(), ledger);
+        var outputs = directory.Combine("github-output");
+        var environment = (string name) => name == "GITHUB_OUTPUT" ? outputs : ledger(name);
+
+        // Act
+        var exitCode = CommandLine.Run(["pages", "Web", directory.Combine("site"), "--from", "cloudflare-pages:planner-staging/main"], TestFactory.Silence(), environment);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal("drop=2026.10.07.001\n", File.ReadAllText(outputs));
+    }
+
+    [Fact]
     public void Pages_ShouldFail_WhenTheAppNeverWentThroughToTheTarget()
     {
         // Arrange
