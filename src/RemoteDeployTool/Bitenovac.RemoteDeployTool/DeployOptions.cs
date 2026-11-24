@@ -11,7 +11,8 @@ namespace Bitenovac.RemoteDeployTool;
 /// <param name="BuildId">The build that deploys, as in <c>16473829-1</c>, when it runs in one.</param>
 /// <param name="GitHubToken">The token GitHub releases are made with, if any.</param>
 /// <param name="GitHubRepository">The repository releases are made in, as <c>owner/name</c>.</param>
-internal sealed record DeployOptions(string DropRoot, string NuGetSource, string? NuGetApiKey, string? LedgerRoot = null, string? Machine = null, string? BuildId = null, string? GitHubToken = null, string? GitHubRepository = null)
+/// <param name="StagingUrl">Where the staging site is served, to check a deployment against.</param>
+internal sealed record DeployOptions(string DropRoot, string NuGetSource, string? NuGetApiKey, string? LedgerRoot = null, string? Machine = null, string? BuildId = null, string? GitHubToken = null, string? GitHubRepository = null, string? StagingUrl = null)
 {
     /// <summary>
     /// The feed packages go to unless told otherwise.
@@ -47,7 +48,8 @@ internal sealed record DeployOptions(string DropRoot, string NuGetSource, string
             Value("REMOTEDEPLOYTOOL_MACHINE") ?? Environment.MachineName,
             Value("GITHUB_RUN_ID") is { } run ? $"{run}-{Value("GITHUB_RUN_ATTEMPT") ?? "1"}" : null,
             Value("GITHUB_TOKEN"),
-            Value("GITHUB_REPOSITORY"));
+            Value("GITHUB_REPOSITORY"),
+            Value("REMOTEDEPLOYTOOL_STAGING_URL"));
     }
 
     /// <summary>

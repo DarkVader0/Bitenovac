@@ -36,6 +36,9 @@ internal static class CommandLine
                 ["pages", var app, var site, "--drop", var drop] => PagesSite.Prepare(Drops.Resolve(options, drop), app, site, output),
                 ["pages", var app, var site, "--from", var target] => Promote(options, target, app, site, output, read),
                 ["cloudflare", var app, .. var rest] => Cloudflare(options, app, rest, read, output, services),
+                ["pending", var drop] => StagingDeploy.Pend(options, drop, output),
+                ["auto"] => Auto(options, null, output, services),
+                ["auto", var drop] => Auto(options, drop, output, services),
                 ["manifest"] => Manifest(options, null, output),
                 ["manifest", "--drop", var drop] => Manifest(options, drop, output),
                 ["github-release"] => ReleaseBundle(options, null, output, services),
@@ -131,6 +134,18 @@ internal static class CommandLine
             return Fail(output, $"NUGET_API_KEY is not set; {options.NuGetSource} takes packages only with a key.");
 
         return NuGetDeploy.Run(Drops.Resolve(options, drop), patterns, sameVersion, services.FeedFor(options), output, options, services.Time);
+    }
+
+    private static int Auto(DeployOptions options, string? drop, PipelineOutput output, DeployServices services)
+    {
+        var drops = drop is null ? StagingDeploy.Pending(options) : [drop];
+        if (drops.Count == 0)
+        {
+            output.WriteLine("Nothing waits for staging.");
+            return 0;
+        }
+
+        return StagingDeploy.RunAsync(options, services, drops, output).GetAwaiter().GetResult();
     }
 
     private static int Manifest(DeployOptions options, string? drop, PipelineOutput output)
@@ -309,6 +324,10 @@ internal static class CommandLine
               remotedeploytool manifest [--drop <drop>]
                                                       Describe a drop again, to add what was made after its release,
                                                       such as its runner bundle; the newest drop by default
+              remotedeploytool pending <drop>         Mark a drop as waiting for staging, so auto picks it up
+              remotedeploytool auto [drop]            Deploy the drops waiting for staging, or the named one, to
+                                                      staging, check that it serves them, and roll back to the last
+                                                      drop it served when it does not
               remotedeploytool github-release [--drop <drop>]
                                                       Release a drop's runner bundle on GitHub, at the commit the
                                                       drop was built from; the newest drop by default

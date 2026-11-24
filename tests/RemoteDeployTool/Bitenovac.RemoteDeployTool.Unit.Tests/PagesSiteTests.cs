@@ -15,15 +15,14 @@ public sealed class PagesSiteTests
         var exitCode = PagesSite.Prepare(drop, "Web", site, output.Pipeline);
 
         // Assert
-        // The two files of wwwroot that are not .br or .gz, the 404.html copy and .nojekyll.
         Assert.Equal(0, exitCode);
         Assert.Equal(
-            [".nojekyll", "404.html", "_framework/app.wasm", "index.html"],
+            [".nojekyll", "404.html", "_framework/app.wasm", "drop.txt", "index.html"],
             Directory.EnumerateFiles(site, "*", SearchOption.AllDirectories).Select(file => Path.GetRelativePath(site, file).Replace('\\', '/')).Order(StringComparer.Ordinal));
         Assert.Equal("<base href=\"/\">", File.ReadAllText(Path.Combine(site, "404.html")));
         Assert.Equal("", File.ReadAllText(Path.Combine(site, ".nojekyll")));
         Assert.Contains("==> Preparing Web from drop 2026.10.08.001", output.Out, StringComparison.Ordinal);
-        Assert.Contains($"4 files ready in {site}", output.Out, StringComparison.Ordinal);
+        Assert.Contains($"5 files ready in {site}", output.Out, StringComparison.Ordinal);
     }
 
     [Fact]
