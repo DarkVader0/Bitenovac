@@ -142,6 +142,22 @@ public sealed class BuildUnitPlannerTests
     }
 
     [Fact]
+    public void Plan_ShouldSplitWhatTheOnlyTopProjectSitsOn_WhenAskedToSplit()
+    {
+        // Arrange
+        var graph = TestFactory.Graph("App -> Own1, Own2", "Own1 -> Deep", "Own2 -> Deep");
+        var durations = TestFactory.Durations(("Deep", 1), ("Own1", 2), ("Own2", 3), ("App", 1));
+
+        // Act
+        var units = BuildUnitPlanner.Plan(graph, TestFactory.Projects("App", "Own1", "Own2", "Deep"), durations, Default, splitInto: 3);
+
+        // Assert
+        Assert.Equal(
+            [(["Deep"], 1, 1, 4), (["Own2"], 3, 3, 3), (["Own1"], 2, 2, 2), (["App"], 1, 1, 1)],
+            units.Select(Summary));
+    }
+
+    [Fact]
     public void Plan_ShouldLeaveAGroupWhole_WhenOnlyOneProjectSitsOnTopOfIt()
     {
         // Arrange
