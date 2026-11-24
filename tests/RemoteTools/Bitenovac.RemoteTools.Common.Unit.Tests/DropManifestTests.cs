@@ -30,6 +30,42 @@ public sealed class DropManifestTests
     }
 
     [Fact]
+    public void Describe_ShouldListTheRunnerBundleWithItsVersionAndDigest_WhenTheDropHasOne()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.WriteFile(directory.Combine("runner/bitenovac-runner-1.4.0.tar.gz"), "bundle");
+        TestFactory.WriteFile(directory.Combine("runner/bitenovac-runner-1.4.0.tar.gz.sha256"), "digest");
+
+        // Act
+        var manifest = DropManifest.Describe(directory.Path, "2026.10.07.001", null, null, Created);
+
+        // Assert
+        Assert.Equal(
+            [("runner", "bitenovac-runner", "runner/bitenovac-runner-1.4.0.tar.gz", "1.4.0", Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("bundle"))))],
+            manifest.Artifacts.Select(artifact => (artifact.Kind, artifact.Name, artifact.Path, artifact.Version, artifact.Sha256)));
+    }
+
+    [Fact]
+    public void Refresh_ShouldAddTheRunnerBundleAndKeepTheDropsFacts_WhenTheReleaseWroteItsManifestBefore()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        TestFactory.WriteFile(directory.Combine("apps/Web/index.html"), "<html/>");
+        DropManifest.Describe(directory.Path, "2026.10.07.001", "abc123", "100-1", Created).Write(directory.Path);
+        TestFactory.WriteFile(directory.Combine("runner/bitenovac-runner-1.4.0.tar.gz"), "bundle");
+
+        // Act
+        var manifest = DropManifest.Refresh(directory.Path);
+
+        // Assert
+        Assert.Equal(("2026.10.07.001", "abc123", "100-1", Created), (manifest.Version, manifest.Sha, manifest.BuildId, manifest.Created));
+        Assert.Equal(
+            [("app", "Web"), ("runner", "bitenovac-runner")],
+            manifest.Artifacts.Select(artifact => (artifact.Kind, artifact.Name)));
+    }
+
+    [Fact]
     public void Describe_ShouldFingerprintTheArtifactsItIsGivenFingerprintsFor_WhenSomeHaveNone()
     {
         // Arrange

@@ -39,7 +39,7 @@ done
 # the drop chosen here.
 deploys=false
 case "${args[0]}" in
-    nuget | pages | cloudflare | record) [[ "${promotes}" == true ]] || deploys=true ;;
+    nuget | pages | cloudflare | record | github-release) [[ "${promotes}" == true ]] || deploys=true ;;
 esac
 
 if [[ -z "${drop}" ]]; then

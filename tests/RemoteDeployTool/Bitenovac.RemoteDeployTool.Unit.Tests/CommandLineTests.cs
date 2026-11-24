@@ -2,6 +2,30 @@ namespace Bitenovac.RemoteDeployTool.Unit.Tests;
 
 public sealed class CommandLineTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Run_ShouldRefreshTheManifestWithTheRunnerBundle_WhenAskedFor(bool named)
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var drop = TestFactory.Drop(directory.Path, TestFactory.Manifest("2026.10.07.001", TestFactory.App("Web", "aaa")));
+        TestFactory.WriteFile(Path.Combine(drop, "apps", "Web", "index.html"), "<html/>");
+        TestFactory.WriteFile(Path.Combine(drop, "runner", "bitenovac-runner-1.4.0.tar.gz"), "bundle");
+        var output = new CapturedOutput();
+        string[] arguments = named ? ["manifest", "--drop", "2026.10.07.001"] : ["manifest"];
+
+        // Act
+        var exitCode = CommandLine.Run(arguments, output.Pipeline, TestFactory.Environment(directory.Path));
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        Assert.Equal(
+            [("app", "Web"), ("runner", "bitenovac-runner")],
+            DropManifest.Read(drop).Artifacts.Select(artifact => (artifact.Kind, artifact.Name)));
+        Assert.Contains("Refreshed the manifest of 2026.10.07.001.", output.Out, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Run_ShouldPrintTheUsageAndFail_WhenNoCommandIsGiven()
     {
