@@ -37,3 +37,4 @@ jobs:
           echo "::notice title=Official drop::${drop}"
           echo "### Official drop ${drop}" >> "${GITHUB_STEP_SUMMARY}"
           bash runner/tools-into-drop.sh "${drop}"
+          bash deploy/remotedeploytool.sh pending "${drop}"

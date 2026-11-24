@@ -24,7 +24,7 @@ public sealed class CloudflarePagesDeployTests
             ["--yes", "wrangler@4.155.0", "pages", "deploy", call.WorkingDirectory, "--project-name", "planner-staging", "--branch", "main",
                 "--commit-hash", "abc1234def", "--commit-message", "Drop 2026.10.08.001"],
             call.Arguments);
-        Assert.Equal([".nojekyll", "404.html", "index.html"], call.Site);
+        Assert.Equal([".nojekyll", "404.html", "drop.txt", "index.html"], call.Site);
         Assert.False(Directory.Exists(call.WorkingDirectory));
         Assert.Contains("https://1a2b.planner-staging.pages.dev", output.Out, StringComparison.Ordinal);
         var row = Assert.Single(options.Ledger!.All());

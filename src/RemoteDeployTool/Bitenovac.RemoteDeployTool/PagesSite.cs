@@ -21,6 +21,7 @@ internal static class PagesSite
 {
     private const string WebRoot = "wwwroot";
     private const string IndexFile = "index.html";
+    private const string VersionFile = "drop.txt";
     private static readonly string[] Precompressed = [".br", ".gz"];
 
     /// <summary>
@@ -64,8 +65,9 @@ internal static class PagesSite
 
         File.Copy(Path.Combine(siteDirectory, IndexFile), Path.Combine(siteDirectory, "404.html"));
         File.WriteAllText(Path.Combine(siteDirectory, ".nojekyll"), "");
+        File.WriteAllText(Path.Combine(siteDirectory, VersionFile), manifest.Version);
 
-        output.WriteLine($"{files + 2} files ready in {siteDirectory}");
+        output.WriteLine($"{files + 3} files ready in {siteDirectory}");
         return 0;
     }
 }
