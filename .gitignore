@@ -20,4 +20,9 @@ artifacts/
 [Oo]bj/
 
 sandbox/*
-runner/packages/
+runner/tools/
+/INITIAL_PLAN.md
+/.wrangler/cache/pages.json
+/PROGRESS.md
+/runner/publish-tools.sh
+/.wrangler/cache/wrangler-account.json

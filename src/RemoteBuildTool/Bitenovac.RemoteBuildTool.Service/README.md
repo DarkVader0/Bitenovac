@@ -1,7 +1,7 @@
 # RemoteBuildTool service
 
-The optional service for [Bitenovac.RemoteBuildTool](https://www.nuget.org/packages/Bitenovac.RemoteBuildTool),
-a content-hashed build cache for .NET repositories on CI.
+The optional service for Bitenovac.RemoteBuildTool, a content-hashed build cache for .NET repositories
+on CI.
 
 RemoteBuildTool on its own needs something to put accepted work into main, its shared cache. The
 service does that and more, without any workflow of its own:
@@ -11,13 +11,15 @@ service does that and more, without any workflow of its own:
 - it records every GitHub Actions run as telemetry;
 - it compacts telemetry into Parquet and keeps a DuckDB database of views and ready-made queries.
 
-The service is a separate package because DuckDB's native libraries make it large; pull request
-runs only need Bitenovac.RemoteBuildTool.
+The service is a separate executable because DuckDB's native libraries make it large; pull request
+runs only need `remotebuildtool`.
 
 ## Install
 
+It is a standalone executable, `remotebuildtool-service`, in the same runner bundle as
+`remotebuildtool`, in `runner/tools/`:
+
 ```
-dotnet tool install --global Bitenovac.RemoteBuildTool.Service
 remotebuildtool-service --version
 ```
 

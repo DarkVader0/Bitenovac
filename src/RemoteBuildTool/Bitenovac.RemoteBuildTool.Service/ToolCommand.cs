@@ -11,7 +11,7 @@ internal sealed record ToolCommand(string FileName, IReadOnlyList<string> Prefix
     /// <summary>
     /// Gets the command line that started this process.
     /// </summary>
-    public static ToolCommand Self { get; } = For(Environment.ProcessPath, typeof(ToolCommand).Assembly.Location);
+    public static ToolCommand Self { get; } = For(Environment.ProcessPath, Environment.GetCommandLineArgs()[0]);
 
     /// <summary>
     /// Returns how to start the tool again, given how this process was started.

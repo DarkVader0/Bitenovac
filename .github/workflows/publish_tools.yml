@@ -1,0 +1,29 @@
+name: Publish tools
+
+on:
+  workflow_dispatch:
+    inputs:
+      drop:
+        description: Official drop to publish the tools into, for example 2026.10.11.001. Empty for the newest. Run on the commit the drop was built from.
+        required: false
+        default: ''
+
+concurrency:
+  group: publish_tools
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: [self-hosted, linux, x64, bitenovac]
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Publish the tools and the runner bundle
+        env:
+          DROP: ${{ inputs.drop }}
+        run: bash runner/tools-into-drop.sh "${DROP}"

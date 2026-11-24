@@ -193,14 +193,15 @@ sudo bash runner/service.sh rebuild
 ## After changing RemoteBuildTool, the Dockerfile or `global.json`
 
 Pull requests and the service use the RemoteBuildTool release **installed in the runner image**,
-not the source in the pull request. The image installs it from the two packages in
-`runner/packages`, which the runner bundle carries. No package feed is involved, so a release
-reaches a machine as a new bundle:
+not the source in the pull request. The image takes it from the standalone tools in `runner/tools`,
+which the runner bundle carries. No package feed is involved, so a release reaches a machine as a
+new bundle:
 
 1. Bump `<VersionPrefix>` in `src/RemoteBuildTool/Directory.Build.props` and merge it. That is the
-   only place the version lives, for both packages and for the bundle.
-2. Wait for the next Official build, or run one: Actions → Official → Run workflow. It builds the
-   packages under that version and puts them into the drop's bundle.
+   only place the version lives, for the tools and for the bundle.
+2. Wait for the next Official build, or run one: Actions → Official → Run workflow. It builds
+   RemoteBuildTool under that version into the drop. Then run Actions → Publish tools → Run workflow
+   on the same commit: it publishes the tools into the drop and builds the bundle.
 3. Publish the bundle: see [Publishing the runner bundle](#publishing-the-runner-bundle). A version
    that is already released fails the run, so a forgotten bump cannot replace a release.
 4. On each machine, replace the installer with the new release and rebuild the image (Ubuntu):
@@ -228,9 +229,9 @@ sudo bash runner/service.sh rebuild
 
 ### From a checkout of the repository
 
-`runner/build-image.sh` also runs from a checkout, which has no `runner/packages`. It then
+`runner/build-image.sh` also runs from a checkout, which has no `runner/tools`. It then
 downloads the bundle of the version in `src/RemoteBuildTool/Directory.Build.props` from the GitHub
-Releases page and takes the packages from it. `docker/ci-local.sh` builds its image this way. On a
+Releases page and takes the tools from it. `docker/ci-local.sh` builds its image this way. On a
 machine set up from a checkout, updating is `git pull`, then `sudo bash runner/build-image.sh`.
 
 To run what an Official drop on this machine built, before it is released (Ubuntu):
@@ -243,39 +244,8 @@ Without a name it takes the newest drop. The drop must have been built from a co
 `<VersionPrefix>` as the checkout. Two drops can carry different builds under one version, and the
 cache cannot tell them apart, so follow it with `sudo bash runner/service.sh rebuild`.
 
-### Optional: RemoteBuildTool on nuget.org
-
-Nothing in this setup installs from nuget.org. Publishing there only serves other repositories that
-install the tool with `dotnet tool install`: Actions → Deploy RemoteBuildTool → Run workflow. Leave
-the drop empty for the newest one. The tool and its service must have one version; a package
-nuget.org already has at that version is skipped, and a run in which it has both fails, as the
-version was not bumped.
-
-#### First time only: let the deploy workflow publish
-
-The deploy workflow uses nuget.org Trusted Publishing: each run trades its GitHub identity for an
-API key that expires within the hour, so no key is ever stored.
-
-**1.** On nuget.org, your account → Trusted Publishing → add a policy:
-
-| Field | Value |
-|---|---|
-| Repository owner | `DarkVader0` |
-| Repository | `Bitenovac` |
-| Workflow file | `deploy_RemoteBuildTool.yml` |
-| Environment | `nuget` |
-
-**2.** On GitHub, Settings → Variables → Actions: add the variable `NUGET_USER` with your nuget.org
-username (the profile name, not the email).
-
-**3.** Optional: Settings → Environments → `nuget` → Required reviewers: add yourself, so every
-publish waits for your approval. The environment is created on the first run if it does not exist.
-
-To publish by hand on the runner host instead, with a key from nuget.org:
-
-```bash
-NUGET_API_KEY=<KEY> bash deploy/remotedeploytool.sh nuget Bitenovac.RemoteBuildTool Bitenovac.RemoteBuildTool.Service --same-version [--drop 2026.10.11.001]
-```
+RemoteBuildTool is not published to nuget.org. Its tools are standalone executables in the drop, and
+the runner bundle carries them.
 
 ---
 
@@ -319,14 +289,15 @@ nuget.org would keep it forever and rank it above every real version.
 The runner setup is published on GitHub Releases as `bitenovac-runner-<version>`, where `<version>`
 is the RemoteBuildTool version it installs. The release holds the bundle archive and its `.sha256`.
 Anyone can download it. It holds the setup scripts, the image's build files, the two pins and the
-two RemoteBuildTool packages. No source code, tests, workflows or secrets.
+RemoteBuildTool tools. No source code, tests, workflows or secrets.
 
-Every Official drop carries the bundle in its `runner/` folder, made from the same commit and with
-the packages that drop built.
+The Publish tools workflow puts the bundle into the drop, as `<drop>/runner/`, next to the tools.
 
 1. Wait for the Official run that made the drop, or run one: Actions → Official → Run workflow.
    Its run page shows the drop version.
-2. Actions → Publish runner bundle → Run workflow. Leave the drop empty for the newest one. The
+2. Actions → Publish tools → Run workflow, on the commit of that drop. Leave the drop empty for the
+   newest one. It stops if the drop was built from another commit.
+3. Actions → Publish runner bundle → Run workflow. Leave the drop empty for the newest one. The
    release notes name the drop. A version that already has a release fails the run: bump
    `<VersionPrefix>` in `src/RemoteBuildTool/Directory.Build.props` first.
 
@@ -438,8 +409,10 @@ Release from scratch, with no cache, and drops what can be deployed into the
 
 ```
 2026.10.07.001/
-    packages/          one .nupkg per library and .NET tool
+    packages/          one .nupkg per library
     apps/              one published folder per app
+    tools/             the RemoteBuildTool tools, once Publish tools has run
+    runner/            the runner bundle, once Publish tools has run
     build-graph.json   the build graph, as beside every build's logs, with the run's logs path
 ```
 
@@ -448,7 +421,7 @@ The number is the date (UTC) and a counter for that day, so a second build on th
 from GitHub, Actions → Official → Run workflow.
 
 On GitHub, the drop's version is on the run's page: the notice **Official drop** at the top, and the
-line **Official drop** in the run's summary. Each drop also gets its runner bundle in `runner/`.
+line **Official drop** in the run's summary.
 
 An executable with `<IsPublishable>false</IsPublishable>`, such as the benchmarks, is built but
 left out of the drop.
