@@ -1,0 +1,22 @@
+name: Roll out the runner image
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: roll_out_runner
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  roll_out:
+    name: Roll out
+    runs-on: [self-hosted, linux, x64, bitenovac]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build, prove and promote the runner image
+        run: bash runner/rollout.sh

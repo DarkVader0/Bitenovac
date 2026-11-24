@@ -49,9 +49,10 @@ source "${SETTINGS_DIR}/.env"
 sdk_version="$(sdk_version_in "${REPO_ROOT}")"
 [[ -n "${sdk_version}" ]] || fail "Could not read the SDK version from global.json."
 
-readonly IMAGE="bitenovac-remotebuildtool-runner:${sdk_version}"
-docker image inspect "${IMAGE}" > /dev/null 2>&1 \
-    || fail "The image ${IMAGE} is missing. Run runner/build-image.sh on this machine."
+readonly REQUESTED="bitenovac-remotebuildtool-runner:${sdk_version}"
+docker image inspect "${REQUESTED}" > /dev/null 2>&1 \
+    || fail "The image ${REQUESTED} is missing. Run runner/build-image.sh on this machine."
+readonly IMAGE="$(docker image inspect -f '{{.Id}}' "${REQUESTED}")"
 
 docker rm --force "${CONTAINER}" > /dev/null 2>&1 || true
 
