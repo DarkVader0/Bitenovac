@@ -31,6 +31,19 @@ public sealed class DeployServicesTests
     }
 
     [Fact]
+    public void Http_ShouldMakeANewClient_WhenNothingElseIsGiven()
+    {
+        // Arrange
+        var services = new DeployServices();
+
+        // Act
+        using var client = services.Http();
+
+        // Assert
+        Assert.NotNull(client);
+    }
+
+    [Fact]
     public void Time_ShouldBeTheSystemClock_WhenNothingElseIsGiven()
     {
         // Arrange
