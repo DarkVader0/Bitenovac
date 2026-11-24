@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copies the runner bundle of an Official drop into a folder, for the Publish runner bundle workflow.
+# Copies the runner bundle of an Official drop into a folder, for the Deploy RemoteBuildTool workflow.
 #
 # Usage, on the runner host:
 #   bash deploy/runner-bundle.sh <output> [drop]

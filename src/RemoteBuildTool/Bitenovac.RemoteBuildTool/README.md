@@ -259,7 +259,7 @@ run with the cache off, under the next version: the date and a counter, such as 
   published once for each, into `apps/<name>/<framework>/`.
 - `packages/`: every other project with `<IsPackable>true</IsPackable>`, packed.
 - `tools/`: the standalone RemoteBuildTool, its service and RemoteDeployTool, published by the
-  Publish tools workflow after the release, not by the release itself.
+  Official run that makes the drop, after the release, not by the release itself.
 - `build-graph.json`: the plan the release was built from.
 - `manifest.json`: every app and package in the drop, with its version and a SHA-256, for whatever
   deploys from it. Two drops hold the same artifact exactly when its SHA-256 matches.

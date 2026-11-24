@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 #
 # Publishes the RemoteBuildTool tools into an Official drop, as standalone executables, and builds the
-# runner bundle from them into <drop>/runner/. The Publish tools workflow runs it, on the commit the
-# drop was built from.
+# runner bundle from them into <drop>/runner/. The Official workflow runs it for each drop it makes.
 #
 # Usage, on the runner host, from that checkout:
 #   bash runner/tools-into-drop.sh [drop]

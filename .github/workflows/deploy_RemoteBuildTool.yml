@@ -1,15 +1,15 @@
-name: Publish runner bundle
+name: Deploy RemoteBuildTool
 
 on:
   workflow_dispatch:
     inputs:
       drop:
-        description: Official drop to publish the runner bundle of, for example 2026.10.11.001. Empty for the newest.
+        description: Official drop to deploy RemoteBuildTool from, for example 2026.10.11.001. Empty for the newest.
         required: false
         default: ''
 
 concurrency:
-  group: publish_runner_bundle
+  group: deploy_RemoteBuildTool
   cancel-in-progress: false
 
 permissions:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish
+    name: Deploy
     runs-on: [self-hosted, linux, x64, bitenovac]
     timeout-minutes: 5
     steps:
@@ -29,7 +29,7 @@ jobs:
           DROP: ${{ inputs.drop }}
         run: bash deploy/runner-bundle.sh "${RUNNER_TEMP}/bundle" "${DROP}" >> "${GITHUB_OUTPUT}"
 
-      - name: Publish the release
+      - name: Release the runner bundle
         env:
           DROP: ${{ steps.drop.outputs.drop }}
           SHA: ${{ steps.drop.outputs.sha }}

@@ -81,7 +81,7 @@ tools_from_drop() {
             fi
             tools="/mnt/official/${DROP}/tools"
             [[ -x "${tools}/remotebuildtool" && -x "${tools}/remotebuildtool-service" ]] \
-                || { echo "error: drop ${DROP} has no tools. Publish them with the Publish tools workflow first." >&2; exit 1; }
+                || { echo "error: drop ${DROP} has no tools. Use a drop made by an Official run that published them." >&2; exit 1; }
             echo "Taking the RemoteBuildTool tools from drop ${DROP}" >&2
             tar -C "${tools}" --exclude=remotedeploytool -cf - .
         ' | tar -xf - -C "${work}"

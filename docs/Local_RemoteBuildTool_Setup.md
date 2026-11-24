@@ -200,8 +200,7 @@ new bundle:
 1. Bump `<VersionPrefix>` in `src/RemoteBuildTool/Directory.Build.props` and merge it. That is the
    only place the version lives, for the tools and for the bundle.
 2. Wait for the next Official build, or run one: Actions → Official → Run workflow. It builds
-   RemoteBuildTool under that version into the drop. Then run Actions → Publish tools → Run workflow
-   on the same commit: it publishes the tools into the drop and builds the bundle.
+   RemoteBuildTool under that version, publishes the tools into the drop, and builds the bundle.
 3. Publish the bundle: see [Publishing the runner bundle](#publishing-the-runner-bundle). A version
    that is already released fails the run, so a forgotten bump cannot replace a release.
 4. On each machine, replace the installer with the new release and rebuild the image (Ubuntu):
@@ -291,13 +290,12 @@ is the RemoteBuildTool version it installs. The release holds the bundle archive
 Anyone can download it. It holds the setup scripts, the image's build files, the two pins and the
 RemoteBuildTool tools. No source code, tests, workflows or secrets.
 
-The Publish tools workflow puts the bundle into the drop, as `<drop>/runner/`, next to the tools.
+Every Official run publishes the tools and puts the bundle into the drop, as `<drop>/runner/`, next
+to the tools.
 
 1. Wait for the Official run that made the drop, or run one: Actions → Official → Run workflow.
    Its run page shows the drop version.
-2. Actions → Publish tools → Run workflow, on the commit of that drop. Leave the drop empty for the
-   newest one. It stops if the drop was built from another commit.
-3. Actions → Publish runner bundle → Run workflow. Leave the drop empty for the newest one. The
+2. Actions → Deploy RemoteBuildTool → Run workflow. Leave the drop empty for the newest one. The
    release notes name the drop. A version that already has a release fails the run: bump
    `<VersionPrefix>` in `src/RemoteBuildTool/Directory.Build.props` first.
 
@@ -411,8 +409,8 @@ Release from scratch, with no cache, and drops what can be deployed into the
 2026.10.07.001/
     packages/          one .nupkg per library
     apps/              one published folder per app
-    tools/             the RemoteBuildTool tools, once Publish tools has run
-    runner/            the runner bundle, once Publish tools has run
+    tools/             the RemoteBuildTool tools, published by the same run
+    runner/            the runner bundle, made by the same run
     build-graph.json   the build graph, as beside every build's logs, with the run's logs path
 ```
 

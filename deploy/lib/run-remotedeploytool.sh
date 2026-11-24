@@ -53,7 +53,7 @@ fi
 
 tool="${REMOTEDEPLOYTOOL_DROP_ROOT}/${drop}/tools/remotedeploytool"
 [[ -x "${tool}" ]] \
-    || fail "Drop ${drop} holds no RemoteDeployTool; publish the tools into it with the Publish tools workflow."
+    || fail "Drop ${drop} holds no RemoteDeployTool; it was made before the tools were published into drops."
 
 if [[ -n "${GITHUB_OUTPUT:-}" && "${deploys}" == true ]]; then
     printf 'drop=%s\n' "${drop}" >> "${GITHUB_OUTPUT}"
