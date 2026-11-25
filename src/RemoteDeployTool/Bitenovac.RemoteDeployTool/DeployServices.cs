@@ -25,6 +25,16 @@ internal sealed record DeployServices
     public Func<HttpClient> Http { get; init; } = () => new HttpClient();
 
     /// <summary>
+    /// Gets how long staging is given to serve a deployment before the deployment is rolled back.
+    /// </summary>
+    public TimeSpan StagingPatience { get; init; } = TimeSpan.FromMinutes(3);
+
+    /// <summary>
+    /// Gets how long to wait between two checks of staging.
+    /// </summary>
+    public TimeSpan StagingPollInterval { get; init; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
     /// Gets the clock deployments are recorded by.
     /// </summary>
     public TimeProvider Time { get; init; } = TimeProvider.System;

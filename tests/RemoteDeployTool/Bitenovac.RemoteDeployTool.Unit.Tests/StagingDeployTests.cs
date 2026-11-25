@@ -106,6 +106,23 @@ public sealed class StagingDeployTests
     }
 
     [Fact]
+    public async Task RunAsync_ShouldAcceptTheDeploy_WhenStagingServesItAfterTheFirstCheck()
+    {
+        // Arrange
+        using var directory = TestFactory.Directory();
+        var options = Options(directory);
+        Drop(directory, "2026.10.07.001");
+        var staging = new FakeStaging { Served = null, Later = "2026.10.07.001" };
+        var services = Services(staging, new FakeWrangler()) with { StagingPatience = TimeSpan.FromSeconds(30) };
+
+        // Act
+        var exitCode = await StagingDeploy.RunAsync(options, services, ["2026.10.07.001"], TestFactory.Silence());
+
+        // Assert
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
     public async Task RunAsync_ShouldFail_WhenStagingCannotBeReached()
     {
         // Arrange
@@ -267,6 +284,8 @@ public sealed class StagingDeployTests
         Run = wrangler.Run,
         Http = () => new HttpClient(staging),
         Time = TimeProvider.System,
+        StagingPatience = TimeSpan.Zero,
+        StagingPollInterval = TimeSpan.Zero,
     };
 
     private static void Drop(TemporaryDirectory directory, string version)
@@ -288,7 +307,11 @@ public sealed class StagingDeployTests
 
     private sealed class FakeStaging : HttpMessageHandler
     {
+        private int _requests;
+
         public string? Served { get; init; }
+
+        public string? Later { get; init; }
 
         public bool Unreachable { get; init; }
 
@@ -297,9 +320,10 @@ public sealed class StagingDeployTests
             if (Unreachable)
                 throw new HttpRequestException("no route to staging");
 
-            var response = Served is null
+            var served = _requests++ == 0 ? Served : Later ?? Served;
+            var response = served is null
                 ? new HttpResponseMessage(HttpStatusCode.NotFound)
-                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Served, Encoding.UTF8, "text/plain") };
+                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(served, Encoding.UTF8, "text/plain") };
             return Task.FromResult(response);
         }
     }

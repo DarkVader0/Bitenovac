@@ -126,10 +126,26 @@ internal static class StagingDeploy
         if (options.StagingUrl is null)
             throw new InvalidOperationException("REMOTEDEPLOYTOOL_STAGING_URL is not set, so the staging site cannot be checked.");
 
+        // A new deployment takes a while to reach every address that serves it, so the check is retried until the patience runs out.
+        var deadline = services.Time.GetUtcNow() + services.StagingPatience;
+        while (true)
+        {
+            if (await ServesOnceAsync(options.StagingUrl, services, version))
+                return true;
+
+            if (services.Time.GetUtcNow() >= deadline)
+                return false;
+
+            await Task.Delay(services.StagingPollInterval);
+        }
+    }
+
+    private static async Task<bool> ServesOnceAsync(string stagingUrl, DeployServices services, string version)
+    {
         using var client = services.Http();
         try
         {
-            var response = await client.GetAsync($"{options.StagingUrl.TrimEnd('/')}/{VersionFile}");
+            var response = await client.GetAsync($"{stagingUrl.TrimEnd('/')}/{VersionFile}");
             return response.IsSuccessStatusCode && (await response.Content.ReadAsStringAsync()).Trim() == version;
         }
         catch (HttpRequestException)
